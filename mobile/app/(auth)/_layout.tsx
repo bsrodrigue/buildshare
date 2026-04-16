@@ -12,13 +12,13 @@ export default function AuthLayout() {
       initialRouteName="login"
       screenOptions={{
         headerShown: false,
+        animation: 'slide_from_right',
       }}
     >
       <Stack.Screen name="login" />
       <Stack.Screen name="register" />
       <Stack.Screen name="forgot-password" />
       <Stack.Screen name="reset-password" />
-      <Stack.Screen name="terms" />
     </Stack>
   );
 }

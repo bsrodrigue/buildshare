@@ -3,9 +3,6 @@
 > eslint app modules libs hooks --ext .ts,.tsx,.js,.jsx --max-warnings 0
 
 
-/home/badinirr/Workspace/sideprojects/build-share/mobile/app/(auth)/terms.tsx
-  5:25  error  Unable to resolve path to module '@/modules/auth/screens/TermsScreen'  import/no-unresolved
-
 /home/badinirr/Workspace/sideprojects/build-share/mobile/hooks/useFileUpload.ts
   21:31  error  Unnecessary conditional, value is always truthy    @typescript-eslint/no-unnecessary-condition
   21:44  error  Unnecessary optional chain on a non-nullish value  @typescript-eslint/no-unnecessary-condition
@@ -29,17 +26,7 @@
   25:61  error  'format' is deprecated. Use the `z.treeifyError(err)` function instead  deprecation/deprecation
 
 /home/badinirr/Workspace/sideprojects/build-share/mobile/modules/auth/api/schemas.ts
-   3:47  error  Unable to resolve path to module '../../shared/types'  import/no-unresolved
-  65:23  error  'email' is deprecated. Use `z.email()` instead         deprecation/deprecation
-
-/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/auth/components/AuthLayout.tsx
-  9:22  error  Unable to resolve path to module '../../shared/components/Logo'  import/no-unresolved
-
-/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/auth/screens/RegisterScreen.tsx
-   64:57  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
-   78:50  error  Inline style: { flex: 1, marginRight: 8 }                        react-native/no-inline-styles
-  100:50  error  Inline style: { flex: 1 }                                        react-native/no-inline-styles
-  259:10  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  63:23  error  'email' is deprecated. Use `z.email()` instead  deprecation/deprecation
 
 /home/badinirr/Workspace/sideprojects/build-share/mobile/modules/shared/theme/theme-core.ts
   100:22  error  'FALLBACK_THEME' is deprecated. Use useTheme() or useThemedStyles() instead.
@@ -87,6 +74,6 @@ Static usage breaks dark/light mode switching as it is initialized only once    
   137:17  error  'theme' is deprecated. Use useTheme() or useThemedStyles() instead.
 Static usage breaks dark/light mode switching as it is initialized only once           deprecation/deprecation
 
-✖ 40 problems (40 errors, 0 warnings)
+✖ 33 problems (33 errors, 0 warnings)
   1 error and 0 warnings potentially fixable with the `--fix` option.
 

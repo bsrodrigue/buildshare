@@ -1,93 +1,115 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { type Href, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { StyleSheet, Text, View } from 'react-native';
-import { z } from 'zod';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Button, HelperText, Text, TextInput } from 'react-native-paper';
 
 import { ROUTES } from '@/constants/routes';
-import { Toaster } from '@/libs/notification/toast';
-import { useValidatedParams } from '@/libs/router';
-import { OTPInput } from '@/modules/auth/components/inputs/OTPInput';
-import { PasswordInput } from '@/modules/auth/components/inputs/PasswordInput';
+import { createLogger } from '@/libs/log';
 import { useResetPassword } from '@/modules/auth/api/hooks';
-import { ErrorMessage } from '@/modules/shared/components/ErrorMessage';
-import { Button } from '@/modules/shared/components/inputs/Button';
+import { ResetPasswordParams, ResetPasswordParamsSchema } from '@/modules/auth/api/schemas';
 import type { Theme } from '@/modules/shared/theme';
 import { useThemedStyles } from '@/modules/shared/theme/useThemedStyles';
 
-const resetPasswordParamsSchema = z.object({
-  login: z.string().min(1, 'Login requis'),
-});
-
-const resetPasswordSchema = z
-  .object({
-    code: z.string().min(1, 'Code requis'),
-    password: z.string().min(1, 'Mot de passe requis'),
-    password_confirmation: z.string().min(1, 'Confirmation du mot de passe requise'),
-  })
-  .refine((data) => data.password === data.password_confirmation, {
-    message: 'Les mots de passe ne correspondent pas',
-    path: ['password_confirmation'],
-  });
-
-type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
+const logger = createLogger('ResetPasswordScreen');
 
 const ResetPasswordScreen = () => {
-  const { params, isValid } = useValidatedParams(
-    resetPasswordParamsSchema,
-    ROUTES.AUTH.FORGOT_PASSWORD,
-  );
-  const { login } = params;
-  const router = useRouter();
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const styles = useThemedStyles(createStyles);
+  logger.debug('Render Screen');
 
-  const { callResetPassword, isLoading } = useResetPassword({
-    onSuccess(response) {
-      Toaster.success('Succès', response.message);
-      router.replace(ROUTES.AUTH.LOGIN as Href);
-    },
-    onError(error) {
-      setErrorMessage(error.message);
-    },
-  });
+  const router = useRouter();
+  const params = useLocalSearchParams<{ login: string }>();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const styles = useThemedStyles(createStyles);
 
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<ResetPasswordFormData>({
-    resolver: zodResolver(resetPasswordSchema),
+  } = useForm<ResetPasswordParams>({
+    resolver: zodResolver(ResetPasswordParamsSchema),
     defaultValues: {
+      login: params.login || '',
       code: '',
       password: '',
       password_confirmation: '',
     },
   });
 
-  const onSubmit = async (data: ResetPasswordFormData) => {
-    if (!login) return;
-    await callResetPassword({
-      ...data,
-      login,
+  const { mutate: callResetPassword, isPending: isLoading } = useResetPassword();
+
+  const onSubmit = (data: ResetPasswordParams) => {
+    callResetPassword(data, {
+      onSuccess() {
+        router.push(ROUTES.AUTH.LOGIN);
+      },
+      onError(error) {
+        setErrorMessage(error.message);
+      },
     });
   };
 
-  if (!isValid) return null;
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Réinitialisation</Text>
-      <Text style={styles.subtitle}>Entrez le code reçu et votre nouveau mot de passe.</Text>
+    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <Text variant="headlineSmall" style={styles.title}>
+        Réinitialiser le mot de passe
+      </Text>
+      <Text variant="bodyLarge" style={styles.subtitle}>
+        Veuillez entrer le code reçu et votre nouveau mot de passe.
+      </Text>
 
-      <ErrorMessage message={errorMessage} />
+      {errorMessage && (
+        <HelperText type="error" visible={!!errorMessage} style={styles.errorText}>
+          {errorMessage}
+        </HelperText>
+      )}
+
+      <Controller
+        control={control}
+        name="login"
+        render={({ field: { onChange, value } }) => (
+          <View style={styles.inputContainer}>
+            <TextInput
+              label="Email ou téléphone"
+              mode="outlined"
+              value={value}
+              onChangeText={onChange}
+              disabled={isLoading || !!params.login}
+              error={!!errors.login}
+              style={styles.input}
+              autoCapitalize="none"
+            />
+            {errors.login && (
+              <HelperText type="error" visible={!!errors.login}>
+                {errors.login.message}
+              </HelperText>
+            )}
+          </View>
+        )}
+      />
 
       <Controller
         control={control}
         name="code"
         render={({ field: { onChange, value } }) => (
-          <OTPInput length={6} value={value} onChange={onChange} error={!!errors.code?.message} />
+          <View style={styles.inputContainer}>
+            <TextInput
+              label="Code de vérification"
+              mode="outlined"
+              value={value}
+              onChangeText={onChange}
+              disabled={isLoading}
+              error={!!errors.code}
+              style={styles.input}
+              keyboardType="number-pad"
+            />
+            {errors.code && (
+              <HelperText type="error" visible={!!errors.code}>
+                {errors.code.message}
+              </HelperText>
+            )}
+          </View>
         )}
       />
 
@@ -95,13 +117,30 @@ const ResetPasswordScreen = () => {
         control={control}
         name="password"
         render={({ field: { onChange, value } }) => (
-          <PasswordInput
-            placeholder="Nouveau mot de passe"
-            value={value}
-            onChangeText={onChange}
-            disabled={isLoading}
-            error={errors.password?.message}
-          />
+          <View style={styles.inputContainer}>
+            <TextInput
+              label="Nouveau mot de passe"
+              mode="outlined"
+              value={value}
+              onChangeText={onChange}
+              autoCapitalize="none"
+              disabled={isLoading}
+              secureTextEntry={!showPassword}
+              right={
+                <TextInput.Icon
+                  icon={showPassword ? 'eye-off' : 'eye'}
+                  onPress={() => setShowPassword(!showPassword)}
+                />
+              }
+              error={!!errors.password}
+              style={styles.input}
+            />
+            {errors.password && (
+              <HelperText type="error" visible={!!errors.password}>
+                {errors.password.message}
+              </HelperText>
+            )}
+          </View>
         )}
       />
 
@@ -109,64 +148,88 @@ const ResetPasswordScreen = () => {
         control={control}
         name="password_confirmation"
         render={({ field: { onChange, value } }) => (
-          <PasswordInput
-            placeholder="Confirmer le mot de passe"
-            value={value}
-            onChangeText={onChange}
-            disabled={isLoading}
-            error={errors.password_confirmation?.message}
-          />
+          <View style={styles.inputContainer}>
+            <TextInput
+              label="Confirmer le mot de passe"
+              mode="outlined"
+              value={value}
+              onChangeText={onChange}
+              autoCapitalize="none"
+              disabled={isLoading}
+              secureTextEntry={!showPassword}
+              error={!!errors.password_confirmation}
+              style={styles.input}
+            />
+            {errors.password_confirmation && (
+              <HelperText type="error" visible={!!errors.password_confirmation}>
+                {errors.password_confirmation.message}
+              </HelperText>
+            )}
+          </View>
         )}
       />
 
       <Button
-        title="RÉINITIALISER"
-        isLoading={isLoading}
-        onPress={handleSubmit(onSubmit)}
-        fontSize="sm"
-        fontWeight="medium"
-      />
+        mode="contained"
+        loading={isLoading}
+        onPress={() => {
+          void handleSubmit(onSubmit)();
+        }}
+        style={styles.submitButton}
+        contentStyle={styles.submitButtonContent}
+      >
+        RÉINITIALISER
+      </Button>
 
       <Button
-        variant="ghost"
-        title="Annuler"
-        onPress={() => router.push(ROUTES.AUTH.LOGIN as Href)}
+        mode="text"
+        onPress={() => router.push(ROUTES.AUTH.LOGIN)}
         disabled={isLoading}
-        textColor={styles.cancelText.color}
-        style={styles.cancelButton}
-        fontSize="sm"
-        fontWeight="normal"
-      />
-    </View>
+        style={styles.backButton}
+      >
+        Retour à la connexion
+      </Button>
+    </ScrollView>
   );
 };
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      width: '100%',
+    scrollContent: {
+      paddingBottom: theme.spacing.xl,
     },
     title: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.medium,
+      fontWeight: '700',
       color: theme.colors.text,
-      marginBottom: theme.spacing.sm,
+      marginBottom: theme.spacing.xs,
     },
     subtitle: {
-      fontSize: theme.fontSize.base,
       color: theme.colors.text,
       marginBottom: theme.spacing.xl,
+      opacity: 0.7,
       lineHeight: 24,
     },
-    cancelButton: {
-      marginTop: theme.spacing.lg,
-      marginBottom: theme.spacing.xl,
+    inputContainer: {
+      marginBottom: theme.spacing.sm,
     },
-    cancelText: {
-      color: theme.colors.textSecondary,
+    input: {
+      backgroundColor: 'transparent',
+    },
+    errorText: {
+      marginBottom: theme.spacing.sm,
+      paddingHorizontal: 0,
+    },
+    submitButton: {
+      marginTop: theme.spacing.md,
+      borderRadius: 8,
+    },
+    submitButtonContent: {
+      paddingVertical: 6,
+    },
+    backButton: {
+      marginTop: theme.spacing.md,
     },
   });
 
 ResetPasswordScreen.displayName = 'ResetPasswordScreen';
-
 export default ResetPasswordScreen;

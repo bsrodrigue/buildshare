@@ -2,26 +2,21 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { type Href, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Button, HelperText, Text, TextInput } from 'react-native-paper';
 import { z } from 'zod';
 
 import { ROUTES } from '@/constants/routes';
 import { AppConfiguration } from '@/libs/app-config';
-import { Logger } from '@/libs/log';
-import PushNotificationService from '@/libs/push-notification/init';
+import { createLogger } from '@/libs/log';
 import { SecureStorage } from '@/libs/secure-storage';
 import { SecureStorageKey } from '@/libs/secure-storage/keys';
-import { PasswordInput } from '@/modules/auth/components/inputs/PasswordInput';
 import { useLogin } from '@/modules/auth/api/hooks';
 import { useAuthStore } from '@/modules/auth/store';
-import { registerDeviceToken } from '@/modules/device-tokens/api';
-import { ErrorMessage } from '@/modules/shared/components/ErrorMessage';
-import { Button } from '@/modules/shared/components/inputs/Button';
-import { Input } from '@/modules/shared/components/inputs/Input';
 import type { Theme } from '@/modules/shared/theme';
 import { useThemedStyles } from '@/modules/shared/theme/useThemedStyles';
 
-const logger = new Logger('LoginScreen');
+const logger = createLogger('LoginScreen');
 
 const loginSchema = z.object({
   login: z.string().min(1, 'Login requis'),
@@ -36,86 +31,80 @@ const defaultLoginValues: LoginFormData = {
 };
 
 const LoginScreen = () => {
+  logger.debug('Render Screen');
+
   const router = useRouter();
   const { setUser } = useAuthStore();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const styles = useThemedStyles(createStyles);
 
   const {
     control,
     handleSubmit,
-    getValues,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: defaultLoginValues,
   });
 
-  const { callLogin, isLoading } = useLogin({
-    async onSuccess(response) {
-      const { user, token } = response.data;
+  const { mutate: callLogin, isPending: isLoading } = useLogin();
 
-      SecureStorage.setItem(SecureStorageKey.BEARER_TOKEN, token);
-      setUser(user);
+  const onSubmit = (data: LoginFormData) => {
+    callLogin(data, {
+      onSuccess(response) {
+        void (async () => {
+          const { user, token } = response.data;
 
-      // Register device token for push notifications
-      try {
-        const deviceInfo = await PushNotificationService.getDeviceInfo();
-        await registerDeviceToken(deviceInfo);
-      } catch (error) {
-        logger.error(`Failed to register device token: ${error}`);
-      }
-    },
+          await SecureStorage.setItem(SecureStorageKey.BEARER_TOKEN, token);
+          setUser(user);
+        })();
+      },
 
-    onError(error) {
-      setErrorMessage(error.message);
-
-      if (error.code === 'PHONE_NOT_VERIFIED') {
-        const login = getValues('login');
-        const isEmail = login.includes('@');
-        const isPhone = /^\+?[0-9]+$/.test(login.replace(/[\s-]/g, ''));
-
-        if (isEmail || !isPhone) {
-          setErrorMessage(
-            'Veuillez utiliser votre numéro de téléphone pour la validation initiale.',
-          );
-          return;
-        }
-
-        router.push({
-          pathname: ROUTES.AUTH.OTP,
-          params: { phone: login },
-        });
-      }
-    },
-  });
-
-  const onSubmit = async (data: LoginFormData) => {
-    await callLogin(data);
+      onError(error) {
+        setErrorMessage(error.message);
+      },
+    });
   };
 
   return (
     <>
-      <Text style={styles.title}>Bienvenue chez {AppConfiguration.appName}!</Text>
-      <Text style={styles.subtitle}>Pour continuer, veuillez saisir vos informations.</Text>
+      <Text variant="headlineSmall" style={styles.title}>
+        Bienvenue chez {AppConfiguration.appName}!
+      </Text>
+      <Text variant="bodyLarge" style={styles.subtitle}>
+        Pour continuer, veuillez saisir vos informations.
+      </Text>
 
-      <ErrorMessage message={errorMessage} />
+      {errorMessage && (
+        <HelperText type="error" visible={!!errorMessage} style={styles.errorText}>
+          {errorMessage}
+        </HelperText>
+      )}
 
       <Controller
         control={control}
         name="login"
         render={({ field: { onChange, value } }) => (
-          <Input
-            label="Numéro de téléphone ou email"
-            placeholder="Login"
-            value={value}
-            onChangeText={onChange}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-            disabled={isLoading}
-            error={errors.login?.message}
-          />
+          <View style={styles.inputContainer}>
+            <TextInput
+              label="Numéro de téléphone ou email"
+              mode="outlined"
+              value={value}
+              onChangeText={onChange}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              disabled={isLoading}
+              error={!!errors.login}
+              style={styles.input}
+            />
+            {errors.login && (
+              <HelperText type="error" visible={!!errors.login}>
+                {errors.login.message}
+              </HelperText>
+            )}
+          </View>
         )}
       />
 
@@ -123,45 +112,64 @@ const LoginScreen = () => {
         control={control}
         name="password"
         render={({ field: { onChange, value } }) => (
-          <PasswordInput
-            label="Mot de passe"
-            placeholder="Mot de passe"
-            value={value}
-            onChangeText={onChange}
-            autoCapitalize="none"
-            disabled={isLoading}
-            autoComplete="password"
-            error={errors.password?.message}
-          />
+          <View style={styles.inputContainer}>
+            <TextInput
+              label="Mot de passe"
+              mode="outlined"
+              value={value}
+              onChangeText={onChange}
+              autoCapitalize="none"
+              disabled={isLoading}
+              autoComplete="password"
+              secureTextEntry={!showPassword}
+              right={
+                <TextInput.Icon
+                  icon={showPassword ? 'eye-off' : 'eye'}
+                  onPress={() => setShowPassword(!showPassword)}
+                />
+              }
+              error={!!errors.password}
+              style={styles.input}
+            />
+            {errors.password && (
+              <HelperText type="error" visible={!!errors.password}>
+                {errors.password.message}
+              </HelperText>
+            )}
+          </View>
         )}
       />
 
       <Button
-        variant="ghost"
-        title="Mot de passe oublié ?"
+        mode="text"
         onPress={() => router.push(ROUTES.AUTH.FORGOT_PASSWORD as Href)}
         disabled={isLoading}
         style={styles.forgotPasswordButton}
-      />
+        compact
+      >
+        Mot de passe oublié ?
+      </Button>
 
       <Button
-        title="SUIVANT"
-        isLoading={isLoading}
-        onPress={handleSubmit(onSubmit)}
-        fontSize="sm"
-        fontWeight="medium"
-      />
+        mode="contained"
+        loading={isLoading}
+        onPress={() => {
+          void handleSubmit(onSubmit)();
+        }}
+        style={styles.submitButton}
+        contentStyle={styles.submitButtonContent}
+      >
+        SUIVANT
+      </Button>
 
       <Button
-        variant="ghost"
-        title="Pas de compte? Inscrivez-vous"
+        mode="text"
         onPress={() => router.push(ROUTES.AUTH.REGISTER as Href)}
         disabled={isLoading}
-        textColor={styles.toggleText.color}
         style={styles.toggleButton}
-        fontSize="sm"
-        fontWeight="normal"
-      />
+      >
+        Pas de compte? Inscrivez-vous
+      </Button>
     </>
   );
 };
@@ -169,27 +177,38 @@ const LoginScreen = () => {
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     title: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.medium,
+      fontWeight: '700',
       color: theme.colors.text,
-      marginBottom: theme.spacing.sm,
+      marginBottom: theme.spacing.xs,
     },
     subtitle: {
-      fontSize: theme.fontSize.base,
       color: theme.colors.text,
       marginBottom: theme.spacing.xl,
-      lineHeight: 24,
+      opacity: 0.7,
+    },
+    inputContainer: {
+      marginBottom: theme.spacing.sm,
+    },
+    input: {
+      backgroundColor: 'transparent',
+    },
+    errorText: {
+      marginBottom: theme.spacing.sm,
+      paddingHorizontal: 0,
     },
     forgotPasswordButton: {
       alignSelf: 'flex-end',
       marginBottom: theme.spacing.lg,
     },
+    submitButton: {
+      marginTop: theme.spacing.sm,
+      borderRadius: 8,
+    },
+    submitButtonContent: {
+      paddingVertical: 6,
+    },
     toggleButton: {
       marginTop: theme.spacing.lg,
-      marginBottom: theme.spacing.xl,
-    },
-    toggleText: {
-      color: theme.colors.primary,
     },
   });
 

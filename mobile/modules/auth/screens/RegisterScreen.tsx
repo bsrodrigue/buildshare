@@ -1,486 +1,144 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { StyleSheet, Text } from 'react-native';
-import { z } from 'zod';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Button, HelperText, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 
-import { COUNTRY_CODE } from '@/constants';
-import { useFilePicker } from '@/hooks/useFileUpload';
+import { ROUTES } from '@/constants/routes';
 import { AppConfiguration } from '@/libs/app-config';
-import { Filesystem } from '@/libs/fs';
-import { PasswordInput } from '@/modules/auth/components/inputs/PasswordInput';
+import { createLogger } from '@/libs/log';
 import { useRegister } from '@/modules/auth/api/hooks';
-import { Button } from '@/modules/shared/components/inputs/Button';
-import { Checkbox } from '@/modules/shared/components/inputs/Checkbox';
-import { DatePicker } from '@/modules/shared/components/inputs/DatePicker';
-import { FileUploadButton } from '@/modules/shared/components/inputs/FileUploadButton';
-import { Input } from '@/modules/shared/components/inputs/Input';
-import { PhoneInput } from '@/modules/shared/components/inputs/PhoneInput';
-import { RolePicker } from '@/modules/shared/components/inputs/RolePicker';
-import { VehicleTypePicker } from '@/modules/shared/components/inputs/VehicleTypePicker';
+import { RegisterParams, RegisterParamsSchema } from '@/modules/auth/api/schemas';
 import type { Theme } from '@/modules/shared/theme';
 import { useThemedStyles } from '@/modules/shared/theme/useThemedStyles';
 
-import { RegisterParams, UserRole } from '../api/schemas';
+const logger = createLogger('RegisterScreen');
 
-export const AllowedRegistrationRoles = [
-  'client',
-  'delivery_man',
-  'seller',
-] as const satisfies readonly UserRole[];
-export const AllowedRegistrationRolesSchema = z.enum(AllowedRegistrationRoles);
-
-export type AllowedRegistrationRole = z.infer<typeof AllowedRegistrationRolesSchema>;
-
-const registerSchema = z
-  .object({
-    // Common fields (required)
-    firstName: z.string().min(1, 'Prénom requis').max(100, 'Maximum 100 caractères'),
-    lastName: z.string().min(1, 'Nom requis').max(100, 'Maximum 100 caractères'),
-    birthDate: z.date(),
-    email: z.email('Adresse email invalide'),
-    role: AllowedRegistrationRolesSchema,
-    password: z.string().min(6, 'Minimum 6 caractères'),
-    passwordConfirmation: z.string().min(6, 'Minimum 6 caractères'),
-    phoneNumber: z.string().min(1, 'Numéro de téléphone requis'),
-
-    // Optional common field
-    promoCode: z.string().max(50, 'Maximum 50 caractères').optional().nullable(),
-
-    // Seller fields
-    shopName: z.string().max(255, 'Maximum 255 caractères').optional().nullable(),
-    cnibRecto: z.string().optional().nullable(),
-    cnibVerso: z.string().optional().nullable(),
-    businessRegister: z.string().optional().nullable(),
-
-    // Delivery man fields
-    vehicle_type: z.enum(['moto', 'velo', 'voiture']).optional().nullable(),
-    license_plate: z.string().max(20, 'Maximum 20 caractères').optional().nullable(),
-  })
-  .refine(
-    (data) => {
-      return data.password === data.passwordConfirmation;
-    },
-    {
-      message: 'Les mots de passe ne correspondent pas',
-      path: ['passwordConfirmation'],
-    },
-  )
-  .refine(
-    (data) => {
-      if (data.role === 'seller') {
-        return !!data.shopName && data.shopName.trim().length > 0;
-      }
-      return true;
-    },
-    {
-      message: 'Le nom de la boutique est obligatoire pour les vendeurs',
-      path: ['shopName'],
-    },
-  )
-  .refine(
-    (data) => {
-      if (data.role === 'seller') {
-        return !!data.cnibRecto;
-      }
-      return true;
-    },
-    {
-      message: 'Photo CNIB recto obligatoire pour les vendeurs',
-      path: ['cnibRecto'],
-    },
-  )
-  .refine(
-    (data) => {
-      if (data.role === 'seller') {
-        return !!data.cnibVerso;
-      }
-      return true;
-    },
-    {
-      message: 'Photo CNIB verso obligatoire pour les vendeurs',
-      path: ['cnibVerso'],
-    },
-  )
-  .refine(
-    (data) => {
-      if (data.role === 'delivery_man') {
-        return !!data.vehicle_type;
-      }
-      return true;
-    },
-    {
-      message: 'Le type de véhicule est obligatoire pour les livreurs',
-      path: ['vehicle_type'],
-    },
-  )
-  .refine(
-    (data) => {
-      if (data.role === 'delivery_man') {
-        return !!data.cnibRecto;
-      }
-      return true;
-    },
-    {
-      message: 'Photo CNIB recto obligatoire pour les livreurs',
-      path: ['cnibRecto'],
-    },
-  )
-  .refine(
-    (data) => {
-      if (data.role === 'delivery_man') {
-        return !!data.cnibVerso;
-      }
-      return true;
-    },
-    {
-      message: 'Photo CNIB verso obligatoire pour les livreurs',
-      path: ['cnibVerso'],
-    },
-  );
-
-type RegisterFormData = z.infer<typeof registerSchema>;
-
-const defaultRegisterValues: RegisterFormData = {
+const defaultRegisterValues: Partial<RegisterParams> = {
   firstName: '',
   lastName: '',
   email: '',
+  phoneNumber: '',
+  role: 'client',
   password: '',
   passwordConfirmation: '',
-  phoneNumber: '',
-  promoCode: null,
-  role: 'client',
-  birthDate: new Date('2000-01-01'),
-  shopName: null,
-  cnibRecto: null,
-  cnibVerso: null,
-  businessRegister: null,
-  vehicle_type: null,
-  license_plate: null,
 };
 
 const RegisterScreen = () => {
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [termsError, setTermsError] = useState<string | undefined>();
+  logger.debug('Render Screen');
+
   const router = useRouter();
-  const { files, loading, pickDocument, pickImage } = useFilePicker();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const styles = useThemedStyles(createStyles);
 
   const {
     control,
     handleSubmit,
     formState: { errors },
-    setValue,
-    setError,
-    getValues,
-    watch,
-  } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: defaultRegisterValues,
+  } = useForm<RegisterParams>({
+    resolver: zodResolver(RegisterParamsSchema),
+    defaultValues: defaultRegisterValues as RegisterParams,
   });
 
-  const selectedRole = watch('role');
+  const { mutate: callRegister, isPending: isLoading } = useRegister();
 
-  const apiFieldToFormField: Record<string, keyof RegisterFormData> = {
-    first_name: 'firstName',
-    last_name: 'lastName',
-    date_of_birth: 'birthDate',
-    email: 'email',
-    phone: 'phoneNumber',
-    role: 'role',
-    password: 'password',
-    password_confirmation: 'passwordConfirmation',
-    promo_code: 'promoCode',
-    shop_name: 'shopName',
-    cnib_recto: 'cnibRecto',
-    cnib_verso: 'cnibVerso',
-    business_register: 'businessRegister',
-    vehicle_type: 'vehicle_type',
-    license_plate: 'license_plate',
-  };
-
-  const { callRegister: register, isLoading } = useRegister({
-    onSuccess() {
-      const phone = getValues('phoneNumber');
-      router.replace({
-        pathname: '/(auth)/otp',
-        params: { phone: encodeURIComponent(phone) },
-      });
-    },
-    onError(error) {
-      if (error.errors) {
-        for (const [apiKey, messages] of Object.entries(error.errors)) {
-          const formField = apiFieldToFormField[apiKey];
-          if (formField && messages.length > 0) {
-            setError(formField, { message: messages[0] });
-          }
-        }
-      }
-    },
-  });
-
-  useEffect(() => {
-    Object.entries(files).forEach(([key, value]) => {
-      if (value) {
-        setValue(key as keyof RegisterFormData, value as RegisterFormData[keyof RegisterFormData]);
-      }
+  const onSubmit = (data: RegisterParams) => {
+    callRegister(data, {
+      onSuccess() {
+        router.push(ROUTES.AUTH.LOGIN);
+      },
+      onError(error) {
+        setErrorMessage(error.message);
+      },
     });
-  }, [files, setValue]);
-
-  const toggleTerms = () => {
-    setAcceptedTerms(!acceptedTerms);
-    setTermsError(undefined);
-  };
-
-  const onSubmit = async (data: RegisterFormData) => {
-    if (!acceptedTerms) {
-      setTermsError('Veuillez accepter les termes et conditions');
-      return;
-    }
-
-    const payload = {
-      ...data,
-      cnibRecto: Filesystem.prepareFileForUpload(data.cnibRecto ?? undefined, 'cnib_recto.jpg'),
-      cnibVerso: Filesystem.prepareFileForUpload(data.cnibVerso ?? undefined, 'cnib_verso.jpg'),
-      businessRegister: Filesystem.prepareFileForUpload(
-        data.businessRegister ?? undefined,
-        'business_register.pdf',
-      ),
-    };
-
-    await register(payload as RegisterParams);
   };
 
   return (
-    <>
-      <Text style={styles.title}>Bienvenue chez {AppConfiguration.appName}!</Text>
-      <Text style={styles.subtitle}>pour commencer, veuillez saisir vos informations</Text>
+    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <Text variant="headlineSmall" style={styles.title}>
+        Créer un compte
+      </Text>
+      <Text variant="bodyLarge" style={styles.subtitle}>
+        Rejoignez {AppConfiguration.appName} dès aujourd&apos;hui.
+      </Text>
 
-      <Controller
-        control={control}
-        name="role"
-        render={({ field: { onChange, value } }) => (
-          <RolePicker
-            name="role"
-            label="Rôle"
-            value={value || ''}
-            onValueChange={onChange}
-            disabled={isLoading}
-            error={errors.role?.message}
-          />
-        )}
-      />
+      {errorMessage && (
+        <HelperText type="error" visible={!!errorMessage} style={styles.errorText}>
+          {errorMessage}
+        </HelperText>
+      )}
 
-      <Controller
-        control={control}
-        name="firstName"
-        render={({ field: { onChange, value } }) => (
-          <Input
-            label="Prénom"
-            placeholder="Prénom"
-            value={value || ''}
-            onChangeText={onChange}
-            autoCapitalize="words"
-            disabled={isLoading}
-            autoComplete="name-given"
-            error={errors.firstName?.message}
-          />
-        )}
-      />
-
-      <Controller
-        control={control}
-        name="lastName"
-        render={({ field: { onChange, value } }) => (
-          <Input
-            label="Nom"
-            placeholder="Nom"
-            value={value || ''}
-            onChangeText={onChange}
-            autoCapitalize="words"
-            disabled={isLoading}
-            autoComplete="name-family"
-            error={errors.lastName?.message}
-          />
-        )}
-      />
-
-      <Controller
-        control={control}
-        name="birthDate"
-        render={({ field: { onChange, value } }) => (
-          <DatePicker
-            label="Date de naissance"
-            placeholder="Date de naissance"
-            value={value}
-            onChange={onChange}
-            maximumDate={new Date()}
-            disabled={isLoading}
-            error={errors.birthDate?.message}
-          />
-        )}
-      />
+      <View style={styles.row}>
+        <Controller
+          control={control}
+          name="firstName"
+          render={({ field: { onChange, value } }) => (
+            <View style={styles.flexHalfLeft}>
+              <TextInput
+                label="Prénom"
+                mode="outlined"
+                value={value}
+                onChangeText={onChange}
+                disabled={isLoading}
+                error={!!errors.firstName}
+                style={styles.input}
+              />
+              {errors.firstName && (
+                <HelperText type="error" visible={!!errors.firstName}>
+                  {errors.firstName.message}
+                </HelperText>
+              )}
+            </View>
+          )}
+        />
+        <Controller
+          control={control}
+          name="lastName"
+          render={({ field: { onChange, value } }) => (
+            <View style={styles.flexHalf}>
+              <TextInput
+                label="Nom"
+                mode="outlined"
+                value={value}
+                onChangeText={onChange}
+                disabled={isLoading}
+                error={!!errors.lastName}
+                style={styles.input}
+              />
+              {errors.lastName && (
+                <HelperText type="error" visible={!!errors.lastName}>
+                  {errors.lastName.message}
+                </HelperText>
+              )}
+            </View>
+          )}
+        />
+      </View>
 
       <Controller
         control={control}
         name="email"
         render={({ field: { onChange, value } }) => (
-          <Input
-            label="Email"
-            placeholder="Email"
-            value={value || ''}
-            onChangeText={onChange}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-            disabled={isLoading}
-            error={errors.email?.message}
-          />
-        )}
-      />
-
-      {selectedRole === 'seller' && (
-        <>
-          <Controller
-            control={control}
-            name="shopName"
-            render={({ field: { onChange, value } }) => (
-              <Input
-                label="Nom de la boutique"
-                placeholder="Nom de la boutique"
-                value={value ?? ''}
-                onChangeText={onChange}
-                disabled={isLoading}
-                error={errors.shopName?.message}
-              />
+          <View style={styles.inputContainer}>
+            <TextInput
+              label="Email"
+              mode="outlined"
+              value={value}
+              onChangeText={onChange}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              disabled={isLoading}
+              error={!!errors.email}
+              style={styles.input}
+            />
+            {errors.email && (
+              <HelperText type="error" visible={!!errors.email}>
+                {errors.email.message}
+              </HelperText>
             )}
-          />
-
-          <FileUploadButton
-            label="CNIB recto *"
-            onPress={() => pickImage('cnibRecto')}
-            hasFile={!!watch('cnibRecto')}
-            placeholder="Photo CNIB recto *"
-            uploadedText="CNIB recto chargé"
-            disabled={isLoading}
-            loading={loading.cnibRecto}
-            error={errors.cnibRecto?.message}
-          />
-
-          <FileUploadButton
-            label="CNIB verso *"
-            onPress={() => pickImage('cnibVerso')}
-            hasFile={!!watch('cnibVerso')}
-            placeholder="Photo CNIB verso *"
-            uploadedText="CNIB verso chargé"
-            disabled={isLoading}
-            loading={loading.cnibVerso}
-            error={errors.cnibVerso?.message}
-          />
-
-          <FileUploadButton
-            label="Registre de commerce (Optionnel)"
-            onPress={() => pickDocument('businessRegister')}
-            hasFile={!!watch('businessRegister')}
-            placeholder="Registre de commerce (Optionnel)"
-            uploadedText="Registre de commerce chargé"
-            disabled={isLoading}
-            loading={loading.businessRegister}
-            error={errors.businessRegister?.message}
-          />
-        </>
-      )}
-
-      {selectedRole === 'delivery_man' && (
-        <>
-          <Controller
-            control={control}
-            name="vehicle_type"
-            render={({ field: { onChange, value } }) => (
-              <VehicleTypePicker
-                name="vehicle_type"
-                label="Type de véhicule"
-                value={value ?? undefined}
-                onValueChange={onChange}
-                disabled={isLoading}
-                error={errors.vehicle_type?.message}
-              />
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="license_plate"
-            render={({ field: { onChange, value } }) => (
-              <Input
-                label="Plaque d'immatriculation"
-                placeholder="Plaque d'immatriculation (Optionnel)"
-                value={value ?? ''}
-                onChangeText={onChange}
-                autoCapitalize="characters"
-                disabled={isLoading}
-                maxLength={20}
-                error={errors.license_plate?.message}
-              />
-            )}
-          />
-
-          <FileUploadButton
-            label="CNIB recto *"
-            onPress={() => pickImage('cnibRecto')}
-            hasFile={!!watch('cnibRecto')}
-            placeholder="Photo CNIB recto *"
-            uploadedText="CNIB recto chargé"
-            disabled={isLoading}
-            loading={loading.cnibRecto}
-            error={errors.cnibRecto?.message}
-          />
-
-          <FileUploadButton
-            label="CNIB verso *"
-            onPress={() => pickImage('cnibVerso')}
-            hasFile={!!watch('cnibVerso')}
-            placeholder="Photo CNIB verso *"
-            uploadedText="CNIB verso chargé"
-            disabled={isLoading}
-            loading={loading.cnibVerso}
-            error={errors.cnibVerso?.message}
-          />
-        </>
-      )}
-
-      <Controller
-        control={control}
-        name="password"
-        render={({ field: { onChange, value } }) => (
-          <PasswordInput
-            label="Mot de passe"
-            placeholder="Mot de passe"
-            value={value || ''}
-            onChangeText={onChange}
-            autoCapitalize="none"
-            disabled={isLoading}
-            autoComplete="password-new"
-            error={errors.password?.message}
-          />
-        )}
-      />
-
-      <Controller
-        control={control}
-        name="passwordConfirmation"
-        render={({ field: { onChange, value } }) => (
-          <PasswordInput
-            label="Confirmation du mot de passe"
-            placeholder="Confirmation du mot de passe"
-            value={value || ''}
-            onChangeText={onChange}
-            autoCapitalize="none"
-            disabled={isLoading}
-            autoComplete="password-new"
-            error={errors.passwordConfirmation?.message}
-          />
+          </View>
         )}
       />
 
@@ -488,74 +146,183 @@ const RegisterScreen = () => {
         control={control}
         name="phoneNumber"
         render={({ field: { onChange, value } }) => (
-          <PhoneInput
-            label="Numéro de téléphone"
-            countryCode={COUNTRY_CODE}
-            phoneNumber={value || ''}
-            onChangePhoneNumber={onChange}
-            disabled={isLoading}
-            error={errors.phoneNumber?.message}
-          />
+          <View style={styles.inputContainer}>
+            <TextInput
+              label="Téléphone"
+              mode="outlined"
+              value={value}
+              onChangeText={onChange}
+              keyboardType="phone-pad"
+              disabled={isLoading}
+              error={!!errors.phoneNumber}
+              style={styles.input}
+            />
+            {errors.phoneNumber && (
+              <HelperText type="error" visible={!!errors.phoneNumber}>
+                {errors.phoneNumber.message}
+              </HelperText>
+            )}
+          </View>
         )}
       />
 
-      <Checkbox
-        checked={acceptedTerms}
-        onPress={toggleTerms}
-        label="j'accepte les"
-        linkText="conditions générales d'utilisation"
-        onLinkPress={() => router.push('/(auth)/terms')}
-        disabled={isLoading}
-        error={termsError}
+      <Controller
+        control={control}
+        name="role"
+        render={({ field: { onChange, value } }) => (
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Je suis un :</Text>
+            <SegmentedButtons
+              value={value}
+              onValueChange={onChange}
+              buttons={[
+                { value: 'client', label: 'Client' },
+                { value: 'seller', label: 'Vendeur' },
+                { value: 'delivery_man', label: 'Livreur' },
+              ]}
+            />
+            {errors.role && (
+              <HelperText type="error" visible={!!errors.role}>
+                {errors.role.message}
+              </HelperText>
+            )}
+          </View>
+        )}
+      />
+
+      <Controller
+        control={control}
+        name="password"
+        render={({ field: { onChange, value } }) => (
+          <View style={styles.inputContainer}>
+            <TextInput
+              label="Mot de passe"
+              mode="outlined"
+              value={value}
+              onChangeText={onChange}
+              autoCapitalize="none"
+              disabled={isLoading}
+              secureTextEntry={!showPassword}
+              right={
+                <TextInput.Icon
+                  icon={showPassword ? 'eye-off' : 'eye'}
+                  onPress={() => setShowPassword(!showPassword)}
+                />
+              }
+              error={!!errors.password}
+              style={styles.input}
+            />
+            {errors.password && (
+              <HelperText type="error" visible={!!errors.password}>
+                {errors.password.message}
+              </HelperText>
+            )}
+          </View>
+        )}
+      />
+
+      <Controller
+        control={control}
+        name="passwordConfirmation"
+        render={({ field: { onChange, value } }) => (
+          <View style={styles.inputContainer}>
+            <TextInput
+              label="Confirmation du mot de passe"
+              mode="outlined"
+              value={value}
+              onChangeText={onChange}
+              autoCapitalize="none"
+              disabled={isLoading}
+              secureTextEntry={!showPassword}
+              error={!!errors.passwordConfirmation}
+              style={styles.input}
+            />
+            {errors.passwordConfirmation && (
+              <HelperText type="error" visible={!!errors.passwordConfirmation}>
+                {errors.passwordConfirmation.message}
+              </HelperText>
+            )}
+          </View>
+        )}
       />
 
       <Button
-        title="SUIVANT"
-        onPress={handleSubmit(onSubmit)}
-        isLoading={isLoading}
-        fontSize="sm"
-        fontWeight="medium"
-      />
+        mode="contained"
+        loading={isLoading}
+        onPress={() => {
+          void handleSubmit(onSubmit)();
+        }}
+        style={styles.submitButton}
+        contentStyle={styles.submitButtonContent}
+      >
+        S&apos;INSCRIRE
+      </Button>
 
       <Button
-        variant="ghost"
-        title="Déjà un compte? Connectez-vous"
-        onPress={() => router.push('/(auth)/login')}
+        mode="text"
+        onPress={() => router.push(ROUTES.AUTH.LOGIN)}
         disabled={isLoading}
-        textColor={styles.toggleText.color}
         style={styles.toggleButton}
-        fontSize="sm"
-        fontWeight="normal"
-        accessibilityRole="button"
-        accessibilityLabel="Switch to sign in"
-      />
-    </>
+      >
+        Déjà un compte? Connectez-vous
+      </Button>
+    </ScrollView>
   );
 };
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
+    scrollContent: {
+      paddingBottom: theme.spacing.xl,
+    },
     title: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.medium,
+      fontWeight: '700',
       color: theme.colors.text,
-      marginBottom: theme.spacing.sm,
+      marginBottom: theme.spacing.xs,
     },
     subtitle: {
-      fontSize: theme.fontSize.base,
       color: theme.colors.text,
       marginBottom: theme.spacing.xl,
-      lineHeight: 24,
+      opacity: 0.7,
+    },
+    row: {
+      flexDirection: 'row',
+    },
+    inputContainer: {
+      marginBottom: theme.spacing.sm,
+    },
+    input: {
+      backgroundColor: 'transparent',
+    },
+    label: {
+      marginBottom: theme.spacing.xs,
+      color: theme.colors.text,
+      opacity: 0.8,
+    },
+    errorText: {
+      marginBottom: theme.spacing.sm,
+      paddingHorizontal: 0,
+    },
+    submitButton: {
+      marginTop: theme.spacing.md,
+      borderRadius: 8,
+    },
+    submitButtonContent: {
+      paddingVertical: 6,
     },
     toggleButton: {
-      marginTop: theme.spacing.lg,
-      marginBottom: theme.spacing.xl,
+      marginTop: theme.spacing.md,
     },
-    toggleText: {
-      color: theme.colors.primary,
+    flexHalfLeft: {
+      flex: 1,
+      marginRight: 8,
+      marginBottom: theme.spacing.sm,
+    },
+    flexHalf: {
+      flex: 1,
+      marginBottom: theme.spacing.sm,
     },
   });
 
 RegisterScreen.displayName = 'RegisterScreen';
-
 export default RegisterScreen;

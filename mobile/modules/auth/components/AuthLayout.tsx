@@ -2,13 +2,11 @@ import React from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Logger } from '@/libs/log';
+import { createLogger } from '@/libs/log';
 import { type Theme } from '@/modules/shared/theme';
 import { useThemedStyles } from '@/modules/shared/theme/useThemedStyles';
 
-import { Logo } from '../../shared/components/Logo';
-
-const logger = new Logger('AuthLayout');
+const logger = createLogger('AuthLayout');
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -32,9 +30,6 @@ const AuthLayoutBase = ({ children }: AuthLayoutProps) => {
           showsVerticalScrollIndicator={false}
           bounces={true}
         >
-          <View style={styles.logoRow}>
-            <Logo size="xl" />
-          </View>
           <View style={styles.content}>{children}</View>
         </ScrollView>
       </KeyboardAvoidingView>

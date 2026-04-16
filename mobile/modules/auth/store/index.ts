@@ -1,9 +1,6 @@
 import { create } from 'zustand';
 
 import { Logger } from '@/libs/log';
-import { ResetPusher } from '@/libs/realtime/pusher';
-import { SecureStorage } from '@/libs/secure-storage';
-import { SecureStorageKey } from '@/libs/secure-storage/keys';
 import { UserResource } from '@/modules/auth/api/schemas';
 
 const logger = new Logger('AuthStore');
@@ -33,8 +30,6 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
   },
   logout: () => {
     logger.debug('Logging out');
-    ResetPusher();
-    SecureStorage.removeItem(SecureStorageKey.BEARER_TOKEN);
     set({ user: null, isAuthenticated: false });
   },
   setIsVerifyingAuth: (isVerifyingAuth: boolean) => {

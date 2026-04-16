@@ -1,14 +1,14 @@
 import js from '@eslint/js';
-const expoConfig = require('eslint-config-expo/flat');
-const simpleImportSort = require('eslint-plugin-simple-import-sort');
-const unusedImports = require('eslint-plugin-unused-imports');
-const reactNative = require('eslint-plugin-react-native');
-const tseslint = require('typescript-eslint');
-const deprecation = require('eslint-plugin-deprecation');
-const { fixupPluginRules } = require('@eslint/compat');
-const globals = require('globals');
+import expoConfig from 'eslint-config-expo/flat.js';
+import simpleImportSort from 'eslint-plugin-simple-import-sort';
+import unusedImports from 'eslint-plugin-unused-imports';
+import reactNative from 'eslint-plugin-react-native';
+import tseslint from 'typescript-eslint';
+import deprecation from 'eslint-plugin-deprecation';
+import { fixupPluginRules } from '@eslint/compat';
+import globals from 'globals';
 
-module.exports = tseslint.config(
+export default tseslint.config(
   {
     ignores: ['dist/*', 'node_modules/*', '.expo/*', 'android/*', 'ios/*', 'web-build/*'],
   },
@@ -25,7 +25,7 @@ module.exports = tseslint.config(
       },
       parserOptions: {
         project: ['./tsconfig.json'],
-        tsconfigRootDir: __dirname,
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     plugins: {

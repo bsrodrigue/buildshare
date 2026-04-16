@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { Provider as PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
@@ -28,7 +29,11 @@ function RootLayoutContent() {
   );
 
   return (
-    <SafeAreaProvider onLayout={onLayoutRootView}>
+    <SafeAreaProvider
+      onLayout={() => {
+        void onLayoutRootView();
+      }}
+    >
       <ThemeProvider>
         <KeyboardProvider>
           <Stack
@@ -57,7 +62,9 @@ function RootLayoutContent() {
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
-      <RootLayoutContent />
+      <PaperProvider>
+        <RootLayoutContent />
+      </PaperProvider>
     </QueryClientProvider>
   );
 }

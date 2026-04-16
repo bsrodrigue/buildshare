@@ -1,153 +1,68 @@
-import { useCall } from '@/hooks/api';
-import { APIError } from '@/libs/http/client';
-import { authService } from '@/modules/auth/api/services';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import {
   ForgotPasswordParams,
-  ForgotPasswordResponse,
   LoginParams,
-  LoginResponse,
-  MeResponse,
   RegisterParams,
-  RegisterResponse,
   ResendOTPParams,
-  ResendOTPResponse,
   ResetPasswordParams,
-  ResetPasswordResponse,
   VerifyPhoneParams,
-  VerifyPhoneResponse,
-} from '@/modules/auth/api/schemas';
+} from './schemas';
+import { authService } from './services';
 
-// Login
-export interface UseLoginParams {
-  onSuccess: (response: LoginResponse) => void;
-  onError: (error: APIError) => void;
-}
-
-export function useLogin({ onSuccess, onError }: UseLoginParams) {
-  const { execute, loading } = useCall<LoginResponse, LoginParams>({
-    fn: authService.login,
-    onSuccess,
-    onError,
+export const useLogin = () => {
+  return useMutation({
+    mutationFn: (params: LoginParams) => authService.login(params),
   });
+};
 
-  return {
-    callLogin: execute,
-    isLoading: loading,
-  };
-}
-
-// Register
-export interface UseRegisterParams {
-  onSuccess: (response: RegisterResponse) => void;
-  onError: (error: APIError) => void;
-}
-
-export function useRegister({ onSuccess, onError }: UseRegisterParams) {
-  const { execute, loading } = useCall<RegisterResponse, RegisterParams>({
-    fn: authService.register,
-    onSuccess,
-    onError,
+export const useRegister = () => {
+  return useMutation({
+    mutationFn: (params: RegisterParams) => authService.register(params),
   });
+};
 
-  return {
-    callRegister: execute,
-    isLoading: loading,
-  };
-}
-
-// Resend
-export interface UseResendParams {
-  onSuccess: (response: ResendOTPResponse) => void;
-  onError: (error: APIError) => void;
-}
-
-export function useResend({ onSuccess, onError }: UseResendParams) {
-  const { execute, loading } = useCall<ResendOTPResponse, ResendOTPParams>({
-    fn: authService.resendOTP,
-    onSuccess,
-    onError,
+export const useResendOTP = () => {
+  return useMutation({
+    mutationFn: (params: ResendOTPParams) => authService.resendOTP(params),
   });
+};
 
-  return {
-    callResend: execute,
-    isLoading: loading,
-  };
-}
-
-// Verify
-export interface UseVerifyParams {
-  onSuccess: (response: VerifyPhoneResponse) => void;
-  onError: (error: APIError) => void;
-}
-
-export function useVerify({ onSuccess, onError }: UseVerifyParams) {
-  const { execute, loading } = useCall<VerifyPhoneResponse, VerifyPhoneParams>({
-    fn: authService.verifyPhone,
-    onSuccess,
-    onError,
+export const useVerifyPhone = () => {
+  return useMutation({
+    mutationFn: (params: VerifyPhoneParams) => authService.verifyPhone(params),
   });
+};
 
-  return {
-    callVerify: execute,
-    isLoading: loading,
-  };
-}
-
-// Me
-export interface UseMeParams {
-  onSuccess?: (response: MeResponse) => void;
-  onError?: (error: APIError) => void;
-}
-
-export function useMe({ onSuccess, onError }: UseMeParams) {
-  const { execute, loading, error } = useCall<MeResponse, void>({
-    fn: authService.me,
-    onSuccess,
-    onError,
-    vibrateOnError: false,
+export const useMe = () => {
+  return useQuery({
+    queryKey: ['me'],
+    queryFn: () => authService.me(),
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
+};
 
-  return {
-    callMe: execute,
-    isLoading: loading,
-    error,
-  };
-}
-
-// Forgot Password
-export interface UseForgotPasswordParams {
-  onSuccess: (response: ForgotPasswordResponse) => void;
-  onError: (error: APIError) => void;
-}
-
-export function useForgotPassword({ onSuccess, onError }: UseForgotPasswordParams) {
-  const { execute, loading } = useCall<ForgotPasswordResponse, ForgotPasswordParams>({
-    fn: authService.forgotPassword,
-    onSuccess,
-    onError,
+export const useForgotPassword = () => {
+  return useMutation({
+    mutationFn: (params: ForgotPasswordParams) => authService.forgotPassword(params),
   });
+};
 
-  return {
-    callForgotPassword: execute,
-    isLoading: loading,
-  };
-}
-
-// Reset Password
-export interface UseResetPasswordParams {
-  onSuccess: (response: ResetPasswordResponse) => void;
-  onError: (error: APIError) => void;
-}
-
-export function useResetPassword({ onSuccess, onError }: UseResetPasswordParams) {
-  const { execute, loading } = useCall<ResetPasswordResponse, ResetPasswordParams>({
-    fn: authService.resetPassword,
-    onSuccess,
-    onError,
+export const useResetPassword = () => {
+  return useMutation({
+    mutationFn: (params: ResetPasswordParams) => authService.resetPassword(params),
   });
+};
 
-  return {
-    callResetPassword: execute,
-    isLoading: loading,
-  };
-}
+export const useLogout = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async () => {
+      // Logic for logout if needed in service
+    },
+    onSuccess: () => {
+      queryClient.removeQueries(); // Clear ALL queries on logout
+    },
+  });
+};

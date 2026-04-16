@@ -3,7 +3,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useState } from 'react';
 
 // Keep the splash screen visible while we fetch resources
-SplashScreen.preventAutoHideAsync();
+void SplashScreen.preventAutoHideAsync();
 
 // Define your custom fonts here
 // You can download fonts (e.g. from Google Fonts) and place them in assets/fonts/
@@ -33,7 +33,7 @@ export const useAppFonts = () => {
       }
     }
 
-    prepare();
+    void prepare();
   }, []);
 
   const onLayoutRootView = useCallback(async () => {

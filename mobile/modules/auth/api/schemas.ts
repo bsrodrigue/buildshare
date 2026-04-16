@@ -1,7 +1,5 @@
 import { z } from 'zod';
 
-import { ContactSchema, DateTimeSchema } from '../../shared/types';
-
 export const UserRoles = [
   'admin',
   'job_publisher',

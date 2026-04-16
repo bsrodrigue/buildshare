@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { Provider as PaperProvider } from 'react-native-paper';
@@ -8,7 +9,7 @@ import Toast from 'react-native-toast-message';
 import useInitApp from '@/hooks/init';
 import { useAppFonts } from '@/hooks/useAppFonts';
 import { createLogger } from '@/libs/log';
-import { ThemeProvider } from '@/modules/shared/theme/ThemeProvider';
+import { ThemeProvider, useTheme } from '@/modules/shared/theme/ThemeProvider';
 
 const logger = createLogger('RootLayout');
 const queryClient = new QueryClient();
@@ -28,13 +29,16 @@ function RootLayoutContent() {
     `Application loaded - IS_AUTHENTICATED: ${isAuthenticated} - APP_IS_READY: ${appIsReady}`,
   );
 
+  const { paperTheme } = useTheme();
+
   return (
     <SafeAreaProvider
       onLayout={() => {
         void onLayoutRootView();
       }}
     >
-      <ThemeProvider>
+      <PaperProvider theme={paperTheme}>
+        <StatusBar style="auto" />
         <KeyboardProvider>
           <Stack
             screenOptions={{
@@ -54,7 +58,7 @@ function RootLayoutContent() {
         </KeyboardProvider>
 
         <Toast />
-      </ThemeProvider>
+      </PaperProvider>
     </SafeAreaProvider>
   );
 }
@@ -62,9 +66,9 @@ function RootLayoutContent() {
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
-      <PaperProvider>
+      <ThemeProvider>
         <RootLayoutContent />
-      </PaperProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

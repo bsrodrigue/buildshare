@@ -1,4 +1,4 @@
-package bf.songre
+package com.buildshare
 
 import android.app.Application
 import android.content.res.Configuration

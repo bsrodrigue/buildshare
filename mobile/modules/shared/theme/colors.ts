@@ -1,16 +1,5 @@
 /**
- * Color palettes for light and dark modes.
- *
- * Semantic color names (e.g., `background`, `text`, `surface`) stay the same
- * across modes — only their values change. This lets components use
- * `colors.background` without knowing which mode is active.
- */
-
-/**
  * Appends an alpha channel to a 6-digit hex color.
- * @param color  Hex color string, e.g. '#34C759'
- * @param alpha  Opacity from 0 (transparent) to 1 (opaque)
- * @returns 8-digit hex color, e.g. '#34C75980'
  */
 export const toAlpha = (color: string, alpha: number): string => {
   const hex = Math.round(Math.min(Math.max(alpha, 0), 1) * 255)
@@ -21,139 +10,83 @@ export const toAlpha = (color: string, alpha: number): string => {
 };
 
 export const palette = {
-  // Brand (shared across modes)
-  lightBlue: '#00AEEF',
-  orange: '#ff6b4a',
-  red: '#FF3B30',
-  green: '#34C759',
-  white: '#ffffff',
+  // Material 3 Seed / Baseline Colors
+  primary: '#6750A4',
+  primaryDark: '#D0BCFF',
+  secondary: '#625B71',
+  secondaryDark: '#CCC2DC',
+  tertiary: '#7D5260',
+  tertiaryDark: '#EFB8C8',
+  error: '#B3261E',
+  errorDark: '#F2B8B5',
+  neutral: '#939094',
+  neutralDark: '#939094',
+
+  // Surfaces & Backgrounds
+  lightBackground: '#FEF7FF',
+  lightSurface: '#F7F2FA',
+  lightSurfaceVariant: '#E7E0EC',
+  darkBackground: '#141218',
+  darkSurface: '#1D1B20',
+  darkSurfaceVariant: '#49454F',
+
+  // Text & Icons
   black: '#000000',
-  splashBlue: '#4FA4F4',
-  googleBlue: '#4285F4',
+  white: '#FFFFFF',
+  gray500: '#79747E',
+  gray400: '#938F99',
+
+  // Others
   transparent: 'transparent',
   whatsapp: '#25D366',
-  amber: '#f59e0b',
-  amber900: '#92400e',
-
-  // Greens
-  green50: '#f0fdf4',
-  green100: '#dcfce7',
-  green200: '#bbf7d0',
-  green300: '#86efac',
-  green400: '#4ade80',
-  green500: '#34C759',
-  green600: '#16a34a',
-  green700: '#15803d',
-  green800: '#166534',
-  green900: '#14532d',
-
-  // Reds
-  red50: '#fef2f2',
-  red100: '#fee2e2',
-  red200: '#fecaca',
-  red300: '#fca5a5',
-  red400: '#f87171',
-  red500: '#FF3B30',
-  red600: '#dc2626',
-  red700: '#b91c1c',
-  red800: '#991b1b',
-  red900: '#7f1d1d',
-
-  // Oranges
-  orange50: '#fff7ed',
-  orange100: '#ffedd5',
-  orange200: '#fed7aa',
-  orange300: '#fdba74',
-  orange400: '#fb923c',
-  orange500: '#ff6b4a',
-  orange600: '#ea580c',
-  orange700: '#c2410c',
-  orange800: '#9a3412',
-  orange900: '#7c2d12',
-
-  // Blues
-  blue50: '#eff6ff',
-  blue100: '#dbeafe',
-  blue200: '#bfdbfe',
-  blue300: '#93c5fd',
-  blue400: '#60a5fa',
-  blue500: '#00bfff',
-  blue600: '#2563eb',
-  blue700: '#1d4ed8',
-  blue800: '#1e40af',
-  blue900: '#1e3a8a',
-  purple600: '#9333ea',
-
-  // Dark mode surfaces
-  darkBlue: '#10131f',
-  darkSurface: '#1a1d2e',
-  darkCard: '#1e2135',
-
-  // Light mode surfaces
-  lightBackground: '#f8f9fb',
-  lightSurface: '#ffffff',
-  lightCard: '#ffffff',
-
-  // Grays
-  gray50: '#fafafa',
-  gray100: '#f5f5f5',
-  gray200: '#d3d3d3',
-  gray300: '#ccc',
-  gray400: '#999',
-  gray500: '#666',
-  gray600: '#555',
-  gray700: '#444',
-  gray800: '#333',
-  gray900: '#1a1a1a',
+  googleBlue: '#4285F4',
 };
 
 export type ThemeColors = typeof darkColors;
 
 export const darkColors = {
   // Backgrounds
-  background: palette.darkBlue,
-  surface: 'rgba(255,255,255,0.08)',
-  inputBackground: palette.lightBackground,
-  cardBackground: 'rgba(255,255,255,0.05)',
+  background: palette.darkBackground,
+  surface: palette.darkSurface,
+  inputBackground: palette.darkSurfaceVariant,
+  cardBackground: palette.darkSurface,
 
   // Text
-  text: palette.white,
+  text: '#E6E1E5',
   textBlack: palette.black,
-  inputText: palette.gray900,
-  textSecondary: palette.gray500,
-  textOnPrimary: palette.white,
-  placeholder: palette.gray400,
+  inputText: '#E6E1E5',
+  textSecondary: palette.gray400,
+  textOnPrimary: '#381E72',
+  placeholder: palette.gray500,
 
-  // Brand
-  primary: palette.lightBlue,
-  accent: palette.orange,
-  splashBackground: palette.splashBlue,
+  // Brand / MD3
+  primary: palette.primaryDark,
+  accent: palette.secondaryDark,
+  splashBackground: palette.primaryDark,
 
   // Feedback
-  error: palette.red,
-  success: palette.green,
-  disabled: palette.gray500,
+  error: palette.errorDark,
+  success: '#B2EEB1',
+  disabled: 'rgba(230, 225, 229, 0.38)',
 
   // UI Elements
-  border: palette.gray500,
-  otpBox: palette.white,
-  otpBoxActive: palette.white,
+  border: palette.darkSurfaceVariant,
 
-  // Kept for backward compat (prefer semantic names above)
+  // Compat
   whiteBackground: palette.white,
   textWhite: palette.white,
-  textLight: palette.gray300,
+  textLight: palette.gray400,
   transparent: palette.transparent,
   whatsapp: palette.whatsapp,
-  amber: palette.amber,
-  amber900: palette.amber900,
-  blue900: palette.blue900,
-  red600: palette.red600,
-  statusDelivered: palette.green600,
-  statusCancelled: palette.red600,
-  statusDelivery: palette.blue600,
-  statusPreparing: palette.orange600,
-  statusPendingConfirmation: palette.purple600,
+  amber: '#FFD600',
+  amber900: '#FFAB00',
+  blue900: '#0D47A1',
+  red600: '#D32F2F',
+  statusDelivered: '#4CAF50',
+  statusCancelled: '#F44336',
+  statusDelivery: '#2196F3',
+  statusPreparing: '#FF9800',
+  statusPendingConfirmation: '#9C27B0',
   shadow: palette.black,
   overlay: 'rgba(0,0,0,0.6)',
   whiteAlpha20: 'rgba(255,255,255,0.2)',
@@ -167,49 +100,46 @@ export const lightColors: ThemeColors = {
   // Backgrounds
   background: palette.lightBackground,
   surface: palette.lightSurface,
-  inputBackground: palette.gray100,
-  cardBackground: palette.lightCard,
+  inputBackground: palette.lightSurfaceVariant,
+  cardBackground: palette.white,
 
   // Text
-  text: palette.black,
+  text: '#1C1B1F',
   textBlack: palette.black,
-  inputText: palette.gray900,
-  textSecondary: palette.gray600,
+  inputText: '#1C1B1F',
+  textSecondary: palette.gray500,
   textOnPrimary: palette.white,
   placeholder: palette.gray400,
 
-  // Brand
-  primary: palette.lightBlue,
-  accent: palette.orange,
-  splashBackground: palette.splashBlue,
+  // Brand / MD3
+  primary: palette.primary,
+  accent: palette.secondary,
+  splashBackground: palette.primary,
 
   // Feedback
-  error: palette.red,
-  success: palette.green,
-  disabled: palette.gray400,
+  error: palette.error,
+  success: '#2E7D32',
+  disabled: 'rgba(28, 27, 31, 0.38)',
 
   // UI Elements
   border: 'rgba(0,0,0,0.08)',
-  otpBox: '#E0E0E0',
-  otpBoxActive: palette.gray800,
-
-  // Backward compat names
+  // Compat
   whiteBackground: palette.white,
-  textWhite: palette.gray900, // in light mode, "textWhite" means "primary text"
-  textLight: palette.gray600,
+  textWhite: '#1C1B1F',
+  textLight: palette.gray500,
   transparent: palette.transparent,
   whatsapp: palette.whatsapp,
-  amber: palette.amber,
-  amber900: palette.amber900,
-  blue900: palette.blue900,
-  red600: palette.red600,
-  statusDelivered: palette.green600,
-  statusCancelled: palette.red600,
-  statusDelivery: palette.blue600,
-  statusPreparing: palette.orange600,
-  statusPendingConfirmation: palette.purple600,
+  amber: '#FFD600',
+  amber900: '#FFAB00',
+  blue900: '#0D47A1',
+  red600: '#D32F2F',
+  statusDelivered: '#4CAF50',
+  statusCancelled: '#F44336',
+  statusDelivery: '#2196F3',
+  statusPreparing: '#FF9800',
+  statusPendingConfirmation: '#9C27B0',
   shadow: palette.black,
-  overlay: 'rgba(0,0,0,0.6)',
+  overlay: 'rgba(0,0,0,0.4)',
   whiteAlpha20: 'rgba(255,255,255,0.2)',
   whiteAlpha70: 'rgba(255,255,255,0.7)',
   googleBlue: palette.googleBlue,

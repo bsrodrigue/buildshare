@@ -1,5 +1,4 @@
-package tech.speedsms.songre
-import bf.songre.BuildConfig
+package com.buildshare
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

@@ -1,6 +1,6 @@
-# Songre - Coding Practices & Guidelines
+# BuildShare - Coding Practices & Guidelines
 
-This document serves as the "Source of Truth" for coding standards and best practices used in Songre development.
+This document serves as the "Source of Truth" for coding standards and best practices used in BuildShare development.
 
 ## 1. Project Architecture
 
@@ -64,9 +64,10 @@ export async function myAction(params: MyParams): Promise<MyResponse> {
 
 ## 4. UI & Styling
 
-### 4.1 Theme-First Development
+### 4.1 Theme-First Development (Material Design 3)
 
 - **NEVER** hardcode hex colors, font sizes, or spacing values.
+- **Material Design 3 (MD3)**: The project strictly follows the Material 3 design system. Use MD3-compliant color palettes and components from `react-native-paper`.
 - **Strict Check**: Even common colors like `#fff`, `#000`, or `#1a1a1a` must be accessed via `theme.colors`.
 - Use `useThemedStyles` factory to access the design system tokens.
 - Reference: `modules/shared/theme/` and `libs/assets/`.

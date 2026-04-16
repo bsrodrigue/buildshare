@@ -1,5 +1,5 @@
 {
-  "name": "elite-app",
+  "name": "build-share",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
@@ -89,24 +89,17 @@
   "overrides": {
     "react-native-skeleton-placeholder": {
       "@react-native-masked-view/masked-view": "$@react-native-masked-view/masked-view"
-    }
+    },
+    "react-native-worklets": "0.6.0"
   },
   "devDependencies": {
-    "@eslint/compat": "^2.0.5",
     "@react-native-community/cli": "latest",
     "@react-native/metro-config": "latest",
     "@testing-library/react-native": "^13.3.3",
-    "@types/jest": "^30.0.0",
+    "@types/jest": "29.5.14",
     "@types/react": "~19.1.0",
     "babel-plugin-transform-remove-console": "^6.9.4",
     "baseline-browser-mapping": "^2.10.7",
-    "eslint": "^9.25.0",
-    "eslint-config-expo": "~10.0.0",
-    "eslint-plugin-deprecation": "^3.0.0",
-    "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-react-native": "^5.0.0",
-    "eslint-plugin-simple-import-sort": "^13.0.0",
-    "eslint-plugin-unused-imports": "^4.4.1",
     "expo-atlas": "^0.4.3",
     "globals": "^17.5.0",
     "husky": "^9.1.7",
@@ -115,8 +108,7 @@
     "lint-staged": "^16.3.3",
     "prettier": "^3.8.1",
     "react-test-renderer": "^19.1.0",
-    "typescript": "~5.9.2",
-    "typescript-eslint": "^8.58.2"
+    "typescript": "~5.9.2"
   },
   "private": true
 }

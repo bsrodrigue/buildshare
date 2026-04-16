@@ -2,12 +2,12 @@ import { ConfigContext, ExpoConfig } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'Songre',
-  slug: 'songre',
+  name: 'BuildShare',
+  slug: 'buildshare',
   version: '1.0.1',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
-  scheme: 'songre',
+  scheme: 'buildshare',
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
   ios: {
@@ -21,20 +21,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     entitlements: {
       'aps-environment': process.env.APP_VARIANT === 'production' ? 'production' : 'development',
-      'com.apple.security.application-groups': ['group.bf.songre.onesignal'],
+      'com.apple.security.application-groups': ['group.com.buildshare.onesignal'],
     },
-    bundleIdentifier: 'bf.songre',
+    bundleIdentifier: 'com.buildshare',
     supportsTablet: true,
-    config: {
-      googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY_IOS,
-    },
   },
   android: {
-    config: {
-      googleMaps: {
-        apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
-      },
-    },
     adaptiveIcon: {
       backgroundColor: '#E6F4FE',
       foregroundImage: './assets/images/android-icon-foreground.png',
@@ -42,19 +34,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       monochromeImage: './assets/images/android-icon-monochrome.png',
     },
     edgeToEdgeEnabled: true,
-    package: 'bf.songre',
+    package: 'com.buildshare',
   },
   web: {
     output: 'static',
     favicon: './assets/images/favicon.png',
   },
   plugins: [
-    [
-      'onesignal-expo-plugin',
-      {
-        mode: process.env.APP_VARIANT === 'production' ? 'production' : 'development',
-      },
-    ],
     'expo-router',
     [
       'expo-splash-screen',
@@ -69,21 +55,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     'expo-secure-store',
-    'expo-web-browser',
-    [
-      'expo-location',
-      {
-        locationAlwaysAndWhenInUsePermission:
-          "L'application utilise votre localisation pour suivre vos livraisons en temps réel.",
-        locationAlwaysPermission:
-          "L'application utilise votre localisation en arrière-plan pour suivre vos livraisons.",
-        locationWhenInUsePermission:
-          "L'application utilise votre localisation pour afficher votre position sur la carte.",
-        isIosBackgroundLocationEnabled: true,
-        isAndroidBackgroundLocationEnabled: true,
-        isAndroidForegroundServiceEnabled: true,
-      },
-    ],
     [
       'expo-build-properties',
       {
@@ -110,18 +81,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     eas: {
-      projectId: '928ab7ec-d53f-4a07-9d8e-889efa8ff84c',
+      projectId: '',
     },
-    // Environment variables baked into the app at build time
-    GOOGLE_MAPS_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
-    GOOGLE_MAPS_DIRECTIONS_BASE_URL: process.env.EXPO_PUBLIC_GOOGLE_MAPS_DIRECTIONS_BASE_URL,
-    GOOGLE_MAPS_API_KEY_IOS: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY_IOS,
-    ONESIGNAL_APP_ID: process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID,
     API_URL: process.env.EXPO_PUBLIC_API_URL,
-    PUSHER_KEY: process.env.EXPO_PUBLIC_PUSHER_KEY,
-    PUSHER_CLUSTER: process.env.EXPO_PUBLIC_PUSHER_CLUSTER,
-    PUSHER_HOST: process.env.EXPO_PUBLIC_PUSHER_HOST,
-    PUSHER_AUTH_ENDPOINT: process.env.EXPO_PUBLIC_PUSHER_AUTH_ENDPOINT,
   },
-  owner: 'songre',
+  owner: 'bsrodrigue',
 });

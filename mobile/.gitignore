@@ -1,0 +1,74 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Build
+.tmpbuild/
+*.apk
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.keystore
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+app-example
+
+# Native build artifacts
+android/build
+android/app/build
+android/.gradle
+android/app/.cxx
+android/local.properties
+ios/build
+ios/Pods
+ios/DerivedData
+ios/*.xcworkspace
+ios/*.xcodeproj/xcuserdata
+ios/*.xcodeproj/project.xcworkspace
+
+# generated native folders (uncomment ONLY if using a purely managed workflow with no manual native changes)
+# /ios
+# /android
+
+.idea
+.vscode
+.grepai/
+
+
+# Bundle Analysis Artifacts
+dist/
+bundle.js
+bundle.map
+.expo/atlas.jsonl

@@ -1,0 +1,113 @@
+
+> elite-app@1.0.0 lint
+> eslint app modules libs hooks --ext .ts,.tsx,.js,.jsx --max-warnings 0
+
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/app/(auth)/otp.tsx
+   1:1   error  Run autofix to sort these imports!                              simple-import-sort/imports
+  18:37  error  Unable to resolve path to module '@/modules/device-tokens/api'  import/no-unresolved
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/app/(protected)/_layout.tsx
+  5:40  error  Unable to resolve path to module '@/modules/notifications/useNotificationChannel'  import/no-unresolved
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/hooks/api/index.ts
+   1:1   error  Run autofix to sort these imports!        simple-import-sort/imports
+   4:23  error  'useMemo' is defined but never used       unused-imports/no-unused-imports
+  44:86  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/hooks/init/index.ts
+  13:37  error  Unable to resolve path to module '@/modules/device-tokens/api'  import/no-unresolved
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/libs/api/client.ts
+  38:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  39:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  39:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  40:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  40:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  41:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  41:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  42:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/libs/api/query-client.ts
+  1:1  error  Run autofix to sort these imports!  simple-import-sort/imports
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/libs/api/types.ts
+  1:1  error  Run autofix to sort these imports!  simple-import-sort/imports
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/libs/api/validation.ts
+  1:1  error  Run autofix to sort these imports!  simple-import-sort/imports
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/libs/geolocation/background-location.ts
+  8:32  error  Unable to resolve path to module '@/modules/delivery-man/api'            import/no-unresolved
+  9:44  error  Unable to resolve path to module '@/modules/delivery-man/store/profile'  import/no-unresolved
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/libs/http/client.ts
+  40:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/libs/push-notification/init.ts
+  4:40  error  Unable to resolve path to module '@/modules/notifications/navigation'  import/no-unresolved
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/auth/api/hooks.ts
+  1:1  error  Run autofix to sort these imports!  simple-import-sort/imports
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/auth/screens/LoginScreen.tsx
+   1:1   error  Run autofix to sort these imports!                              simple-import-sort/imports
+  17:37  error  Unable to resolve path to module '@/modules/device-tokens/api'  import/no-unresolved
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/auth/screens/RegisterScreen.tsx
+  1:1  error  Run autofix to sort these imports!  simple-import-sort/imports
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/auth/screens/ResetPasswordScreen.tsx
+  1:1  error  Run autofix to sort these imports!  simple-import-sort/imports
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/auth/screens/TermsScreen.tsx
+  9:27  error  Unable to resolve path to module '@/privacy-policy.json'  import/no-unresolved
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/shared/components/CategoryBottomSheet.tsx
+  13:41  error  Unable to resolve path to module '@/modules/product-categories/types'  import/no-unresolved
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/shared/components/ClientOrderFiltersModal.tsx
+  7:29  error  Unable to resolve path to module '@/modules/orders/types'  import/no-unresolved
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/shared/components/CreateArticleSection.tsx
+  17:41  error  Unable to resolve path to module '@/modules/product-categories/hooks'  import/no-unresolved
+  18:34  error  Unable to resolve path to module '@/modules/products/hooks'            import/no-unresolved
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/shared/components/EditProductModal.tsx
+  19:41  error  Unable to resolve path to module '@/modules/product-categories/hooks'  import/no-unresolved
+  20:34  error  Unable to resolve path to module '@/modules/products/hooks'            import/no-unresolved
+  22:39  error  Unable to resolve path to module '@/modules/products/types'            import/no-unresolved
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/shared/components/HomeBanner.tsx
+  23:38  error  Unable to resolve path to module '@/modules/carousel/types'  import/no-unresolved
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/shared/components/SellerOrdersFiltersModal.tsx
+  14:8  error  Unable to resolve path to module '@/modules/seller-orders/types'  import/no-unresolved
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/shared/components/SellerProductCard.tsx
+  14:39  error  Unable to resolve path to module '@/modules/products/types'  import/no-unresolved
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/shared/components/SellerProductsFiltersModal.tsx
+  7:41  error  Unable to resolve path to module '@/modules/product-categories/types'  import/no-unresolved
+  8:31  error  Unable to resolve path to module '@/modules/products/types'            import/no-unresolved
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/shared/components/SellerStockFiltersModal.tsx
+  11:8  error  Unable to resolve path to module '@/modules/products/types'  import/no-unresolved
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/shared/components/StockRow.tsx
+  14:39  error  Unable to resolve path to module '@/modules/products/types'  import/no-unresolved
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/shared/layout/UserHeader.tsx
+  7:38  error  Unable to resolve path to module '@/modules/notifications/store'  import/no-unresolved
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/shared/views/UserAccountView/components/EditProfileModal.tsx
+  30:8  error  Unable to resolve path to module '@/modules/shops/components/MapPickerModal'  import/no-unresolved
+
+/home/badinirr/Workspace/sideprojects/build-share/mobile/modules/shared/views/UserAccountView/hooks/useUserAccount.ts
+  11:32  error  Unable to resolve path to module '@/modules/payments/hooks'  import/no-unresolved
+  12:70  error  Unable to resolve path to module '@/modules/profile/hooks'   import/no-unresolved
+  14:68  error  Unable to resolve path to module '@/modules/shops/hooks'     import/no-unresolved
+
+✖ 47 problems (47 errors, 0 warnings)
+  10 errors and 0 warnings potentially fixable with the `--fix` option.
+

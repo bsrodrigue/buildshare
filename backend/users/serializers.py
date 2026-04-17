@@ -6,7 +6,7 @@ from .models import User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "email", "first_name", "last_name")
+        fields = ("id", "email", "first_name", "last_name", "created_at")
 
 
 class RegisterInputSerializer(serializers.Serializer):

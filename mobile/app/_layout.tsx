@@ -17,6 +17,7 @@ const queryClient = new QueryClient();
 function RootLayoutContent() {
   const { appIsReady, onLayoutRootView } = useAppFonts();
   const { isLoading: isInitLoading, isAuthenticated } = useInitApp();
+  const { paperTheme } = useTheme();
 
   const isLoading = !appIsReady || isInitLoading;
 
@@ -24,12 +25,6 @@ function RootLayoutContent() {
     logger.debug('Loading application...');
     return null;
   }
-
-  logger.info(
-    `Application loaded - IS_AUTHENTICATED: ${isAuthenticated} - APP_IS_READY: ${appIsReady}`,
-  );
-
-  const { paperTheme } = useTheme();
 
   return (
     <SafeAreaProvider

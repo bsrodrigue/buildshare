@@ -8,24 +8,25 @@ const logger = createLogger('ProtectedRootLayout');
 export default function ProtectedRootLayout() {
   logger.debug('Enter Component');
   const { user } = useAuthStore();
-  const role = user?.role;
 
-  if (!role) {
-    logger.warn(`No role found, returning empty fragment`);
-    return <></>;
+  // Basic check to ensure store is ready
+  if (!user) {
+    logger.warn(`No user found in store, returning null`);
+    return null;
   }
-
-  logger.debug(`User role: ${role}`);
 
   return (
     <Stack
       screenOptions={{
         headerShown: false,
+        animation: 'slide_from_right',
       }}
     >
-      <Stack.Protected guard={role === 'admin'}>
-        <Stack.Screen name="(admin)" />
-      </Stack.Protected>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="projects/[id]" />
+      <Stack.Screen name="projects/create" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="apps/create" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="apps/[id]/upload" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }

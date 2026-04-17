@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
-
 from core.models import BaseModel
+from .constraints import UNIQUE_PROJECT_ADMIN, UNIQUE_USER_PROJECT
 
 
 class Project(BaseModel):
@@ -39,11 +39,11 @@ class UserProjectProfile(BaseModel):
             models.UniqueConstraint(
                 fields=["project"],
                 condition=models.Q(role="ADMIN"),
-                name="unique_project_admin"
+                name=UNIQUE_PROJECT_ADMIN
             ),
             models.UniqueConstraint(
                 fields=["user", "project"],
-                name="unique_user_project"
+                name=UNIQUE_USER_PROJECT
             )
         ]
 

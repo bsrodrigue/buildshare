@@ -1,19 +1,21 @@
 import { create } from 'zustand';
 
 import { Logger } from '@/libs/log';
-import { UserResource } from '@/modules/auth/api/schemas';
+import { SecureStorage } from '@/libs/secure-storage';
+import { SecureStorageKey } from '@/libs/secure-storage/keys';
+import { User } from '@/modules/auth/api/schemas';
 
 const logger = new Logger('AuthStore');
 
 interface AuthState {
-  user: UserResource | null;
+  user: User | null;
   isAuthenticated: boolean;
   isVerifyingAuth: boolean;
 }
 
 interface AuthActions {
-  setUser: (user: UserResource) => void;
-  logout: () => void;
+  setUser: (user: User) => void;
+  logout: () => Promise<void>;
   setIsVerifyingAuth: (isVerifyingAuth: boolean) => void;
 }
 
@@ -28,10 +30,14 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
     logger.debug(`Setting user: ${user.first_name} ${user.last_name} (${user.email})`);
     set({ user, isAuthenticated: true });
   },
-  logout: () => {
+
+  logout: async () => {
     logger.debug('Logging out');
+    await SecureStorage.removeItem(SecureStorageKey.BEARER_TOKEN);
+    await SecureStorage.removeItem(SecureStorageKey.REFRESH_TOKEN);
     set({ user: null, isAuthenticated: false });
   },
+
   setIsVerifyingAuth: (isVerifyingAuth: boolean) => {
     logger.debug(`Set isVerifyingAuth: ${isVerifyingAuth}`);
     set({ isVerifyingAuth });

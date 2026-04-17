@@ -4,12 +4,15 @@ from datetime import timedelta
 from config.env import BASE_DIR, env
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env("DJANGO_SECRET_KEY", default="django-insecure-u7j))s0_4w!if0t0kh-4d-t=kaa%g=^(16=2=web4spbpq+lvu")
+SECRET_KEY = env(
+    "DJANGO_SECRET_KEY",
+    default="django-insecure-u7j))s0_4w!if0t0kh-4d-t=kaa%g=^(16=2=web4spbpq+lvu",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DJANGO_DEBUG", default=True)
 
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[])
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["*"])
 
 # Application definition
 LOCAL_APPS = [
@@ -84,7 +87,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Internationalization
-LANGUAGE_CODE = "fr-fr" # Target language as per doctrine
+LANGUAGE_CODE = "fr-fr"  # Target language as per doctrine
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
@@ -108,12 +111,8 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticated",
-    ),
-    "DEFAULT_FILTER_BACKENDS": (
-        "django_filters.rest_framework.DjangoFilterBackend",
-    ),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
     "EXCEPTION_HANDLER": "config.api.exception_handlers.custom_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
@@ -134,4 +133,4 @@ SIMPLE_JWT = {
 }
 
 # CORS
-CORS_ALLOW_ALL_ORIGINS = True # Change in production
+CORS_ALLOW_ALL_ORIGINS = True  # Change in production

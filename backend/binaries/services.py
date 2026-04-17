@@ -1,5 +1,5 @@
-from django.core.exceptions import PermissionDenied
-
+from core.exceptions import ApplicationError
+from core.errors import ErrorCode
 from projects.models import UserProjectProfile
 
 from .models import Application, Artifact, Release
@@ -13,7 +13,10 @@ def _check_is_project_admin(*, user, project) -> None:
     ).exists()
 
     if not is_admin:
-        raise PermissionDenied("Vous n'avez pas les droits d'administrateur pour ce projet.")
+        raise ApplicationError(
+            message="Vous n'avez pas les droits d'administrateur pour ce projet.",
+            code=ErrorCode.AUTH_INSUFFICIENT_PERMISSIONS
+        )
 
 
 def application_create(*, project, app_id: str, title: str, description: str = "", user) -> Application:

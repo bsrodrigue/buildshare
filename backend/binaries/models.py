@@ -1,7 +1,7 @@
 from django.db import models
-
 from core.models import BaseModel
 from projects.models import Project
+from .constraints import UNIQUE_APP_PER_PROJECT, UNIQUE_RELEASE_PER_APP
 
 
 class Application(BaseModel):
@@ -18,7 +18,7 @@ class Application(BaseModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["project", "app_id"],
-                name="unique_app_per_project"
+                name=UNIQUE_APP_PER_PROJECT
             )
         ]
 
@@ -40,7 +40,7 @@ class Release(BaseModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["application", "version_code"],
-                name="unique_release_per_app"
+                name=UNIQUE_RELEASE_PER_APP
             )
         ]
 

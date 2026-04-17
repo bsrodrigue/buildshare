@@ -34,9 +34,7 @@ export default function useInitApp() {
       }
 
       try {
-        const response = await authService.me();
-
-        const { user } = response.data;
+        const user = await authService.me();
         setUser(user);
         logger.debug(`User authenticated: ${JSONService.stringify(user)}`);
       } catch (error: unknown) {

@@ -13,9 +13,9 @@ class RegisterApi(APIView):
         serializer = RegisterInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user_create(**serializer.validated_data)
+        user = user_create(**serializer.validated_data)
 
-        return Response(status=status.HTTP_201_CREATED)
+        return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
 
 class MeApi(APIView):

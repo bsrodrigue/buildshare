@@ -1,17 +1,212 @@
 import React from 'react';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { Text, TextInput, Button, Card, useTheme } from 'react-native-paper';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { router } from 'expo-router';
+import { useMutation } from '@tanstack/react-query';
+import Toast from 'react-native-toast-message';
 
-import { createLogger } from '@/libs/log';
-import { AuthLayout } from '@/modules/auth/components/AuthLayout';
-import RegisterScreen from '@/modules/auth/screens/RegisterScreen';
+import { authService } from '@/modules/auth/api/services';
+import { RegisterParams, RegisterParamsSchema } from '@/modules/auth/api/schemas';
 
-const logger = createLogger('RegisterRoute');
+export default function RegisterScreen() {
+  const theme = useTheme();
 
-export default function RegisterRoute() {
-  logger.debug('Enter Route');
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterParams>({
+    resolver: zodResolver(RegisterParamsSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      first_name: '',
+      last_name: '',
+    },
+  });
+
+  const mutation = useMutation({
+    mutationFn: authService.register,
+    onSuccess: () => {
+      Toast.show({
+        type: 'success',
+        text1: 'Compte créé !',
+        text2: 'Vous pouvez maintenant vous connecter.',
+      });
+      router.replace('/(auth)/login');
+    },
+    onError: (error: any) => {
+      Toast.show({
+        type: 'error',
+        text1: "Erreur lors de l'inscription",
+        text2: error.message || "Impossible de créer le compte.",
+      });
+    },
+  });
 
   return (
-    <AuthLayout>
-      <RegisterScreen />
-    </AuthLayout>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <Text variant="headlineLarge" style={styles.title}>
+            Inscription
+          </Text>
+          <Text variant="bodyLarge" style={styles.subtitle}>
+            Rejoignez App-share dès aujourd'hui.
+          </Text>
+        </View>
+
+        <Card style={styles.card}>
+          <Card.Content>
+            <Controller
+              control={control}
+              name="first_name"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  label="Prénom"
+                  value={value}
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  error={!!errors.first_name}
+                  mode="outlined"
+                  style={styles.input}
+                />
+              )}
+            />
+            {errors.first_name && (
+              <Text style={{ color: theme.colors.error }} variant="bodySmall">
+                {errors.first_name.message}
+              </Text>
+            )}
+
+            <Controller
+              control={control}
+              name="last_name"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  label="Nom"
+                  value={value}
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  error={!!errors.last_name}
+                  mode="outlined"
+                  style={styles.input}
+                />
+              )}
+            />
+            {errors.last_name && (
+              <Text style={{ color: theme.colors.error }} variant="bodySmall">
+                {errors.last_name.message}
+              </Text>
+            )}
+
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  label="Email"
+                  value={value}
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  error={!!errors.email}
+                  mode="outlined"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  style={styles.input}
+                />
+              )}
+            />
+            {errors.email && (
+              <Text style={{ color: theme.colors.error }} variant="bodySmall">
+                {errors.email.message}
+              </Text>
+            )}
+
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  label="Mot de passe"
+                  value={value}
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  error={!!errors.password}
+                  mode="outlined"
+                  secureTextEntry
+                  style={styles.input}
+                />
+              )}
+            />
+            {errors.password && (
+              <Text style={{ color: theme.colors.error }} variant="bodySmall">
+                {errors.password.message}
+              </Text>
+            )}
+
+            <Button
+              mode="contained"
+              onPress={handleSubmit((data) => mutation.mutate(data))}
+              loading={mutation.isPending}
+              disabled={mutation.isPending}
+              style={styles.button}
+            >
+              S'inscrire
+            </Button>
+
+            <Button
+              mode="text"
+              onPress={() => router.push('/(auth)/login')}
+              style={styles.link}
+            >
+              Déjà un compte ? Se connecter
+            </Button>
+          </Card.Content>
+        </Card>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f6f6f6',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 20,
+  },
+  header: {
+    marginBottom: 40,
+    alignItems: 'center',
+  },
+  title: {
+    fontWeight: 'bold',
+    color: '#6200ee',
+  },
+  subtitle: {
+    opacity: 0.7,
+  },
+  card: {
+    elevation: 4,
+    borderRadius: 12,
+  },
+  input: {
+    marginBottom: 12,
+  },
+  button: {
+    marginTop: 12,
+    paddingVertical: 6,
+  },
+  link: {
+    marginTop: 10,
+  },
+});

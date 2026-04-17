@@ -105,7 +105,8 @@ export class HTTPClient {
       // 401: Unauthorized (Clear session and redirect)
       if (
         error.code === ErrorCode.AUTH_TOKEN_EXPIRED ||
-        error.code === ErrorCode.AUTH_INVALID_CREDENTIALS
+        error.code === ErrorCode.AUTH_INVALID_CREDENTIALS ||
+        error.code === ErrorCode.AUTH_SESSION_EXPIRED
       ) {
         const { logout, isAuthenticated } = (
           await import('@/modules/auth/store')
@@ -115,26 +116,10 @@ export class HTTPClient {
           toast.error('Session expirée. Veuillez vous reconnecter.');
           logout();
         }
-        return;
-      }
-
-      // Handle specific subscription gates
-      if (error.code === 'SUBSCRIPTION_REQUIRED' || error.code === 'SUBSCRIPTION_EXPIRED') {
-        this.handleSubscriptionGate(error.message);
       }
     }
 
     logger.error(`API Error: ${error.message}`);
-  }
-
-  private handleSubscriptionGate(message: string) {
-    Alert.alert('Abonnement requis', message, [
-      { text: 'Plus tard', style: 'cancel' },
-      {
-        text: "S'abonner",
-        onPress: () => router.push('/(protected)/(client)/subscription'),
-      },
-    ]);
   }
 
   // --- Public API Methods ---

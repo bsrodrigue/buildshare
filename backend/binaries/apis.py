@@ -5,15 +5,17 @@ from rest_framework.views import APIView
 
 from projects.models import Project
 
-from .models import Application, Release
+from .models import Application, Artifact, Release
 from .services import application_create, artifact_create, release_create
 
 
 class ApplicationApi(APIView):
     class OutputSerializer(serializers.ModelSerializer):
+        project = serializers.IntegerField(source="project.id")
+
         class Meta:
             model = Application
-            fields = ("id", "app_id", "title", "description", "created_at")
+            fields = ("id", "project", "app_id", "title", "description", "created_at")
 
     class InputSerializer(serializers.Serializer):
         project_id = serializers.IntegerField()
@@ -41,6 +43,13 @@ class ApplicationApi(APIView):
 
 
 class ArtifactUploadApi(APIView):
+    class ArtifactOutputSerializer(serializers.ModelSerializer):
+        release = serializers.IntegerField(source="release.id")
+
+        class Meta:
+            model = Artifact
+            fields = ("id", "release", "file", "architecture", "hash", "created_at")
+
     class InputSerializer(serializers.Serializer):
         application_id = serializers.IntegerField()
         version_code = serializers.IntegerField()
@@ -72,11 +81,11 @@ class ArtifactUploadApi(APIView):
                 user=request.user
             )
 
-        artifact_create(
+        artifact = artifact_create(
             release=release,
             file=serializer.validated_data.pop("file"),
             architecture=serializer.validated_data.pop("architecture"),
             user=request.user
         )
 
-        return Response(status=status.HTTP_201_CREATED)
+        return Response(self.ArtifactOutputSerializer(artifact).data, status=status.HTTP_201_CREATED)

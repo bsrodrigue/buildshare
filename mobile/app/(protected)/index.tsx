@@ -1,12 +1,14 @@
 import React from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { Text, Card, FAB, useTheme, ActivityIndicator, IconButton } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { useProjects } from '@/modules/projects/hooks/useProjects';
+import { useProjects } from '@/modules/projects/api/hooks';
 import { useAuthStore } from '@/modules/auth/store';
 
 export default function DashboardScreen() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { user, logout } = useAuthStore();
   const { data: projects, isLoading, isRefetching, refetch } = useProjects();
 
@@ -65,7 +67,10 @@ export default function DashboardScreen() {
       <FAB
         icon="plus"
         label="Nouveau Projet"
-        style={[styles.fab, { backgroundColor: theme.colors.primaryContainer }]}
+        style={[
+          styles.fab,
+          { backgroundColor: theme.colors.primaryContainer, bottom: insets.bottom + 16 },
+        ]}
         onPress={() => router.push('/(protected)/projects/create' as any)}
       />
     </View>

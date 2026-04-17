@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, TextInput, Button, Card, useTheme, IconButton, List } from 'react-native-paper';
+import { Text, TextInput, Button, Card, useTheme, IconButton } from 'react-native-paper';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -8,18 +8,19 @@ import * as DocumentPicker from 'expo-document-picker';
 import Toast from 'react-native-toast-message';
 
 import { ArtifactUploadParams, ArtifactUploadParamsSchema } from '@/modules/binaries/api/schemas';
-import { useUploadArtifact } from '@/modules/binaries/hooks/useUploadArtifact';
+import { useUploadArtifact } from '@/modules/binaries/api/hooks';
+import { setFormErrors } from '@/libs/api/forms';
 
 export default function UploadArtifactScreen() {
   const { id } = useLocalSearchParams();
   const appId = parseInt(id as string, 10);
-  const theme = useTheme();
   const uploadArtifact = useUploadArtifact();
   const [selectedFile, setSelectedFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
 
   const {
     control,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<ArtifactUploadParams>({
     resolver: zodResolver(ArtifactUploadParamsSchema),
@@ -78,11 +79,14 @@ export default function UploadArtifactScreen() {
         router.back();
       },
       onError: (error: any) => {
-        Toast.show({
-          type: 'error',
-          text1: "Erreur d'upload",
-          text2: error.message || "Impossible d'uploader le fichier.",
-        });
+        const handled = setFormErrors(error, setError);
+        if (!handled) {
+          Toast.show({
+            type: 'error',
+            text1: "Erreur d'upload",
+            text2: error.message || "Impossible d'uploader le fichier.",
+          });
+        }
       },
     });
   };
@@ -99,12 +103,7 @@ export default function UploadArtifactScreen() {
 
       <Card style={styles.card}>
         <Card.Content>
-          <Button
-            mode="outlined"
-            icon="upload"
-            onPress={pickFile}
-            style={styles.fileButton}
-          >
+          <Button mode="outlined" icon="upload" onPress={pickFile} style={styles.fileButton}>
             {selectedFile ? `Fichier: ${selectedFile.name}` : 'Choisir un APK'}
           </Button>
           {selectedFile && (

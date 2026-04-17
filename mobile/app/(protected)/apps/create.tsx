@@ -7,7 +7,8 @@ import { useLocalSearchParams, router } from 'expo-router';
 import Toast from 'react-native-toast-message';
 
 import { ApplicationCreateParams, ApplicationCreateParamsSchema } from '@/modules/binaries/api/schemas';
-import { useCreateApplication } from '@/modules/binaries/hooks/useApplications';
+import { useCreateApplication } from '@/modules/binaries/api/hooks';
+import { setFormErrors } from '@/libs/api/forms';
 
 export default function CreateApplicationScreen() {
   const { projectId } = useLocalSearchParams();
@@ -17,11 +18,12 @@ export default function CreateApplicationScreen() {
   const {
     control,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<ApplicationCreateParams>({
     resolver: zodResolver(ApplicationCreateParamsSchema),
     defaultValues: {
-      project: parseInt(projectId as string, 10),
+      project_id: parseInt(projectId as string, 10),
       app_id: '',
       title: '',
       description: '',
@@ -38,11 +40,14 @@ export default function CreateApplicationScreen() {
         router.back();
       },
       onError: (error: any) => {
-        Toast.show({
-          type: 'error',
-          text1: 'Erreur',
-          text2: error.message || "Impossible de créer l'application.",
-        });
+        const handled = setFormErrors(error, setError);
+        if (!handled) {
+          Toast.show({
+            type: 'error',
+            text1: 'Erreur',
+            text2: error.message || "Impossible de créer l'application.",
+          });
+        }
       },
     });
   };

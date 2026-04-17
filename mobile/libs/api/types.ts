@@ -7,7 +7,7 @@ import { ErrorCode } from './error-codes';
  */
 export const FieldErrorSchema = z.object({
   message: z.string(),
-  code: z.string(),
+  code: z.string().nullable().optional(),
 });
 
 export type FieldError = z.infer<typeof FieldErrorSchema>;
@@ -16,7 +16,7 @@ export type FieldError = z.infer<typeof FieldErrorSchema>;
  * Standard Server Error format
  */
 export const ApiErrorSchema = z.object({
-  code: z.enum(Object.values(ErrorCode) as [string, ...string[]]).or(z.string()), // Use enum but allow strings for unknown codes
+  code: z.string(), // Accept any string code from backend
   message: z.string(),
   fields: z.record(z.string(), z.array(FieldErrorSchema)).optional(),
 });
@@ -43,6 +43,15 @@ export class BackendApiError extends Error {
     this.name = 'BackendApiError';
     this.code = error.code as string;
     this.fields = error.fields;
+  }
+
+  public toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      code: this.code,
+      fields: this.fields,
+    };
   }
 }
 

@@ -4,22 +4,25 @@ import { Text, TextInput, Button, Card, useTheme } from 'react-native-paper';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
-import { useMutation } from '@tanstack/react-query';
-import Toast from 'react-native-toast-message';
-
-import { authService } from '@/modules/auth/api/services';
+import { useLogin } from '@/modules/auth/api/hooks';
 import { LoginParams, LoginParamsSchema } from '@/modules/auth/api/schemas';
-import { useAuthStore } from '@/modules/auth/store';
-import { SecureStorage } from '@/libs/secure-storage';
-import { SecureStorageKey } from '@/libs/secure-storage/keys';
+
+import { setFormErrors } from '@/libs/api/forms';
+
+import { createLogger } from '@/libs/log';
+
+const logger = createLogger('LoginScreen');
 
 export default function LoginScreen() {
+  logger.info('Render LoginScreen');
+
   const theme = useTheme();
-  const setUser = useAuthStore((state) => state.setUser);
+  const mutation = useLogin();
 
   const {
     control,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<LoginParams>({
     resolver: zodResolver(LoginParamsSchema),
@@ -29,31 +32,11 @@ export default function LoginScreen() {
     },
   });
 
-  const mutation = useMutation({
-    mutationFn: authService.login,
-    onSuccess: async (data) => {
-      await SecureStorage.setItem(SecureStorageKey.BEARER_TOKEN, data.access);
-      await SecureStorage.setItem(SecureStorageKey.REFRESH_TOKEN, data.refresh);
-      
-      const user = await authService.me();
-      setUser(user);
-      
-      Toast.show({
-        type: 'success',
-        text1: 'Bienvenue !',
-        text2: 'Connexion réussie.',
-      });
-      
-      router.replace('/(protected)');
-    },
-    onError: (error: any) => {
-      Toast.show({
-        type: 'error',
-        text1: 'Erreur de connexion',
-        text2: error.message || 'Identifiants incorrects.',
-      });
-    },
-  });
+  const onLogin = (data: LoginParams) => {
+    mutation.mutate(data, {
+      onError: (err) => setFormErrors(err, setError),
+    });
+  };
 
   return (
     <KeyboardAvoidingView
@@ -119,7 +102,7 @@ export default function LoginScreen() {
 
             <Button
               mode="contained"
-              onPress={handleSubmit((data) => mutation.mutate(data))}
+              onPress={handleSubmit(onLogin)}
               loading={mutation.isPending}
               disabled={mutation.isPending}
               style={styles.button}
@@ -127,11 +110,7 @@ export default function LoginScreen() {
               Se connecter
             </Button>
 
-            <Button
-              mode="text"
-              onPress={() => router.push('/(auth)/register')}
-              style={styles.link}
-            >
+            <Button mode="text" onPress={() => router.push('/(auth)/register')} style={styles.link}>
               Pas de compte ? S'inscrire
             </Button>
           </Card.Content>

@@ -1,13 +1,15 @@
 import React from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { Text, Card, FAB, useTheme, ActivityIndicator, IconButton, List } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import { useApplications } from '@/modules/binaries/hooks/useApplications';
+import { useApplications } from '@/modules/binaries/api/hooks';
 
 export default function ProjectDetailScreen() {
   const { id } = useLocalSearchParams();
   const projectId = parseInt(id as string, 10);
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   
   const { 
     data: applications, 
@@ -67,7 +69,10 @@ export default function ProjectDetailScreen() {
       <FAB
         icon="plus"
         label="Ajouter App"
-        style={[styles.fab, { backgroundColor: theme.colors.secondaryContainer }]}
+        style={[
+          styles.fab,
+          { backgroundColor: theme.colors.secondaryContainer, bottom: insets.bottom + 16 },
+        ]}
         onPress={() => router.push({
           pathname: '/(protected)/apps/create' as any,
           params: { projectId }

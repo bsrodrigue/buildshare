@@ -46,7 +46,7 @@ export type Artifact = z.infer<typeof ArtifactSchema>;
  * Application Create
  */
 export const ApplicationCreateParamsSchema = z.object({
-  project: z.number(),
+  project_id: z.number(),
   app_id: z.string().min(1, 'ID de bundle requis (ex: com.app.id)'),
   title: z.string().min(1, "Titre de l'application requis"),
   description: z.string().optional(),

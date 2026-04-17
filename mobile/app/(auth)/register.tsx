@@ -4,18 +4,18 @@ import { Text, TextInput, Button, Card, useTheme } from 'react-native-paper';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
-import { useMutation } from '@tanstack/react-query';
-import Toast from 'react-native-toast-message';
-
-import { authService } from '@/modules/auth/api/services';
+import { useRegister } from '@/modules/auth/api/hooks';
 import { RegisterParams, RegisterParamsSchema } from '@/modules/auth/api/schemas';
+import { setFormErrors } from '@/libs/api/forms';
 
 export default function RegisterScreen() {
   const theme = useTheme();
+  const mutation = useRegister();
 
   const {
     control,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<RegisterParams>({
     resolver: zodResolver(RegisterParamsSchema),
@@ -27,24 +27,11 @@ export default function RegisterScreen() {
     },
   });
 
-  const mutation = useMutation({
-    mutationFn: authService.register,
-    onSuccess: () => {
-      Toast.show({
-        type: 'success',
-        text1: 'Compte créé !',
-        text2: 'Vous pouvez maintenant vous connecter.',
-      });
-      router.replace('/(auth)/login');
-    },
-    onError: (error: any) => {
-      Toast.show({
-        type: 'error',
-        text1: "Erreur lors de l'inscription",
-        text2: error.message || "Impossible de créer le compte.",
-      });
-    },
-  });
+  const onRegister = (data: RegisterParams) => {
+    mutation.mutate(data, {
+      onError: (err) => setFormErrors(err, setError),
+    });
+  };
 
   return (
     <KeyboardAvoidingView
@@ -152,7 +139,7 @@ export default function RegisterScreen() {
 
             <Button
               mode="contained"
-              onPress={handleSubmit((data) => mutation.mutate(data))}
+              onPress={handleSubmit(onRegister)}
               loading={mutation.isPending}
               disabled={mutation.isPending}
               style={styles.button}

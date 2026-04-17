@@ -1,6 +1,4 @@
-import { router } from 'expo-router';
 import ky, { HTTPError, Options } from 'ky';
-import { Alert } from 'react-native';
 
 import { ErrorCode } from '@/libs/api/error-codes';
 import { ApiErrorSchema, BackendApiError } from '@/libs/api/types';
@@ -10,38 +8,26 @@ import { toast } from '../notification/toast';
 import { PlatformService } from '../platform';
 import { SecureStorage } from '../secure-storage';
 import { SecureStorageKey } from '../secure-storage/keys';
+import { JSONService } from '../json';
 
 const logger = new Logger('HTTPClient');
 
-/** Legacy type for compatibility during transition */
-export type APIError = {
-  message: string;
-  code?: string;
-  errors?: Record<string, string[]>;
-};
-
-/** Legacy type for compatibility during transition */
-export interface APIResponse<T> {
-  data: T;
-  status: number;
-  statusText: string;
-}
-
 export class HTTPClient {
   /**
-   * Parses a raw ky HTTPError into a structured CottonApiError.
+   * Transforms a raw Response into a structured BackendApiError or Error.
+   * This is used when throwHttpErrors: false is set.
    */
-  public static async parseError(error: unknown): Promise<Error> {
-    if (!(error instanceof HTTPError)) {
-      return error instanceof Error ? error : new Error('An unexpected error occurred');
-    }
-
-    const { response } = error;
+  private static async parseResponseError(response: Response): Promise<Error> {
     let data: unknown;
 
     try {
-      data = await response.json();
-    } catch {
+      const text = await response.text();
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = text;
+      }
+    } catch (e) {
       data = null;
     }
 
@@ -52,11 +38,27 @@ export class HTTPClient {
     }
 
     // Fallback for unknown error formats
-    const fallbackMessage = (data && typeof data === 'object' && 'message' in data)
-      ? (data as Record<string, any>).message
-      : error.message || 'Server Error';
+    const fallbackMessage =
+      data && typeof data === 'object' && 'message' in data
+        ? (data as Record<string, any>).message
+        : `Request failed with status ${response.status}`;
 
     return new Error(fallbackMessage);
+  }
+
+  /**
+   * Parses a raw ky HTTPError (fallback for hooks or unexpected errors).
+   */
+  public static async parseError(error: unknown): Promise<Error> {
+    if (!(error instanceof HTTPError)) {
+      return error instanceof Error ? error : new Error('An unexpected error occurred');
+    }
+
+    if (error.response.bodyUsed) {
+      return new Error(error.message || 'Server Error (Body consumed)');
+    }
+
+    return HTTPClient.parseResponseError(error.response);
   }
 
   private instance: typeof ky;
@@ -81,27 +83,14 @@ export class HTTPClient {
             logger.debug(`${request.method.toUpperCase()} ${request.url}`);
           },
         ],
-        afterResponse: [
-          ({ request, response }) => {
-            if (response.ok) {
-              logger.debug(`SUCCESS ${request.method.toUpperCase()} ${request.url}`);
-            }
-            return response;
-          },
-        ],
-        beforeError: [
-          async ({ error }) => {
-            const cottonError = await HTTPClient.parseError(error);
-            await this.handleResponseError(cottonError);
-            return cottonError as unknown as HTTPError;
-          },
-        ],
       },
     });
   }
 
   private async handleResponseError(error: Error) {
     if (error instanceof BackendApiError) {
+      logger.error(JSONService.stringify(error));
+
       // 401: Unauthorized (Clear session and redirect)
       if (
         error.code === ErrorCode.AUTH_TOKEN_EXPIRED ||
@@ -157,7 +146,33 @@ export class HTTPClient {
       }
     }
 
-    const response = await this.instance(url, options);
-    return response.json<T>();
+    try {
+      // Use throwHttpErrors: false to prevent ky from consuming the body on 4xx/5xx.
+      // This is the most reliable way to ensure we can parse error details in React Native.
+      const response = await this.instance(url, { ...options, throwHttpErrors: false });
+
+      if (!response.ok) {
+        logger.error(`FAILURE ${response.status} ${method.toUpperCase()} ${url}`);
+
+        const error = await HTTPClient.parseResponseError(response);
+        await this.handleResponseError(error);
+        throw error;
+      }
+
+      const data = await response.json<T>();
+      logger.debug(`SUCCESS ${method.toUpperCase()} ${url}`);
+      return data;
+    } catch (error) {
+      // Wrap non-BackendApiErrors (like network failures)
+      if (error instanceof BackendApiError) throw error;
+
+      if (error && typeof error === 'object' && 'response' in error) {
+        const parsedError = await HTTPClient.parseError(error);
+        await this.handleResponseError(parsedError);
+        throw parsedError;
+      }
+
+      throw error;
+    }
   }
 }

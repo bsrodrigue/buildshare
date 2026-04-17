@@ -15,7 +15,7 @@ export const binaryService = {
    * List all applications within a project
    */
   listApplications: async (projectId: number): Promise<Application[]> => {
-    const response = await http.get<Application[]>(`binaries/applications/?project=${projectId}`);
+    const response = await http.get<Application[]>(`binaries/applications/?project_id=${projectId}`);
     return response; // List responses are handled slightly differently in this boilerplate
   },
 

@@ -7,7 +7,8 @@ import { router } from 'expo-router';
 import Toast from 'react-native-toast-message';
 
 import { ProjectCreateParams, ProjectCreateParamsSchema } from '@/modules/projects/api/schemas';
-import { useCreateProject } from '@/modules/projects/hooks/useProjects';
+import { useCreateProject } from '@/modules/projects/api/hooks';
+import { setFormErrors } from '@/libs/api/forms';
 
 export default function CreateProjectScreen() {
   const theme = useTheme();
@@ -16,6 +17,7 @@ export default function CreateProjectScreen() {
   const {
     control,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<ProjectCreateParams>({
     resolver: zodResolver(ProjectCreateParamsSchema),
@@ -35,11 +37,14 @@ export default function CreateProjectScreen() {
         router.back();
       },
       onError: (error: any) => {
-        Toast.show({
-          type: 'error',
-          text1: 'Erreur',
-          text2: error.message || 'Impossible de créer le projet.',
-        });
+        const handled = setFormErrors(error, setError);
+        if (!handled) {
+          Toast.show({
+            type: 'error',
+            text1: 'Erreur',
+            text2: error.message || 'Impossible de créer le projet.',
+          });
+        }
       },
     });
   };

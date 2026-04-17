@@ -1,0 +1,56 @@
+from django.core.exceptions import PermissionDenied
+
+from projects.models import UserProjectProfile
+
+from .models import Application, Artifact, Release
+
+
+def _check_is_project_admin(*, user, project) -> None:
+    is_admin = UserProjectProfile.objects.filter(
+        user=user,
+        project=project,
+        role=UserProjectProfile.Role.ADMIN
+    ).exists()
+
+    if not is_admin:
+        raise PermissionDenied("Vous n'avez pas les droits d'administrateur pour ce projet.")
+
+
+def application_create(*, project, app_id: str, title: str, description: str = "", user) -> Application:
+    _check_is_project_admin(user=user, project=project)
+
+    app = Application(project=project, app_id=app_id, title=title, description=description)
+    app.full_clean()
+    app.save()
+
+    return app
+
+
+def release_create(*, application, version_code: int, version_id: str, release_notes: str = "", user) -> Release:
+    _check_is_project_admin(user=user, project=application.project)
+
+    release = Release(
+        application=application,
+        version_code=version_code,
+        version_id=version_id,
+        release_notes=release_notes
+    )
+    release.full_clean()
+    release.save()
+
+    return release
+
+
+def artifact_create(*, release, file, architecture: str = "", hash: str = "", user) -> Artifact:
+    _check_is_project_admin(user=user, project=release.application.project)
+
+    artifact = Artifact(
+        release=release,
+        file=file,
+        architecture=architecture,
+        hash=hash
+    )
+    artifact.full_clean()
+    artifact.save()
+
+    return artifact

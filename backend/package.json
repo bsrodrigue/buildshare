@@ -1,0 +1,16 @@
+{
+  "name": "appshare-backend",
+  "version": "1.0.0",
+  "description": "Utility scripts for App-share backend",
+  "scripts": {
+    "lint": "uv run ruff check . && uv run mypy .",
+    "format": "uv run ruff format .",
+    "test": "uv run pytest",
+    "migrate": "uv run python manage.py migrate",
+    "makemigrations": "uv run python manage.py makemigrations",
+    "server": "uv run python manage.py runserver",
+    "shell": "uv run python manage.py shell"
+  },
+  "author": "Antigravity",
+  "license": "MIT"
+}

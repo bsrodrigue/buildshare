@@ -1,0 +1,44 @@
+[project]
+name = "appshare-backend"
+version = "0.1.0"
+description = "Backend for App-share application distribution platform"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "django>=6.0",
+    "djangorestframework>=3.15.2",
+    "djangorestframework-simplejwt>=5.4.0",
+    "django-environ>=0.11.2",
+    "django-filter>=24.3",
+    "django-cors-headers>=4.4.0",
+    "pillow>=11.0.0",
+    "boto3>=1.35.0",
+    "whitenoise>=6.7.0",
+    "drf-spectacular>=0.27.0",
+]
+
+[tool.uv]
+managed = true
+
+[dependency-groups]
+dev = [
+    "ruff>=0.7.0",
+    "mypy>=1.13.0",
+    "django-stubs>=5.1.0",
+    "djangorestframework-stubs>=3.15.0",
+    "pytest-django>=4.9.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313" # Adjust if 3.14 isn't supported yet in ruff
+select = ["E", "F", "I", "W", "UP", "N", "S", "B", "T20", "RET", "SIM", "ARG", "PTH", "ERA", "PL"]
+
+[tool.mypy]
+python_version = "3.14"
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+strict = true
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "config.django.base"

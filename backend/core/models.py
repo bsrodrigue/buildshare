@@ -3,7 +3,6 @@ import uuid
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
-from django_fsm import FSMField, transition
 
 from .constraints import (
     CHECK_TASK_JOB_ERROR_ON_FAILURE,
@@ -42,12 +41,11 @@ class TaskJob(BaseModel):
         verbose_name="Utilisateur",
     )
     type = models.CharField("Type de tâche", max_length=50, choices=TaskJobType.choices)
-    status = FSMField(
+    status = models.CharField(
         "Statut",
         max_length=50,
         choices=TaskJobStatus.choices,
         default=TaskJobStatus.PENDING,
-        protected=True,
     )
 
     input_data = models.JSONField("Données d'entrée", default=dict, blank=True)
@@ -94,24 +92,3 @@ class TaskJob(BaseModel):
 
     def __str__(self):
         return f"{self.type} - {self.status} ({self.id})"
-
-    @transition(field=status, source=TaskJobStatus.PENDING, target=TaskJobStatus.STARTED)
-    def start(self):
-        self.started_at = timezone.now()
-
-    @transition(field=status, source=TaskJobStatus.STARTED, target=TaskJobStatus.SUCCESS)
-    def finish(self):
-        self.finished_at = timezone.now()
-
-    @transition(field=status, source=TaskJobStatus.STARTED, target=TaskJobStatus.FAILURE)
-    def fail(self, error=""):
-        self.finished_at = timezone.now()
-        self.error_message = error
-
-    @transition(
-        field=status,
-        source=[TaskJobStatus.PENDING, TaskJobStatus.STARTED],
-        target=TaskJobStatus.CANCELLED,
-    )
-    def cancel(self):
-        self.finished_at = timezone.now()

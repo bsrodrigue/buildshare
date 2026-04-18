@@ -1,8 +1,10 @@
 from django.urls import path
 
-from .apis import ApplicationApi, ArtifactUploadApi
+from .apis import ApplicationApi, ArtifactUploadApi, ProcessAPKApi, UploadIntentApi
 
 urlpatterns = [
     path("applications/", ApplicationApi.as_view(), name="application-list-create"),
     path("artifacts/upload/", ArtifactUploadApi.as_view(), name="artifact-upload"),
+    path("upload-intent/", UploadIntentApi.as_view(), name="upload-intent"),
+    path("process-apk/", ProcessAPKApi.as_view(), name="process-apk"),
 ]

@@ -16,6 +16,9 @@ dependencies = [
     "whitenoise>=6.7.0",
     "drf-spectacular>=0.27.0",
     "django-viewflow>=2.2.15",
+    "celery>=5.6.3",
+    "redis>=7.4.0",
+    "pyaxmlparser>=0.3.31",
 ]
 
 [tool.uv]

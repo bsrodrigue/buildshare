@@ -33,3 +33,18 @@ class ArtifactInputSerializer(serializers.Serializer):
     release_notes = serializers.CharField(required=False, allow_blank=True, default="")
     file = serializers.FileField()
     architecture = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class UploadIntentInputSerializer(serializers.Serializer):
+    project_id = serializers.IntegerField()
+
+
+class UploadIntentOutputSerializer(serializers.Serializer):
+    job_id = serializers.UUIDField()
+    upload_url = serializers.URLField()
+
+
+class ProcessAPKInputSerializer(serializers.Serializer):
+    job_id = serializers.UUIDField()
+    title = serializers.CharField(max_length=255, required=False)
+    description = serializers.CharField(required=False, allow_blank=True, default="")

@@ -39,7 +39,7 @@ export default function ActivityScreen() {
     switch (status) {
       case 'SUCCESS': return 'check-circle';
       case 'FAILURE': return 'alert-circle';
-      case 'STARTED': return 'loading';
+      case 'STARTED': return 'cog'; // Changed from 'loading' as requested
       default: return 'clock-outline';
     }
   };
@@ -106,7 +106,7 @@ export default function ActivityScreen() {
           }} 
         />
         <Text variant="headlineSmall" style={[styles.title, { color: customTheme.colors.onSurface }]}>
-          Activité Récente
+          {t('screens.activity.title')}
         </Text>
         <IconButton 
           icon="refresh" 
@@ -125,10 +125,10 @@ export default function ActivityScreen() {
           density="medium"
           style={styles.segmentedButtons}
           buttons={[
-            { value: 'ALL', label: 'Tout' },
-            { value: 'ACTIVE', label: 'En cours' },
-            { value: 'SUCCESS', label: 'Succès' },
-            { value: 'FAILURE', label: 'Échecs' },
+            { value: 'ALL', label: t('screens.activity.filter.all') },
+            { value: 'ACTIVE', label: t('screens.activity.filter.active') },
+            { value: 'SUCCESS', label: t('screens.activity.filter.success') },
+            { value: 'FAILURE', label: t('screens.activity.filter.failure') },
           ]}
         />
       </View>
@@ -143,7 +143,7 @@ export default function ActivityScreen() {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text variant="bodyLarge">Aucune activité.</Text>
+            <Text variant="bodyLarge">{t('screens.activity.empty')}</Text>
           </View>
         }
       />

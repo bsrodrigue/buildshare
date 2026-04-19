@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { FlatList, Linking, RefreshControl, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Chip, FAB, IconButton, List, Surface, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,6 +16,7 @@ export default function AppDetailScreen() {
   const resolvedProjectId = projectId ? parseInt(projectId as string, 10) : undefined;
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   
   const { data: releases, isLoading, isRefetching, refetch } = useReleases(applicationId);
 
@@ -47,7 +49,7 @@ export default function AppDetailScreen() {
                 {item.version_id}
               </Text>
               <Text variant="bodySmall" style={styles.buildId}>
-                Build {item.version_code} • {new Date(item.created_at).toLocaleDateString()}
+                {t('screens.release_list.build_info', { code: item.version_code, date: new Date(item.created_at).toLocaleDateString() })}
               </Text>
             </View>
             <Chip 
@@ -55,7 +57,7 @@ export default function AppDetailScreen() {
               style={[styles.statusChip, { backgroundColor: theme.colors.primaryContainer }]}
               textStyle={styles.statusChipText}
             >
-              Stable
+              {t('screens.release_list.stable_chip')}
             </Chip>
           </View>
 
@@ -67,7 +69,7 @@ export default function AppDetailScreen() {
 
           <View style={styles.divider} />
 
-          <Text variant="labelLarge" style={styles.artifactTitle}>Binary Artifacts</Text>
+          <Text variant="labelLarge" style={styles.artifactTitle}>{t('screens.release_list.artifact_title')}</Text>
           
           {item.artifacts?.map((artifact: ReleaseArtifact) => (
              <List.Item
@@ -118,7 +120,7 @@ export default function AppDetailScreen() {
           }} 
         />
         <Text variant="headlineSmall" style={[styles.title, { color: theme.colors.onSurface }]}>
-          Releases
+          {t('screens.release_list.title')}
         </Text>
         <IconButton 
           icon="refresh" 
@@ -140,7 +142,7 @@ export default function AppDetailScreen() {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text variant="bodyLarge">Aucune release.</Text>
+            <Text variant="bodyLarge">{t('screens.release_list.empty_title')}</Text>
           </View>
         }
       />
@@ -148,7 +150,7 @@ export default function AppDetailScreen() {
       {resolvedProjectId && (
         <FAB
           icon="upload"
-          label="Nouvelle Release"
+          label={t('screens.release_list.fab_new_release')}
           variant="primary"
           mode="elevated"
           style={[

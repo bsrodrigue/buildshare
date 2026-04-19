@@ -1,7 +1,12 @@
 from django.db import models
 from core.models import BaseModel
 from projects.models import Project
-from .constraints import UNIQUE_APP_PER_PROJECT, UNIQUE_RELEASE_PER_APP
+from .constraints import (
+    UNIQUE_APP_PER_PROJECT,
+    UNIQUE_RELEASE_PER_APP,
+    UNIQUE_ARTIFACT_HASH_PER_RELEASE,
+    UNIQUE_ARTIFACT_ARCH_PER_RELEASE,
+)
 
 
 class Application(BaseModel):
@@ -60,7 +65,19 @@ class Artifact(BaseModel):
     )
     file = models.FileField("Fichier binaire", upload_to=artifact_upload_path)
     architecture = models.CharField("Architecture", max_length=50, blank=True)
-    hash = models.CharField("Hash (SHA256)", max_length=64, blank=True)
+    hash = models.CharField("Hash (SHA256)", max_length=64)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["release", "hash"],
+                name=UNIQUE_ARTIFACT_HASH_PER_RELEASE
+            ),
+            models.UniqueConstraint(
+                fields=["release", "architecture"],
+                name=UNIQUE_ARTIFACT_ARCH_PER_RELEASE
+            )
+        ]
 
     def __str__(self):
         return f"Artifact for {self.release} ({self.architecture})"

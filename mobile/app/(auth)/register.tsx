@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import React from 'react';
 import { Controller,useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView,StyleSheet, View } from 'react-native';
 import { Button, Card, Text, TextInput, useTheme } from 'react-native-paper';
 
@@ -12,6 +13,7 @@ import { RegisterParams, RegisterParamsSchema } from '@/modules/auth/api/schemas
 
 export default function RegisterScreen() {
   const theme = useTheme();
+  const { t } = useTranslation();
   const mutation = useRegister();
 
   const {
@@ -43,10 +45,10 @@ export default function RegisterScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text variant="headlineLarge" style={styles.title}>
-            Inscription
+            {t('auth.register.title')}
           </Text>
           <Text variant="bodyLarge" style={styles.subtitle}>
-            Rejoignez App-share dès aujourd&apos;hui.
+            {t('auth.register.subtitle')}
           </Text>
         </View>
 
@@ -57,7 +59,7 @@ export default function RegisterScreen() {
               name="first_name"
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  label="Prénom"
+                  label={t('auth.register.first_name_label')}
                   value={value}
                   onBlur={onBlur}
                   onChangeText={onChange}
@@ -78,7 +80,7 @@ export default function RegisterScreen() {
               name="last_name"
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  label="Nom"
+                  label={t('auth.register.last_name_label')}
                   value={value}
                   onBlur={onBlur}
                   onChangeText={onChange}
@@ -99,7 +101,7 @@ export default function RegisterScreen() {
               name="email"
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  label="Email"
+                  label={t('auth.register.email_label')}
                   value={value}
                   onBlur={onBlur}
                   onChangeText={onChange}
@@ -122,7 +124,7 @@ export default function RegisterScreen() {
               name="password"
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  label="Mot de passe"
+                  label={t('auth.register.password_label')}
                   value={value}
                   onBlur={onBlur}
                   onChangeText={onChange}
@@ -146,7 +148,7 @@ export default function RegisterScreen() {
               disabled={mutation.isPending}
               style={styles.button}
             >
-              S&apos;inscrire
+              {t('auth.register.submit')}
             </Button>
 
             <Button
@@ -154,7 +156,7 @@ export default function RegisterScreen() {
               onPress={() => { void router.push('/(auth)/login'); }}
               style={styles.link}
             >
-              Déjà un compte ? Se connecter
+              {t('auth.register.login_link')}
             </Button>
           </Card.Content>
         </Card>

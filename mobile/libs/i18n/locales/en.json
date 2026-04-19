@@ -1,0 +1,117 @@
+{
+  "common": {
+    "unknown": "Unknown",
+    "error": "Error",
+    "success": "Success",
+    "loading": "Loading...",
+    "cancel": "Cancel",
+    "save": "Save",
+    "close": "Close"
+  },
+  "auth": {
+    "login": {
+      "title": "App-share",
+      "subtitle": "Sign in to manage your builds.",
+      "email_label": "Email",
+      "password_label": "Password",
+      "submit": "Sign In",
+      "register_link": "Don't have an account? Sign Up"
+    },
+    "register": {
+      "title": "Sign Up",
+      "subtitle": "Join App-share today.",
+      "first_name_label": "First Name",
+      "last_name_label": "Last Name",
+      "email_label": "Email",
+      "password_label": "Password",
+      "submit": "Register",
+      "login_link": "Already have an account? Sign In"
+    }
+  },
+  "screens": {
+    "dashboard": {
+      "welcome": "Hi, {{name}}!",
+      "subtitle": "Here are your current projects.",
+      "no_description": "No description",
+      "empty_title": "No projects found.",
+      "empty_subtitle": "Create your first project to get started.",
+      "fab_new_project": "New Project"
+    },
+    "project_detail": {
+      "title": "Applications",
+      "empty_title": "No applications.",
+      "empty_subtitle": "Upload your first APK to get started.",
+      "fab_new_app": "New Application"
+    },
+    "release_list": {
+      "title": "Releases",
+      "empty_title": "No releases.",
+      "artifact_title": "Binary Artifacts",
+      "stable_chip": "Stable",
+      "build_info": "Build {{code}} • {{date}}",
+      "fab_new_release": "New Release"
+    },
+    "upload": {
+      "title_new_release": "New Release",
+      "title_new_app": "New Application",
+      "file_missing": "Missing File",
+      "file_missing_desc": "Please select an APK file.",
+      "upload_error": "Upload Error",
+      "upload_success": "Upload Successful!",
+      "upload_success_desc": "The APK is being processed by the server.",
+      "add_details": "Add details (name, description)",
+      "app_details_title": "Application Details",
+      "app_name_label": "Application Name (optional)",
+      "app_name_placeholder": "e.g. My Super Project",
+      "description_label": "Description",
+      "description_placeholder": "Brief description of the project",
+      "submit_release": "Launch Update",
+      "submit_app": "Launch Deployment",
+      "info_header": "Information",
+      "async_info_title": "Asynchronous Processing",
+      "async_info_desc": "The server will automatically extract APK metadata (ID, Version)."
+    },
+    "activity": {
+      "title": "Recent Activity",
+      "empty": "No activity.",
+      "filter": {
+        "all": "All",
+        "active": "In Progress",
+        "success": "Success",
+        "failure": "Failures"
+      }
+    },
+    "create_project": {
+      "title": "New Project",
+      "subtitle": "Organize your applications in a dedicated space.",
+      "name_label": "Project Name",
+      "description_label": "Description (optional)",
+      "submit": "Create Project",
+      "success": "Project created!",
+      "error": "Failed to create project."
+    }
+  },
+  "components": {
+    "apk_input": {
+      "drop_zone_empty": "Select an APK binary",
+      "browse": "Browse",
+      "change_file": "Change file",
+      "uploading": "Uploading...",
+      "processing": "Processing...",
+      "selection_failed": "Selection failed",
+      "meta_info": "{{size}} MB • ANDROID"
+    }
+  },
+  "jobs": {
+    "types": {
+      "BINARY_PROCESSING": "Binary Processing"
+    },
+    "status": {
+      "PENDING": "Pending",
+      "STARTED": "Started",
+      "SUCCESS": "Success",
+      "FAILURE": "Failure",
+      "CANCELLED": "Cancelled"
+    }
+  }
+}

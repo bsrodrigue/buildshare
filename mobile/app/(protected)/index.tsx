@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Card, FAB, IconButton, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +13,7 @@ import { useTheme } from '@/modules/shared/theme/ThemeProvider';
 export default function DashboardScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { user, logout } = useAuthStore();
   const { data: projects, isLoading, isRefetching, refetch } = useProjects();
 
@@ -26,7 +28,7 @@ export default function DashboardScreen() {
     >
       <Card.Title
         title={item.title}
-        subtitle={item.description || 'Aucune description'}
+        subtitle={item.description || t('screens.dashboard.no_description')}
         titleStyle={[styles.cardTitle, { color: theme.colors.onSurface }]}
         subtitleStyle={styles.cardSubtitle}
         left={(props) => (
@@ -59,10 +61,10 @@ export default function DashboardScreen() {
       <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.outline + '20' }]}>
         <View>
           <Text variant="headlineMedium" style={[styles.welcome, { color: theme.colors.onSurface }]}>
-            Salut, {user?.first_name} !
+            {t('screens.dashboard.welcome', { name: user?.first_name || '' })}
           </Text>
           <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>
-            Voici vos projets actuels.
+            {t('screens.dashboard.subtitle')}
           </Text>
         </View>
         <View style={styles.headerRight}>
@@ -94,15 +96,15 @@ export default function DashboardScreen() {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text variant="bodyLarge">Aucun projet trouvé.</Text>
-            <Text variant="bodySmall">Créez votre premier projet pour commencer.</Text>
+            <Text variant="bodyLarge">{t('screens.dashboard.empty_title')}</Text>
+            <Text variant="bodySmall">{t('screens.dashboard.empty_subtitle')}</Text>
           </View>
         }
       />
 
       <FAB
         icon="plus"
-        label="Nouveau Projet"
+        label={t('screens.dashboard.fab_new_project')}
         variant="primary"
         mode="elevated"
         style={[

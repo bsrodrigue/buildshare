@@ -2,6 +2,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { router,useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import { Controller,useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { ScrollView,StyleSheet, View } from 'react-native';
 import {
   Button,
@@ -23,11 +24,13 @@ export default function UploadArtifactScreen() {
   const pid = parseInt(id as string, 10);
   const isReleaseMode = !!appId;
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   
   const uploadPipeline = useAPKUploadPipeline();
   
   const [selectedFile, setSelectedFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [showDetails, setShowDetails] = useState(false);
 
   const {
     control,
@@ -44,8 +47,8 @@ export default function UploadArtifactScreen() {
     if (!selectedFile) {
       Toast.show({
         type: 'error',
-        text1: 'Fichier manquant',
-        text2: 'Veuillez sélectionner un fichier APK.',
+        text1: t('screens.upload.file_missing'),
+        text2: t('screens.upload.file_missing_desc'),
       });
       return;
     }
@@ -65,13 +68,18 @@ export default function UploadArtifactScreen() {
       },
       {
         onSuccess: () => {
-          router.push('/(protected)/activity');
+          Toast.show({
+            type: 'success',
+            text1: t('screens.upload.upload_success'),
+            text2: t('screens.upload.upload_success_desc'),
+          });
+          router.replace('/(protected)/activity');
         },
         onError: (error: AppError) => {
           setUploadProgress(0);
           Toast.show({
             type: 'error',
-            text1: 'Erreur de téléversement',
+            text1: t('screens.upload.upload_error'),
             text2: error.message,
           });
         },
@@ -82,93 +90,113 @@ export default function UploadArtifactScreen() {
   const isPending = uploadPipeline.isPending;
 
   return (
-    <ScrollView 
-      style={styles.container} 
-      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
-    >
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
         <IconButton icon="arrow-left" onPress={() => router.back()} />
         <Text variant="headlineSmall" style={styles.title}>
-          {isReleaseMode ? 'Nouvelle Release' : 'Nouvelle Application'}
+          {isReleaseMode ? t('screens.upload.title_new_release') : t('screens.upload.title_new_app')}
         </Text>
         <View style={styles.spacer} />
       </View>
 
-      <View style={styles.body}>
-        <ApkUploadInput 
-          selectedFile={selectedFile}
-          onFileSelect={setSelectedFile}
-          isUploading={isPending}
-          progress={uploadProgress}
-        />
-
-        {!isReleaseMode && (
-          <Card style={styles.formCard}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                Détails de l&apos;Application
-              </Text>
-              
-              <Controller
-                control={control}
-                name="title"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    label="Nom de l'application (optionnel)"
-                    placeholder="ex: Mon Super Projet"
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    mode="outlined"
-                    style={styles.input}
-                    disabled={isPending}
-                  />
-                )}
-              />
-
-              <Controller
-                control={control}
-                name="description"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    label="Description"
-                    placeholder="Brève description du projet"
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    mode="outlined"
-                    multiline
-                    numberOfLines={4}
-                    style={styles.input}
-                    disabled={isPending}
-                  />
-                )}
-              />
-            </Card.Content>
-          </Card>
-        )}
-
-        <Button
-          mode="contained"
-          onPress={() => { void handleSubmit(onSubmit)(); }}
-          loading={isPending}
-          disabled={isPending || !selectedFile}
-          contentStyle={styles.submitButtonContent}
-          style={styles.submitButton}
-        >
-          {isReleaseMode ? 'Lancer la mise à jour' : 'Lancer le déploiement'}
-        </Button>
-
-        <List.Section>
-          <List.Subheader>Information</List.Subheader>
-          <List.Item
-            title="Traitement asynchrone"
-            description="Le serveur extraira automatiquement les métadonnées de l'APK (ID, Version)."
-            left={props => <List.Icon {...props} icon="information-outline" />}
+      <ScrollView 
+        style={styles.container} 
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
+      >
+        <View style={styles.body}>
+          <ApkUploadInput 
+            selectedFile={selectedFile}
+            onFileSelect={setSelectedFile}
+            isUploading={isPending}
+            progress={uploadProgress}
           />
-        </List.Section>
-      </View>
-    </ScrollView>
+
+          {!isReleaseMode && !showDetails && (
+            <Button 
+              mode="text" 
+              icon="plus" 
+              onPress={() => setShowDetails(true)}
+              style={styles.addDetailsBtn}
+            >
+              {t('screens.upload.add_details')}
+            </Button>
+          )}
+
+          {!isReleaseMode && showDetails && (
+            <Card style={styles.formCard}>
+              <Card.Content>
+                <View style={styles.cardHeader}>
+                  <Text variant="titleMedium" style={styles.sectionTitle}>
+                    {t('screens.upload.app_details_title')}
+                  </Text>
+                  <IconButton 
+                    icon="close" 
+                    size={20} 
+                    onPress={() => setShowDetails(false)} 
+                  />
+                </View>
+                
+                <Controller
+                  control={control}
+                  name="title"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      label={t('screens.upload.app_name_label')}
+                      placeholder={t('screens.upload.app_name_placeholder')}
+                      value={value}
+                      onBlur={onBlur}
+                      onChangeText={onChange}
+                      mode="outlined"
+                      style={styles.input}
+                      disabled={isPending}
+                    />
+                  )}
+                />
+
+                <Controller
+                  control={control}
+                  name="description"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      label={t('screens.upload.description_label')}
+                      placeholder={t('screens.upload.description_placeholder')}
+                      value={value}
+                      onBlur={onBlur}
+                      onChangeText={onChange}
+                      mode="outlined"
+                      multiline
+                      numberOfLines={4}
+                      style={styles.input}
+                      disabled={isPending}
+                    />
+                  )}
+                />
+              </Card.Content>
+            </Card>
+          )}
+
+          <Button
+            mode="contained"
+            onPress={() => { void handleSubmit(onSubmit)(); }}
+            loading={isPending}
+            disabled={isPending || !selectedFile}
+            contentStyle={styles.submitButtonContent}
+            style={styles.submitButton}
+          >
+            {isReleaseMode ? t('screens.upload.submit_release') : t('screens.upload.submit_app')}
+          </Button>
+
+          <List.Section>
+            <List.Subheader>{t('screens.upload.info_header')}</List.Subheader>
+            <List.Item
+              title={t('screens.upload.async_info_title')}
+              description={t('screens.upload.async_info_desc')}
+              left={props => <List.Icon {...props} icon="information-outline" />}
+            />
+          </List.Section>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -200,17 +228,26 @@ const styles = StyleSheet.create({
     elevation: 0,
     borderWidth: 1,
     borderColor: '#f0f0f0',
+    marginBottom: 16,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   sectionTitle: {
-    marginBottom: 16,
     fontWeight: 'bold',
+  },
+  addDetailsBtn: {
+    marginBottom: 16,
+    alignSelf: 'flex-start',
   },
   input: {
     marginBottom: 16,
     backgroundColor: '#fff',
   },
   submitButton: {
-    marginTop: 8,
     borderRadius: 12,
   },
   submitButtonContent: {

@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import React from 'react';
 import { Controller,useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView,StyleSheet, View } from 'react-native';
 import { Button, Card, Text, TextInput, useTheme } from 'react-native-paper';
 
@@ -17,6 +18,7 @@ export default function LoginScreen() {
   logger.info('Render LoginScreen');
 
   const theme = useTheme();
+  const { t } = useTranslation();
   const mutation = useLogin();
 
   const {
@@ -46,10 +48,10 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text variant="headlineLarge" style={styles.title}>
-            App-share
+            {t('auth.login.title')}
           </Text>
           <Text variant="bodyLarge" style={styles.subtitle}>
-            Connectez-vous pour gérer vos builds.
+            {t('auth.login.subtitle')}
           </Text>
         </View>
 
@@ -60,7 +62,7 @@ export default function LoginScreen() {
               name="email"
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  label="Email"
+                  label={t('auth.login.email_label')}
                   value={value}
                   onBlur={onBlur}
                   onChangeText={onChange}
@@ -83,7 +85,7 @@ export default function LoginScreen() {
               name="password"
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  label="Mot de passe"
+                  label={t('auth.login.password_label')}
                   value={value}
                   onBlur={onBlur}
                   onChangeText={onChange}
@@ -107,11 +109,11 @@ export default function LoginScreen() {
               disabled={mutation.isPending}
               style={styles.button}
             >
-              Se connecter
+              {t('auth.login.submit')}
             </Button>
 
             <Button mode="text" onPress={() => { void router.push('/(auth)/register'); }} style={styles.link}>
-              Pas de compte ? S&apos;inscrire
+              {t('auth.login.register_link')}
             </Button>
           </Card.Content>
         </Card>

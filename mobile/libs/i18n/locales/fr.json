@@ -1,0 +1,117 @@
+{
+  "common": {
+    "unknown": "Inconnu",
+    "error": "Erreur",
+    "success": "Succès",
+    "loading": "Chargement...",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "close": "Fermer"
+  },
+  "auth": {
+    "login": {
+      "title": "App-share",
+      "subtitle": "Connectez-vous pour gérer vos builds.",
+      "email_label": "Email",
+      "password_label": "Mot de passe",
+      "submit": "Se connecter",
+      "register_link": "Pas de compte ? S'inscrire"
+    },
+    "register": {
+      "title": "Inscription",
+      "subtitle": "Rejoignez App-share dès aujourd'hui.",
+      "first_name_label": "Prénom",
+      "last_name_label": "Nom",
+      "email_label": "Email",
+      "password_label": "Mot de passe",
+      "submit": "S'inscrire",
+      "login_link": "Déjà un compte ? Se connecter"
+    }
+  },
+  "screens": {
+    "dashboard": {
+      "welcome": "Salut, {{name}} !",
+      "subtitle": "Voici vos projets actuels.",
+      "no_description": "Aucune description",
+      "empty_title": "Aucun projet trouvé.",
+      "empty_subtitle": "Créez votre premier projet pour commencer.",
+      "fab_new_project": "Nouveau Projet"
+    },
+    "project_detail": {
+      "title": "Applications",
+      "empty_title": "Aucune application.",
+      "empty_subtitle": "Téléversez votre premier APK pour commencer.",
+      "fab_new_app": "Nouvelle Application"
+    },
+    "release_list": {
+      "title": "Releases",
+      "empty_title": "Aucune release.",
+      "artifact_title": "Binary Artifacts",
+      "stable_chip": "Stable",
+      "build_info": "Build {{code}} • {{date}}",
+      "fab_new_release": "Nouvelle Release"
+    },
+    "upload": {
+      "title_new_release": "Nouvelle Release",
+      "title_new_app": "Nouvelle Application",
+      "file_missing": "Fichier manquant",
+      "file_missing_desc": "Veuillez sélectionner un fichier APK.",
+      "upload_error": "Erreur de téléversement",
+      "upload_success": "Upload réussi !",
+      "upload_success_desc": "L'APK est en cours de traitement par le serveur.",
+      "add_details": "Ajouter des détails (nom, description)",
+      "app_details_title": "Détails de l'Application",
+      "app_name_label": "Nom de l'application (optionnel)",
+      "app_name_placeholder": "ex: Mon Super Projet",
+      "description_label": "Description",
+      "description_placeholder": "Brève description du projet",
+      "submit_release": "Lancer la mise à jour",
+      "submit_app": "Lancer le déploiement",
+      "info_header": "Information",
+      "async_info_title": "Traitement asynchrone",
+      "async_info_desc": "Le serveur extraira automatiquement les métadonnées de l'APK (ID, Version)."
+    },
+    "activity": {
+      "title": "Activité Récente",
+      "empty": "Aucune activité.",
+      "filter": {
+        "all": "Tout",
+        "active": "En cours",
+        "success": "Succès",
+        "failure": "Échecs"
+      }
+    },
+    "create_project": {
+      "title": "Nouveau Projet",
+      "subtitle": "Organisez vos applications dans un espace dédié.",
+      "name_label": "Nom du projet",
+      "description_label": "Description (optionnelle)",
+      "submit": "Créer le projet",
+      "success": "Projet créé !",
+      "error": "Impossible de créer le projet."
+    }
+  },
+  "components": {
+    "apk_input": {
+      "drop_zone_empty": "Sélectionner un binaire APK",
+      "browse": "Parcourir",
+      "change_file": "Changer de fichier",
+      "uploading": "Envoi...",
+      "processing": "Traitement...",
+      "selection_failed": "Échec de la sélection",
+      "meta_info": "{{size}} MO • ANDROID"
+    }
+  },
+  "jobs": {
+    "types": {
+      "BINARY_PROCESSING": "Traitement de binaire"
+    },
+    "status": {
+      "PENDING": "En attente",
+      "STARTED": "En cours",
+      "SUCCESS": "Réussite",
+      "FAILURE": "Échec",
+      "CANCELLED": "Annulé"
+    }
+  }
+}

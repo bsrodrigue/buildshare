@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import React from 'react';
 import { Controller,useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { ScrollView,StyleSheet, View } from 'react-native';
 import { Button, Card, Text, TextInput, useTheme } from 'react-native-paper';
 import Toast from 'react-native-toast-message';
@@ -13,6 +14,7 @@ import { ProjectCreateParams, ProjectCreateParamsSchema } from '@/modules/projec
 
 export default function CreateProjectScreen() {
   const theme = useTheme();
+  const { t } = useTranslation();
   const createProject = useCreateProject();
 
   const {
@@ -33,7 +35,7 @@ export default function CreateProjectScreen() {
       onSuccess: () => {
         Toast.show({
           type: 'success',
-          text1: 'Projet créé !',
+          text1: t('screens.create_project.success'),
         });
         router.back();
       },
@@ -42,8 +44,8 @@ export default function CreateProjectScreen() {
         if (!handled) {
           Toast.show({
             type: 'error',
-            text1: 'Erreur',
-            text2: error.message || 'Impossible de créer le projet.',
+            text1: t('common.error'),
+            text2: error.message || t('screens.create_project.error'),
           });
         }
       },
@@ -54,10 +56,10 @@ export default function CreateProjectScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <Text variant="headlineSmall" style={styles.title}>
-          Nouveau Projet
+          {t('screens.create_project.title')}
         </Text>
         <Text variant="bodyMedium">
-          Organisez vos applications dans un espace dédié.
+          {t('screens.create_project.subtitle')}
         </Text>
       </View>
 
@@ -68,7 +70,7 @@ export default function CreateProjectScreen() {
             name="title"
             render={({ field: { onChange, onBlur, value } }) => (
               <TextInput
-                label="Nom du projet"
+                label={t('screens.create_project.name_label')}
                 value={value}
                 onBlur={onBlur}
                 onChangeText={onChange}
@@ -89,7 +91,7 @@ export default function CreateProjectScreen() {
             name="description"
             render={({ field: { onChange, onBlur, value } }) => (
               <TextInput
-                label="Description (optionnelle)"
+                label={t('screens.create_project.description_label')}
                 value={value}
                 onBlur={onBlur}
                 onChangeText={onChange}
@@ -108,7 +110,7 @@ export default function CreateProjectScreen() {
             disabled={createProject.isPending}
             style={styles.button}
           >
-            Créer le projet
+            {t('screens.create_project.submit')}
           </Button>
 
           <Button
@@ -116,7 +118,7 @@ export default function CreateProjectScreen() {
             onPress={() => router.back()}
             style={styles.cancel}
           >
-            Annuler
+            {t('common.cancel')}
           </Button>
         </Card.Content>
       </Card>

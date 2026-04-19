@@ -1,18 +1,14 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Button, IconButton, ProgressBar, Surface, Text, useTheme } from 'react-native-paper';
 import Animated, { 
-  interpolate, 
   useAnimatedStyle, 
   useSharedValue, 
-  withRepeat, 
-  withSequence, 
   withSpring, 
-  withTiming 
 } from 'react-native-reanimated';
 import Toast from 'react-native-toast-message';
 
@@ -34,39 +30,16 @@ export const ApkUploadInput: React.FC<ApkUploadInputProps> = ({
   disabled,
 }) => {
   const theme = useTheme();
-  
-  // Animation values
-  const pulse = useSharedValue(1);
+  const { t } = useTranslation();
   const scale = useSharedValue(1);
-  const opacity = useSharedValue(0);
+  const isInteractionDisabled = disabled || isUploading;
 
-  useEffect(() => {
-    if (!selectedFile && !isUploading) {
-      pulse.value = withRepeat(
-        withSequence(
-          withTiming(1.05, { duration: 1500 }),
-          withTiming(1, { duration: 1500 })
-        ),
-        -1,
-        true
-      );
-    } else {
-      pulse.value = 1;
-    }
-  }, [selectedFile, isUploading, pulse]);
-
-  useEffect(() => {
-    if (selectedFile) {
-      opacity.value = withTiming(1, { duration: 500 });
-      scale.value = withSpring(1.1, {}, () => {
-        scale.value = withSpring(1);
-      });
-    } else {
-      opacity.value = 0;
-    }
-  }, [selectedFile, opacity, scale]);
+  // Clamp progress to prevent the 200% overflow reported by the user
+  const displayProgress = Math.min(100, Math.max(0, progress));
 
   const pickFile = async () => {
+    if (isInteractionDisabled) return;
+
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: 'application/vnd.android.package-archive',
@@ -76,90 +49,109 @@ export const ApkUploadInput: React.FC<ApkUploadInputProps> = ({
       if (!result.canceled) {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         onFileSelect(result.assets[0]);
+        // Simple entry animation
+        scale.value = withSpring(1.05, {}, () => {
+          scale.value = withSpring(1);
+        });
       }
     } catch {
       Toast.show({
         type: 'error',
-        text1: 'Échec de la sélection',
+        text1: t('components.apk_input.selection_failed'),
       });
     }
   };
 
   const animatedStyles = useAnimatedStyle(() => ({
-    transform: [{ scale: pulse.value }],
+    transform: [{ scale: scale.value }],
     borderColor: selectedFile ? theme.colors.primary : theme.colors.outlineVariant,
-    borderStyle: selectedFile ? 'solid' : 'dashed',
+    opacity: isInteractionDisabled ? 0.6 : 1,
   }));
 
-  const contentStyles = useAnimatedStyle(() => ({
-    opacity: interpolate(opacity.value, [0, 1], [0.6, 1]),
-    transform: [{ scale: scale.value }],
-  }));
+  const iconCircleStyle = React.useMemo(() => [
+    styles.iconCircle,
+    { backgroundColor: selectedFile ? theme.colors.primaryContainer : '#f5f5f5' }
+  ], [selectedFile, theme.colors.primaryContainer]);
 
   return (
     <View style={styles.container}>
-      <AnimatedSurface style={[styles.uploadArea, animatedStyles]} elevation={selectedFile ? 2 : 0}>
-        <LinearGradient
-          colors={selectedFile ? [theme.colors.primaryContainer, 'transparent'] : ['#fafafa', 'transparent']}
-          style={styles.gradient}
-        />
-        
-        <Animated.View style={[styles.content, contentStyles]}>
-          <View style={styles.iconCircle}>
-            {selectedFile ? (
-               <IconButton
-               icon="check-circle"
-               size={40}
-               iconColor={theme.colors.primary}
-             />
-            ) : (
-              <MaterialCommunityIcons name="android" size={48} color={theme.colors.outline} />
+      <Pressable 
+        onPress={() => { void pickFile(); }}
+        disabled={isInteractionDisabled}
+        style={({ pressed }) => [
+          styles.pressable,
+          pressed && styles.pressed
+        ]}
+      >
+        <AnimatedSurface 
+          style={[
+            styles.uploadArea, 
+            animatedStyles,
+            selectedFile ? styles.selectedBorder : styles.unselectedBorder
+          ]} 
+          elevation={selectedFile ? 1 : 0}
+        >
+          <View style={styles.content}>
+            <View style={iconCircleStyle}>
+              {selectedFile ? (
+                <IconButton
+                  icon="check-circle"
+                  size={40}
+                  iconColor={theme.colors.primary}
+                />
+              ) : (
+                <MaterialCommunityIcons 
+                  name="android" 
+                  size={48} 
+                  color={isInteractionDisabled ? theme.colors.outlineVariant : theme.colors.outline} 
+                />
+              )}
+            </View>
+
+            <Text variant="titleMedium" style={styles.uploadText}>
+              {selectedFile ? selectedFile.name : t('components.apk_input.drop_zone_empty')}
+            </Text>
+            
+            {!isUploading && (
+              <Button
+                mode={selectedFile ? 'text' : 'contained'}
+                onPress={() => { void pickFile(); }}
+                style={styles.pickButton}
+                disabled={isInteractionDisabled}
+                contentStyle={styles.buttonContent}
+              >
+                {selectedFile ? t('components.apk_input.change_file') : t('components.apk_input.browse')}
+              </Button>
+            )}
+
+            {selectedFile && !isUploading && (
+              <View style={styles.badge}>
+                <Text variant="labelSmall" style={[styles.badgeText, { color: theme.colors.onSurfaceVariant }]}>
+                  {t('components.apk_input.meta_info', { size: Math.round((selectedFile.size ?? 0) / (1024 * 1024)) })}
+                </Text>
+              </View>
             )}
           </View>
 
-          <Text variant="titleMedium" style={styles.uploadText}>
-            {selectedFile ? selectedFile.name : 'Déposez votre binaire APK'}
-          </Text>
-          
-          {!isUploading && (
-            <Button
-              mode={selectedFile ? 'text' : 'contained'}
-              onPress={() => { void pickFile(); }}
-              style={styles.pickButton}
-              disabled={disabled}
-              contentStyle={styles.buttonContent}
-            >
-              {selectedFile ? 'Changer de fichier' : 'Parcourir les fichiers'}
-            </Button>
-          )}
-
-          {selectedFile && !isUploading && (
-            <View style={styles.badge}>
-              <Text variant="labelSmall" style={styles.badgeText}>
-                {Math.round((selectedFile.size ?? 0) / (1024 * 1024))} MO • ANDROID
-              </Text>
+          {isUploading && (
+            <View style={styles.progressWrapper}>
+              <View style={styles.progressHeader}>
+                <Text variant="labelMedium" style={styles.progressLabel}>
+                  {progress < 100 ? t('components.apk_input.uploading') : t('components.apk_input.processing')}
+                </Text>
+                <Text variant="labelMedium" style={styles.progressValue}>
+                  {Math.round(displayProgress)}%
+                </Text>
+              </View>
+              <ProgressBar 
+                progress={displayProgress / 100} 
+                color={theme.colors.primary} 
+                style={styles.progressBar} 
+              />
             </View>
           )}
-        </Animated.View>
-
-        {isUploading && (
-          <View style={styles.progressWrapper}>
-            <View style={styles.progressHeader}>
-              <Text variant="labelMedium" style={styles.progressLabel}>
-                {progress < 100 ? 'Téléversement sécurisé...' : 'Finalisation...'}
-              </Text>
-              <Text variant="labelMedium" style={styles.progressValue}>
-                {Math.round(progress)}%
-              </Text>
-            </View>
-            <ProgressBar 
-              progress={progress / 100} 
-              color={theme.colors.primary} 
-              style={styles.progressBar} 
-            />
-          </View>
-        )}
-      </AnimatedSurface>
+        </AnimatedSurface>
+      </Pressable>
     </View>
   );
 };
@@ -168,19 +160,26 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: 24,
   },
+  pressable: {
+    borderRadius: 24,
+  },
+  pressed: {
+    opacity: 0.8,
+  },
   uploadArea: {
-    padding: 32,
+    padding: 24,
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
     backgroundColor: '#fff',
-    overflow: 'hidden',
-    minHeight: 220,
+    minHeight: 200,
   },
-  gradient: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0.5,
+  unselectedBorder: {
+    borderStyle: 'dashed',
+  },
+  selectedBorder: {
+    borderStyle: 'solid',
   },
   content: {
     alignItems: 'center',
@@ -190,7 +189,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#f5f5f5',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -199,7 +197,7 @@ const styles = StyleSheet.create({
   },
   uploadText: {
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
     fontWeight: '700',
     paddingHorizontal: 8,
   },
@@ -208,29 +206,27 @@ const styles = StyleSheet.create({
   },
   buttonContent: {
     paddingHorizontal: 16,
-    height: 44,
   },
   badge: {
-    marginTop: 12,
-    backgroundColor: '#eee',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    marginTop: 8,
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 10,
+    paddingVertical: 2,
     borderRadius: 20,
   },
   badgeText: {
-    color: '#666',
     fontWeight: 'bold',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
   progressWrapper: {
     width: '100%',
-    marginTop: 24,
+    marginTop: 20,
   },
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   progressLabel: {
     opacity: 0.6,
@@ -239,7 +235,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   progressBar: {
-    height: 8,
-    borderRadius: 4,
+    height: 6,
+    borderRadius: 3,
   },
 });

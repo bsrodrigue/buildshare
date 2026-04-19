@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Avatar, FAB, IconButton, List, Surface, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +14,7 @@ export default function ProjectDetailScreen() {
   const projectId = parseInt(id as string, 10);
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   
   const { 
     data: applications, 
@@ -79,7 +81,7 @@ export default function ProjectDetailScreen() {
           }} 
         />
         <Text variant="headlineSmall" style={[styles.title, { color: theme.colors.onSurface }]}>
-          Applications
+          {t('screens.project_detail.title')}
         </Text>
         <IconButton 
           icon="refresh" 
@@ -101,15 +103,15 @@ export default function ProjectDetailScreen() {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text variant="bodyLarge">Aucune application.</Text>
-            <Text variant="bodySmall">Téléversez votre premier APK pour commencer.</Text>
+            <Text variant="bodyLarge">{t('screens.project_detail.empty_title')}</Text>
+            <Text variant="bodySmall">{t('screens.project_detail.empty_subtitle')}</Text>
           </View>
         }
       />
 
       <FAB
         icon="plus"
-        label="Nouvelle Application"
+        label={t('screens.project_detail.fab_new_app')}
         variant="primary"
         mode="elevated"
         style={[

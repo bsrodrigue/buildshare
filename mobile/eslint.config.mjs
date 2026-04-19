@@ -1,9 +1,8 @@
-import js from '@eslint/js';
 import expoConfig from 'eslint-config-expo/flat.js';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import unusedImports from 'eslint-plugin-unused-imports';
 import reactNative from 'eslint-plugin-react-native';
-import tseslint from 'typescript-eslint';
+import * as tseslint from 'typescript-eslint';
 import deprecation from 'eslint-plugin-deprecation';
 import { fixupPluginRules } from '@eslint/compat';
 import globals from 'globals';
@@ -29,7 +28,7 @@ export default tseslint.config(
       },
     },
     plugins: {
-      '@typescript-eslint': tseslint.plugin,
+      '@typescript-eslint': tseslint.default.plugin,
       'simple-import-sort': simpleImportSort,
       'unused-imports': unusedImports,
       'react-native': reactNative,

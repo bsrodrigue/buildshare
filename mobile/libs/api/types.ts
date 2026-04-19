@@ -31,7 +31,7 @@ export interface ApiResponse<T> {
 }
 
 /**
- * Custom Error class for Backend API
+ * Custom Error class for Backend API issues (4xx, 5xx with structured body)
  */
 export class BackendApiError extends Error {
   public code: string;
@@ -40,7 +40,7 @@ export class BackendApiError extends Error {
   constructor(error: ApiError) {
     super(error.message);
     this.name = 'BackendApiError';
-    this.code = error.code as string;
+    this.code = error.code;
     this.fields = error.fields;
   }
 
@@ -53,6 +53,21 @@ export class BackendApiError extends Error {
     };
   }
 }
+
+/**
+ * Custom Error class for connectivity or timeout issues
+ */
+export class NetworkError extends Error {
+  constructor(message = 'Network request failed. Please check your connection.') {
+    super(message);
+    this.name = 'NetworkError';
+  }
+}
+
+/**
+ * Unified application error type to ensure "owned" error flows
+ */
+export type AppError = BackendApiError | NetworkError | Error;
 
 /**
  * Standard Pagination parameters

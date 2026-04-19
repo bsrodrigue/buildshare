@@ -10,10 +10,11 @@ import {
   Text,
   useTheme,
 } from 'react-native-paper';
-import { useTheme as useCustomTheme } from '@/modules/shared/theme/ThemeProvider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTaskJobs } from '@/modules/binaries/api/hooks';
+import { TaskJob } from '@/modules/binaries/api/schemas';
+import { useTheme as useCustomTheme } from '@/modules/shared/theme/ThemeProvider';
 
 export default function ActivityScreen() {
   const { projectId } = useLocalSearchParams();
@@ -28,40 +29,37 @@ export default function ActivityScreen() {
     switch (status) {
       case 'SUCCESS': return 'check-circle';
       case 'FAILURE': return 'alert-circle';
-      case 'STARTED': return 'loading';
-      case 'PENDING': return 'clock-outline';
-      default: return 'help-circle';
+      default: return 'clock-outline';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'SUCCESS': return theme.colors.primary;
+      case 'SUCCESS': return '#4CAF50';
       case 'FAILURE': return theme.colors.error;
-      case 'STARTED': return theme.colors.secondary;
-      default: return theme.colors.outline;
+      default: return theme.colors.primary;
     }
   };
 
   const getStatusContainerColor = (status: string) => {
     switch (status) {
-      case 'SUCCESS': return theme.colors.primaryContainer;
+      case 'SUCCESS': return '#E8F5E9';
       case 'FAILURE': return theme.colors.errorContainer;
-      case 'STARTED': return theme.colors.secondaryContainer;
-      default: return theme.colors.surfaceVariant;
+      default: return theme.colors.primaryContainer;
     }
   };
 
-  const renderJobItem = ({ item }: { item: any }) => (
-    <Surface style={[styles.jobItem, customTheme.shadows.soft]}>
-      <List.Item
-        title={`${item.type}`}
-        subtitle={`${item.id.substring(0, 8)}`}
-        description={
-          item.status === 'FAILURE' 
-            ? `Erreur: ${item.error_message}`
-            : `Créé le ${new Date(item.created_at).toLocaleString()}`
-        }
+  const renderJobItem = ({ item }: { item: TaskJob }) => {
+    const jobId = String(item.id);
+    return (
+      <Surface style={[styles.jobItem, customTheme.shadows.soft]}>
+        <List.Item
+          title={`${item.type}`}
+          description={`${jobId.substring(0, 8)} • ${
+            item.status === 'FAILURE' 
+              ? `Erreur: ${item.error_message}`
+              : `Créé le ${new Date(item.created_at).toLocaleString()}`
+          }`}
         titleStyle={[styles.jobTitle, { color: theme.colors.onSurface }]}
         descriptionStyle={styles.jobDescription}
         left={(props) => (
@@ -78,8 +76,8 @@ export default function ActivityScreen() {
           <View style={styles.statusBadge}>
             <Chip 
               compact 
-              style={{ backgroundColor: getStatusContainerColor(item.status) + '40', borderRadius: 8 }}
-              textStyle={{ color: getStatusColor(item.status), fontSize: 10, fontWeight: '700' }}
+              style={[styles.statusChip, { backgroundColor: getStatusContainerColor(item.status) + '40' }]}
+              textStyle={[styles.statusChipText, { color: getStatusColor(item.status) }]}
             >
               {item.status_display}
             </Chip>
@@ -89,6 +87,7 @@ export default function ActivityScreen() {
       />
     </Surface>
   );
+};
 
   if (isLoading) {
     return (
@@ -101,11 +100,24 @@ export default function ActivityScreen() {
   return (
     <View style={[styles.container, { backgroundColor: customTheme.colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: customTheme.colors.surface, borderBottomColor: customTheme.colors.outline + '20' }]}>
-        <IconButton icon="arrow-left" iconColor={customTheme.colors.onSurfaceVariant} onPress={() => router.back()} />
+        <IconButton 
+          icon="arrow-left" 
+          iconColor={customTheme.colors.onSurfaceVariant} 
+          onPress={() => {
+            void router.back();
+          }} 
+        />
         <Text variant="headlineSmall" style={[styles.title, { color: customTheme.colors.onSurface }]}>
           Activité Récente
         </Text>
-        <IconButton icon="refresh" iconColor={customTheme.colors.onSurfaceVariant} onPress={() => refetch()} loading={isRefetching} />
+        <IconButton 
+          icon="refresh" 
+          iconColor={customTheme.colors.onSurfaceVariant} 
+          onPress={() => {
+            void refetch();
+          }} 
+          loading={isRefetching} 
+        />
       </View>
 
       <FlatList
@@ -114,12 +126,11 @@ export default function ActivityScreen() {
         renderItem={renderJobItem}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+          <RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch(); }} />
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text variant="bodyLarge">Aucune activité.</Text>
-            <Text variant="bodySmall">Les tâches de traitement apparaîtront ici.</Text>
+            <Text variant="bodyLarge">Aucun job trouvé.</Text>
           </View>
         }
       />
@@ -161,6 +172,13 @@ const styles = StyleSheet.create({
   jobDescription: {
     fontSize: 12,
     opacity: 0.6,
+  },
+  statusChip: {
+    borderRadius: 8,
+  },
+  statusChipText: {
+    fontSize: 10,
+    fontWeight: '700',
   },
   iconContainer: {
     width: 48,

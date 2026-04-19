@@ -24,7 +24,7 @@ export class APIService {
   }
 
   public static getClient(): HTTPClient {
-    if (!APIService.isInitialized || !APIService.defaultClient) {
+    if (!APIService.isInitialized) {
       throw new Error(
         'APIService not initialized. Call APIService.initializeDefaultClient() first.',
       );

@@ -2,12 +2,13 @@ import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import Toast from 'react-native-toast-message';
 
+import { AppError } from '@/libs/api/types';
 import { SecureStorage } from '@/libs/secure-storage';
 import { SecureStorageKey } from '@/libs/secure-storage/keys';
 import { authService } from '@/modules/auth/api/services';
 import { useAuthStore } from '@/modules/auth/store';
 
-import { LoginParams, RegisterParams } from './schemas';
+import { LoginParams, LoginResponse, RegisterParams } from './schemas';
 
 /**
  * Mutation hook for user login
@@ -15,11 +16,11 @@ import { LoginParams, RegisterParams } from './schemas';
 export const useLogin = () => {
   const setUser = useAuthStore((state) => state.setUser);
 
-  return useMutation({
+  return useMutation<unknown, AppError, LoginParams>({
     mutationFn: (params: LoginParams) => authService.login(params),
-    onSuccess: async (data) => {
-      await SecureStorage.setItem(SecureStorageKey.BEARER_TOKEN, data.access);
-      await SecureStorage.setItem(SecureStorageKey.REFRESH_TOKEN, data.refresh);
+    onSuccess: async (data: unknown) => {
+      await SecureStorage.setItem(SecureStorageKey.BEARER_TOKEN, (data as LoginResponse).access);
+      await SecureStorage.setItem(SecureStorageKey.REFRESH_TOKEN, (data as LoginResponse).refresh);
 
       const user = await authService.me();
       setUser(user);
@@ -32,7 +33,7 @@ export const useLogin = () => {
 
       router.replace('/(protected)');
     },
-    onError: (error: any) => {
+    onError: (error: AppError) => {
       Toast.show({
         type: 'error',
         text1: 'Erreur de connexion',
@@ -46,7 +47,7 @@ export const useLogin = () => {
  * Mutation hook for user registration
  */
 export const useRegister = () => {
-  return useMutation({
+  return useMutation<unknown, AppError, RegisterParams>({
     mutationFn: (params: RegisterParams) => authService.register(params),
     onSuccess: () => {
       Toast.show({
@@ -56,7 +57,7 @@ export const useRegister = () => {
       });
       router.replace('/(auth)/login');
     },
-    onError: (error: any) => {
+    onError: (error: AppError) => {
       Toast.show({
         type: 'error',
         text1: "Erreur d'inscription",

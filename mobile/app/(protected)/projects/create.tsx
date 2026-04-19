@@ -7,6 +7,7 @@ import { Button, Card, Text, TextInput, useTheme } from 'react-native-paper';
 import Toast from 'react-native-toast-message';
 
 import { setFormErrors } from '@/libs/api/forms';
+import { AppError } from '@/libs/api/types';
 import { useCreateProject } from '@/modules/projects/api/hooks';
 import { ProjectCreateParams, ProjectCreateParamsSchema } from '@/modules/projects/api/schemas';
 
@@ -36,7 +37,7 @@ export default function CreateProjectScreen() {
         });
         router.back();
       },
-      onError: (error: any) => {
+      onError: (error: AppError) => {
         const handled = setFormErrors(error, setError);
         if (!handled) {
           Toast.show({
@@ -102,7 +103,7 @@ export default function CreateProjectScreen() {
 
           <Button
             mode="contained"
-            onPress={handleSubmit(onSubmit)}
+            onPress={() => { void handleSubmit(onSubmit)(); }}
             loading={createProject.isPending}
             disabled={createProject.isPending}
             style={styles.button}

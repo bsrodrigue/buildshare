@@ -127,9 +127,14 @@ export async function myAction(params: MyParams): Promise<MyResponse> {
 
 ---
 
-## 8. Diamond Quality Enforcement (The "Strict" Mandate)
+## 8. Diamond Quality Enforcement
 
-To maintain a "Diamond Resistant" codebase, the following automated rules are strictly enforced:
+### Project Specific Rules
+
+### Quality & Type Safety
+1. **The "Diamond Resistant" Mandate**: Never use `any` or `unknown` in data flows. Every API response must be validated via Zod.
+2. **Schema Synchronization**: Always ensure that Zod schemas (mobile) exactly match Backend Serializers (Django). Never assume field names or structures. Don't make the user angry and avoid stupid bugs.
+3. **Routing Integrity**: In Expo Router, always ensure `Stack.Screen` names match the actual file paths (including `/index` for folders).
 
 ### 8.1 Automated Import Sorting
 
@@ -155,3 +160,11 @@ To maintain a "Diamond Resistant" codebase, the following automated rules are st
 - **Rule**: Usage of any function, component, or utility marked with the `@deprecated` JSDoc tag is strictly **FORBIDDEN**.
 - **Enforcement**: Regressions are blocked by the `import/no-deprecated` and `react/no-deprecated` ESLint rules.
 - **Action**: When encountering a deprecated API, you MUST migrate to the recommended replacement immediately. Do not defer migration debt.
+
+### 8.7 Post-Coding Verification (The "No Errors" Policy)
+
+- **Mandate**: **NEVER** consider a task finished without running a full suite of local checks.
+- **Verification Commands**:
+  - `npm run lint`: To ensure zero style or quality violations.
+  - `npx tsc --noEmit`: To ensure 100% type safety.
+- **Zero Tolerance**: Any errors found during these checks must be addressed immediately before submitting or moving to the next task. No exceptions.

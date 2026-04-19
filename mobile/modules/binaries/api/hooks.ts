@@ -1,14 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 
-import { ApplicationCreateParams } from './schemas';
+import { AppError } from '@/libs/api/types';
+
+import { Application, ApplicationCreateParams, Release, TaskJob } from './schemas';
 import { binaryService } from './services';
 
 /**
  * Hook to list all applications for a given project.
  */
 export const useApplications = (projectId: number) => {
-  return useQuery({
+  return useQuery<Application[], AppError, Application[]>({
     queryKey: ['applications', projectId],
     queryFn: () => binaryService.listApplications(projectId),
     enabled: !!projectId,
@@ -21,11 +23,11 @@ export const useApplications = (projectId: number) => {
 export const useCreateApplication = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<Application, AppError, ApplicationCreateParams>({
     mutationFn: (params: ApplicationCreateParams) =>
       binaryService.createApplication(params),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['applications', variables.project_id] });
+      void queryClient.invalidateQueries({ queryKey: ['applications', variables.project_id] });
     },
   });
 };
@@ -36,17 +38,17 @@ export const useCreateApplication = () => {
 export const useAPKUploadPipeline = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<{ message: string }, AppError, {
+    projectId: number;
+    file: unknown;
+    title?: string;
+    description?: string;
+  }>({
     mutationFn: async ({
       projectId,
       file,
       title,
       description,
-    }: {
-      projectId: number;
-      file: any;
-      title?: string;
-      description?: string;
     }) => {
       // Step 0: Generate a unique idempotency key for this attempt
       const idempotencyKey = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
@@ -69,8 +71,8 @@ export const useAPKUploadPipeline = () => {
     },
     onSuccess: (_, variables) => {
       // Invalidate relevant queries to refresh the UI
-      queryClient.invalidateQueries({ queryKey: ['applications', variables.projectId] });
-      queryClient.invalidateQueries({ queryKey: ['artifacts'] });
+      void queryClient.invalidateQueries({ queryKey: ['applications', variables.projectId] });
+      void queryClient.invalidateQueries({ queryKey: ['artifacts'] });
       
       Toast.show({
         type: 'success',
@@ -86,7 +88,7 @@ export const useAPKUploadPipeline = () => {
  * Polls every 5 seconds if there are active tasks.
  */
 export const useTaskJobs = (projectId?: number) => {
-  return useQuery({
+  return useQuery<TaskJob[], AppError, TaskJob[]>({
     queryKey: ['task-jobs', projectId],
     queryFn: () => binaryService.getTaskJobs(projectId),
     refetchInterval: (query) => {
@@ -103,7 +105,7 @@ export const useTaskJobs = (projectId?: number) => {
  * Hook to fetch releases for an application.
  */
 export const useReleases = (applicationId: number) => {
-  return useQuery({
+  return useQuery<Release[], AppError, Release[]>({
     queryKey: ['releases', applicationId],
     queryFn: () => binaryService.listReleases(applicationId),
     enabled: !!applicationId,

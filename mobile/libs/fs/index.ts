@@ -24,7 +24,7 @@ export class Filesystem {
   }
 
   public static getFileName(doc: PickedDocument): string {
-    return doc.name ?? 'file';
+    return doc.name;
   }
 
   public static getMimeType(doc: PickedDocument): string {
@@ -35,7 +35,7 @@ export class Filesystem {
     const mime = (doc.mimeType ?? '').toLowerCase();
     if (mime.startsWith('image/')) return true;
 
-    const name = (doc.name ?? '').toLowerCase();
+    const name = doc.name.toLowerCase();
     return /\.(png|jpe?g|gif|webp|bmp|heic|heif|tiff)$/.test(name);
   }
 

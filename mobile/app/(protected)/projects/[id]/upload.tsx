@@ -16,6 +16,7 @@ import {
 } from 'react-native-paper';
 import Toast from 'react-native-toast-message';
 
+import { AppError } from '@/libs/api/types';
 import { useAPKUploadPipeline } from '@/modules/binaries/api/hooks';
 
 export default function UploadArtifactScreen() {
@@ -29,7 +30,7 @@ export default function UploadArtifactScreen() {
   const {
     control,
     handleSubmit,
-    formState: { errors },
+    formState: _unused,
   } = useForm({
     defaultValues: {
       title: '',
@@ -44,10 +45,10 @@ export default function UploadArtifactScreen() {
         copyToCacheDirectory: true,
       });
 
-      if (!result.canceled && result.assets?.[0]) {
+      if (!result.canceled) {
         setSelectedFile(result.assets[0]);
       }
-    } catch (err) {
+    } catch {
       Toast.show({
         type: 'error',
         text1: 'Échec de la sélection',
@@ -89,6 +90,13 @@ export default function UploadArtifactScreen() {
         onSuccess: () => {
           router.back();
         },
+        onError: (error: AppError) => {
+          Toast.show({
+            type: 'error',
+            text1: 'Erreur de téléversement',
+            text2: error.message,
+          });
+        },
       }
     );
   };
@@ -102,7 +110,7 @@ export default function UploadArtifactScreen() {
         <Text variant="headlineSmall" style={styles.title}>
           Propulser un APK
         </Text>
-        <View style={{ width: 48 }} />
+        <View style={styles.spacer} />
       </View>
 
       <View style={styles.body}>
@@ -117,7 +125,7 @@ export default function UploadArtifactScreen() {
           </Text>
           <Button
             mode={selectedFile ? 'text' : 'contained'}
-            onPress={pickFile}
+            onPress={() => { void pickFile(); }}
             style={styles.pickButton}
             disabled={isPending}
           >
@@ -125,7 +133,7 @@ export default function UploadArtifactScreen() {
           </Button>
           {selectedFile && (
             <Text variant="bodySmall" style={styles.fileSize}>
-              {Math.round(selectedFile.size! / (1024 * 1024))} Mo • APK
+              {Math.round((selectedFile.size ?? 0) / (1024 * 1024))} Mo • APK
             </Text>
           )}
         </Surface>
@@ -183,7 +191,7 @@ export default function UploadArtifactScreen() {
 
             <Button
               mode="contained"
-              onPress={handleSubmit(onSubmit)}
+              onPress={() => { void handleSubmit(onSubmit)(); }}
               loading={isPending}
               disabled={isPending || !selectedFile}
               contentStyle={styles.submitButtonContent}
@@ -223,6 +231,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#fff',
   },
+  spacer: { width: 48 },
   title: {
     fontWeight: 'bold',
   },

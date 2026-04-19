@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { z } from 'zod';

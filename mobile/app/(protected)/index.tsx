@@ -1,11 +1,12 @@
 import { router } from 'expo-router';
 import React from 'react';
-import { FlatList, RefreshControl,StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Card, FAB, IconButton, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuthStore } from '@/modules/auth/store';
 import { useProjects } from '@/modules/projects/api/hooks';
+import { Project } from '@/modules/projects/api/schemas';
 import { useTheme } from '@/modules/shared/theme/ThemeProvider';
 
 export default function DashboardScreen() {
@@ -14,10 +15,13 @@ export default function DashboardScreen() {
   const { user, logout } = useAuthStore();
   const { data: projects, isLoading, isRefetching, refetch } = useProjects();
 
-  const renderProjectItem = ({ item }: { item: any }) => (
+  const renderProjectItem = ({ item }: { item: Project }) => (
     <Card
       style={[styles.projectCard, theme.shadows.soft]}
-      onPress={() => router.push(`/(protected)/projects/${item.id}` as any)}
+      onPress={() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        void router.push(`/(protected)/projects/${item.id}` as any);
+      }}
       mode="contained"
     >
       <Card.Title
@@ -61,16 +65,22 @@ export default function DashboardScreen() {
             Voici vos projets actuels.
           </Text>
         </View>
-        <IconButton icon="logout" iconColor={theme.colors.onSurfaceVariant} onPress={logout} />
+        <IconButton 
+          icon="logout" 
+          iconColor={theme.colors.onSurfaceVariant} 
+          onPress={() => {
+            void logout();
+          }} 
+        />
       </View>
 
       <FlatList
         data={projects}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item: Project) => item.id.toString()}
         renderItem={renderProjectItem}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+          <RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch(); }} />
         }
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -89,7 +99,10 @@ export default function DashboardScreen() {
           styles.fab,
           { bottom: insets.bottom + 16 },
         ]}
-        onPress={() => router.push('/(protected)/projects/create' as any)}
+        onPress={() => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          void router.push('/(protected)/projects/create' as any);
+        }}
       />
     </View>
   );
@@ -158,6 +171,5 @@ const styles = StyleSheet.create({
     position: 'absolute',
     margin: 16,
     right: 0,
-    bottom: 0,
   },
 });

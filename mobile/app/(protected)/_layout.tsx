@@ -23,10 +23,9 @@ export default function ProtectedRootLayout() {
       }}
     >
       <Stack.Screen name="index" />
-      <Stack.Screen name="projects/[id]" />
+      <Stack.Screen name="projects/[id]/index" />
       <Stack.Screen name="projects/create" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="apps/create" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="apps/[id]/upload" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="projects/[id]/upload" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }

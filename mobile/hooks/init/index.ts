@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 
 import { APIService } from '@/libs/api/client';
+import { ErrorCode } from '@/libs/api/error-codes';
+import { BackendApiError } from '@/libs/api/types';
 import { env } from '@/libs/env';
 import { JSONService } from '@/libs/json';
 import { createLogger } from '@/libs/log';
@@ -28,7 +30,7 @@ export default function useInitApp() {
 
       if (!token) {
         logger.debug('No bearer token found, skipping authenticated bootstrap');
-        logout();
+        void logout();
         setIsVerifyingAuth(false);
         return;
       }
@@ -38,14 +40,20 @@ export default function useInitApp() {
         setUser(user);
         logger.debug(`User authenticated: ${JSONService.stringify(user)}`);
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message.toLowerCase() : '';
-        const isAuthError = message.includes('unauthorized') || message.includes('authentifié');
+        const isAuthError =
+          error instanceof BackendApiError &&
+          (error.code === ErrorCode.AUTH_TOKEN_INVALID ||
+            error.code === ErrorCode.AUTH_TOKEN_EXPIRED ||
+            error.code === ErrorCode.AUTH_SESSION_EXPIRED ||
+            error.code === ErrorCode.AUTH_NOT_AUTHENTICATED ||
+            error.code === ErrorCode.AUTH_AUTHENTICATION_FAILED);
 
         if (isAuthError) {
           logger.debug('Stored token is invalid or expired, wiping session');
           await SecureStorage.removeItem(SecureStorageKey.BEARER_TOKEN);
-          logout();
+          void logout();
         } else {
+          const message = error instanceof Error ? error.message : 'Unknown error';
           logger.warn(`Failed to fetch profile: ${message}. Keeping token for retry.`);
         }
       } finally {

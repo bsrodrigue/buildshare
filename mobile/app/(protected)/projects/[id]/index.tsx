@@ -1,10 +1,11 @@
-import { router,useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
-import { FlatList, RefreshControl,StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Avatar, FAB, IconButton, List, Surface, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useApplications } from '@/modules/binaries/api/hooks';
+import { Application } from '@/modules/binaries/api/schemas';
 import { useTheme } from '@/modules/shared/theme/ThemeProvider';
 
 export default function ProjectDetailScreen() {
@@ -20,36 +21,41 @@ export default function ProjectDetailScreen() {
     refetch 
   } = useApplications(projectId);
 
-  const renderAppItem = ({ item }: { item: any }) => (
+  const renderAppItem = ({ item }: { item: Application }) => (
     <Surface style={[styles.appCard, { backgroundColor: theme.colors.background }]}>
       <List.Item
         title={item.title}
-        description={item.app_id}
+        description={`Package: ${item.app_id}\nVersion: ${item.latest_release?.version_id || 'N/A'}`}
         titleStyle={[styles.appTitle, { color: theme.colors.text }]}
         descriptionStyle={[styles.appSubtitle, { color: theme.colors.onSurfaceVariant }]}
-        onPress={() => router.push(`/(protected)/apps/${item.id}` as any)}
+        onPress={() => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          void router.push(`/(protected)/apps/${item.id}` as any);
+        }}
         left={(props) => (
           <View style={[styles.avatarContainer, { backgroundColor: theme.colors.secondaryContainer }]}>
             <Avatar.Icon 
               {...props} 
               icon="android" 
-              size={32}
-              style={styles.avatarIcon} 
+              size={40} 
               color={theme.colors.onSecondaryContainer} 
+              style={styles.avatar}
             />
           </View>
         )}
         right={(props) => (
-          <View style={styles.row}>
+          <View style={styles.rightContainer}>
             <IconButton
               {...props}
               icon="chevron-right"
               iconColor={theme.colors.onSurfaceVariant}
-              onPress={() => router.push(`/(protected)/apps/${item.id}` as any)}
+              onPress={() => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                void router.push(`/(protected)/apps/${item.id}` as any);
+              }}
             />
           </View>
         )}
-        style={styles.listItem}
       />
     </Surface>
   );
@@ -64,49 +70,58 @@ export default function ProjectDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.outline + '20' }]}>
-        <IconButton icon="arrow-left" iconColor={theme.colors.onSurfaceVariant} onPress={() => router.back()} />
+      <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.outline + '20' }]}>
+        <IconButton 
+          icon="arrow-left" 
+          iconColor={theme.colors.onSurfaceVariant} 
+          onPress={() => {
+            void router.back();
+          }} 
+        />
         <Text variant="headlineSmall" style={[styles.title, { color: theme.colors.onSurface }]}>
           Applications
         </Text>
         <IconButton 
-          icon="clock-outline" 
-          iconColor={theme.colors.onSurfaceVariant}
-          onPress={() => router.push({
-            pathname: '/(protected)/activity',
-            params: { projectId }
-          })} 
+          icon="refresh" 
+          iconColor={theme.colors.onSurfaceVariant} 
+          onPress={() => {
+            void refetch();
+          }} 
+          loading={isRefetching} 
         />
       </View>
 
       <FlatList
         data={applications}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item: Application) => item.id.toString()}
         renderItem={renderAppItem}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+          <RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch(); }} />
         }
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text variant="bodyLarge">Aucune application.</Text>
-            <Text variant="bodySmall">Propulsez un APK pour commencer.</Text>
+            <Text variant="bodySmall">Téléversez votre premier APK pour commencer.</Text>
           </View>
         }
       />
 
       <FAB
-        icon="cloud-upload"
-        label="Propulser un APK"
-        variant="secondary"
+        icon="upload"
+        label="Nouvelle Release"
+        variant="primary"
         mode="elevated"
         style={[
           styles.fab,
           { bottom: insets.bottom + 16 },
         ]}
-        onPress={() => router.push({
-          pathname: `/(protected)/projects/${projectId}/upload` as any,
-        })}
+        onPress={() => {
+          void router.push({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            pathname: `/(protected)/projects/${projectId}/upload` as any,
+          });
+        }}
       />
     </View>
   );
@@ -117,7 +132,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 64,
     paddingBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -132,39 +146,30 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   appCard: {
-    marginBottom: 16,
+    marginBottom: 12,
     borderRadius: 28,
     overflow: 'hidden',
-    backgroundColor: '#ffffff',
-  },
-  listItem: {
-    paddingVertical: 8,
-    paddingHorizontal: 4,
   },
   appTitle: {
-    fontWeight: '700',
-    fontSize: 16,
+    fontWeight: 'bold',
   },
   appSubtitle: {
-    fontSize: 13,
-    opacity: 0.6,
+    fontSize: 12,
+    marginTop: 4,
   },
   avatarContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
     marginLeft: 8,
   },
-  avatarIcon: {
+  avatar: {
     backgroundColor: 'transparent',
-    margin: 0,
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  rightContainer: {
+    justifyContent: 'center',
   },
   center: {
     flex: 1,
@@ -180,6 +185,5 @@ const styles = StyleSheet.create({
     position: 'absolute',
     margin: 16,
     right: 0,
-    bottom: 0,
   },
 });

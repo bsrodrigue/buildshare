@@ -18,7 +18,7 @@ export const useFilePicker = () => {
         copyToCacheDirectory: true,
       });
 
-      if (!result.canceled && result.assets?.[0]) {
+      if (result.assets && result.assets.length > 0) {
         setFiles((prev) => ({ ...prev, [field]: result.assets[0].uri }));
         Alert.alert('Succès', 'Document téléversé avec succès');
       }

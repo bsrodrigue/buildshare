@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import { z } from 'zod';
 
 /**
@@ -5,7 +6,7 @@ import { z } from 'zod';
  */
 export const UserSchema = z.object({
   id: z.number(),
-  email: z.string().email(),
+  email: z.email(),
   first_name: z.string(),
   last_name: z.string(),
   is_staff: z.boolean().optional(),

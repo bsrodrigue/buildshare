@@ -6,6 +6,7 @@ import { KeyboardAvoidingView, Platform, ScrollView,StyleSheet, View } from 'rea
 import { Button, Card, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { setFormErrors } from '@/libs/api/forms';
+import { AppError } from '@/libs/api/types';
 import { createLogger } from '@/libs/log';
 import { useLogin } from '@/modules/auth/api/hooks';
 import { LoginParams, LoginParamsSchema } from '@/modules/auth/api/schemas';
@@ -33,7 +34,7 @@ export default function LoginScreen() {
 
   const onLogin = (data: LoginParams) => {
     mutation.mutate(data, {
-      onError: (err) => setFormErrors(err, setError),
+      onError: (err: AppError) => setFormErrors(err, setError),
     });
   };
 
@@ -101,7 +102,7 @@ export default function LoginScreen() {
 
             <Button
               mode="contained"
-              onPress={handleSubmit(onLogin)}
+              onPress={() => { void handleSubmit(onLogin)(); }}
               loading={mutation.isPending}
               disabled={mutation.isPending}
               style={styles.button}
@@ -109,8 +110,8 @@ export default function LoginScreen() {
               Se connecter
             </Button>
 
-            <Button mode="text" onPress={() => router.push('/(auth)/register')} style={styles.link}>
-              Pas de compte ? S'inscrire
+            <Button mode="text" onPress={() => { void router.push('/(auth)/register'); }} style={styles.link}>
+              Pas de compte ? S&apos;inscrire
             </Button>
           </Card.Content>
         </Card>

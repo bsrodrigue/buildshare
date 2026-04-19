@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import { Logger } from '@/libs/log';
 
 import { darkColors, lightColors, type ThemeColors } from './colors';

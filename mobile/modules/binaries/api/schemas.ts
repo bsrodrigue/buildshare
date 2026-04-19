@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import { z } from 'zod';
 
 /**
@@ -9,6 +10,11 @@ export const ApplicationSchema = z.object({
   app_id: z.string(),
   title: z.string(),
   description: z.string(),
+  latest_release: z.object({
+    id: z.number(),
+    version_id: z.string(),
+    created_at: z.string(),
+  }).optional().nullable(),
   created_at: z.string(),
 });
 
@@ -23,10 +29,25 @@ export const ReleaseSchema = z.object({
   version_code: z.number(),
   version_id: z.string(),
   release_notes: z.string(),
+  artifacts: z.array(z.object({
+    id: z.number(),
+    architecture: z.string(),
+    file: z.string(),
+    hash: z.string(),
+    created_at: z.string(),
+  })).optional().nullable(),
   created_at: z.string(),
 });
 
 export type Release = z.infer<typeof ReleaseSchema>;
+export interface ReleaseArtifact {
+  id: number;
+  architecture: string;
+  file: string;
+  file_size_display?: string;
+  hash: string;
+  created_at: string;
+}
 
 /**
  * Artifact Model
@@ -76,5 +97,16 @@ export const ProcessAPKParamsSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
 });
+
+export const TaskJobSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  status: z.string(),
+  status_display: z.string(),
+  error_message: z.string().nullable().optional(),
+  created_at: z.string(),
+});
+
+export type TaskJob = z.infer<typeof TaskJobSchema>;
 
 export type ProcessAPKParams = z.infer<typeof ProcessAPKParamsSchema>;

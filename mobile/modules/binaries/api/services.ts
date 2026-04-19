@@ -6,6 +6,8 @@ import {
   ApplicationCreateParams,
   ApplicationSchema,
   ProcessAPKParams,
+  Release,
+  TaskJob,
   UploadIntentParams,
   UploadIntentResponse,
 } from './schemas';
@@ -41,15 +43,16 @@ export const binaryService = {
    * Directly upload file to Cloudflare R2 (Step 2 of the new pipeline)
    * Uses raw fetch to bypass global authentication headers.
    */
-  uploadToR2: async (url: string, file: any): Promise<void> => {
+  uploadToR2: async (url: string, file: unknown): Promise<void> => {
+    const fileAsset = file as { uri: string; type?: string };
     // Determine MIME type
-    const contentType = file.type || 'application/vnd.android.package-archive';
+    const contentType = fileAsset.type || 'application/vnd.android.package-archive';
 
     // We use raw fetch here to ensure no global 'Authorization' headers
     // from our HTTP client interfere with the R2 presigned URL.
     const response = await fetch(url, {
       method: 'PUT',
-      body: file,
+      body: file as Blob,
       headers: {
         'Content-Type': contentType,
       },
@@ -72,8 +75,8 @@ export const binaryService = {
   /**
    * Fetch all processing jobs for the user
    */
-  getTaskJobs: async (projectId?: number): Promise<any[]> => {
-    const response = await http.get<any[]>('binaries/jobs/', {
+  getTaskJobs: async (projectId?: number): Promise<TaskJob[]> => {
+    const response = await http.get<TaskJob[]>('binaries/jobs/', {
       searchParams: { project_id: projectId },
     });
     return response;
@@ -82,8 +85,8 @@ export const binaryService = {
   /**
    * Fetch all releases for a specific application
    */
-  listReleases: async (applicationId: number): Promise<any[]> => {
-    const response = await http.get<any[]>('binaries/releases/', {
+  listReleases: async (applicationId: number): Promise<Release[]> => {
+    const response = await http.get<Release[]>('binaries/releases/', {
       searchParams: { application_id: applicationId },
     });
     return response;

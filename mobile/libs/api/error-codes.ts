@@ -14,6 +14,9 @@ export enum ErrorCode {
   AUTH_USER_NOT_FOUND = 'auth_val_004',
   AUTH_USER_INACTIVE = 'auth_val_005',
   AUTH_SESSION_EXPIRED = 'auth_val_006',
+  AUTH_TOKEN_INVALID = 'token_not_valid',
+  AUTH_NOT_AUTHENTICATED = 'not_authenticated',
+  AUTH_AUTHENTICATION_FAILED = 'authentication_failed',
 
   // Project
   PROJECT_NOT_FOUND = 'prj_val_001',

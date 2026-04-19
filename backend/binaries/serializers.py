@@ -7,10 +7,21 @@ from .models import Application, Artifact, Release
 
 class ApplicationOutputSerializer(serializers.ModelSerializer):
     project = serializers.IntegerField(source="project.id")
+    latest_release = serializers.SerializerMethodField()
 
     class Meta:
         model = Application
-        fields = ("id", "project", "app_id", "title", "description", "created_at")
+        fields = ("id", "project", "app_id", "title", "description", "created_at", "latest_release")
+
+    def get_latest_release(self, obj):
+        latest = obj.releases.order_by("-version_code").first()
+        if not latest:
+            return None
+        return {
+            "id": latest.id,
+            "version_id": latest.version_id,
+            "created_at": latest.created_at,
+        }
 
 
 class ApplicationInputSerializer(serializers.Serializer):

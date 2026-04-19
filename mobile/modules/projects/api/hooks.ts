@@ -1,13 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { ProjectCreateParams } from './schemas';
+import { AppError } from '@/libs/api/types';
+
+import { Project, ProjectCreateParams } from './schemas';
 import { projectService } from './services';
 
 /**
  * Hook to list all projects.
  */
 export const useProjects = () => {
-  return useQuery({
+  return useQuery<Project[], AppError, Project[]>({
     queryKey: ['projects'],
     queryFn: projectService.list,
   });
@@ -19,10 +21,10 @@ export const useProjects = () => {
 export const useCreateProject = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<Project, AppError, ProjectCreateParams>({
     mutationFn: (params: ProjectCreateParams) => projectService.create(params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      void queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 };

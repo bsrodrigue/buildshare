@@ -1,7 +1,7 @@
 import ky, { HTTPError, Options } from 'ky';
 
 import { ErrorCode } from '@/libs/api/error-codes';
-import { ApiErrorSchema, BackendApiError } from '@/libs/api/types';
+import { ApiErrorSchema, AppError, BackendApiError, NetworkError } from '@/libs/api/types';
 
 import { JSONService } from '../json';
 import { Logger } from '../log';
@@ -17,30 +17,35 @@ export class HTTPClient {
    * Transforms a raw Response into a structured BackendApiError or Error.
    * This is used when throwHttpErrors: false is set.
    */
-  private static async parseResponseError(response: Response): Promise<Error> {
-    let data: unknown;
+  private static async parseResponseError(response: Response): Promise<AppError> {
+    let responseData: unknown;
+    let rawText = '';
 
     try {
-      const text = await response.text();
+      rawText = await response.text();
       try {
-        data = JSON.parse(text);
+        responseData = JSON.parse(rawText);
       } catch {
-        data = text;
+        responseData = rawText;
       }
-    } catch (e) {
-      data = null;
+    } catch {
+      responseData = null;
+    }
+
+    if (rawText) {
+      logger.error(`[Response Body]: ${rawText}`);
     }
 
     // Try to parse using our standard API Error Schema
-    const apiResult = ApiErrorSchema.safeParse(data);
+    const apiResult = ApiErrorSchema.safeParse(responseData);
     if (apiResult.success) {
       return new BackendApiError(apiResult.data);
     }
 
     // Fallback for unknown error formats
     const fallbackMessage =
-      data && typeof data === 'object' && 'message' in data
-        ? (data as Record<string, any>).message
+      responseData && typeof responseData === 'object' && 'message' in responseData
+        ? (responseData as Record<string, unknown>).message as string
         : `Request failed with status ${response.status}`;
 
     return new Error(fallbackMessage);
@@ -49,16 +54,23 @@ export class HTTPClient {
   /**
    * Parses a raw ky HTTPError (fallback for hooks or unexpected errors).
    */
-  public static async parseError(error: unknown): Promise<Error> {
-    if (!(error instanceof HTTPError)) {
-      return error instanceof Error ? error : new Error('An unexpected error occurred');
+  public static async parseError(error: unknown): Promise<AppError> {
+    if (error instanceof HTTPError) {
+      if (error.response.bodyUsed) {
+        return new Error(error.message || 'Server Error (Body consumed)');
+      }
+      return HTTPClient.parseResponseError(error.response);
     }
 
-    if (error.response.bodyUsed) {
-      return new Error(error.message || 'Server Error (Body consumed)');
+    if (error instanceof Error) {
+      // Handle ky timeouts or network errors
+      if (error.name === 'TimeoutError' || error.message.includes('network')) {
+        return new NetworkError();
+      }
+      return error;
     }
 
-    return HTTPClient.parseResponseError(error.response);
+    return new Error('An unexpected error occurred');
   }
 
   private instance: typeof ky;
@@ -87,15 +99,21 @@ export class HTTPClient {
     });
   }
 
-  private async handleResponseError(error: Error) {
+  private async handleResponseError(error: AppError) {
     if (error instanceof BackendApiError) {
-      logger.error(JSONService.stringify(error));
+      const fieldsLog = error.fields && Object.keys(error.fields).length > 0 
+        ? ` | Fields: ${JSONService.stringify(error.fields)}` 
+        : '';
+      logger.error(`Backend Error [${error.code}]: ${error.message}${fieldsLog}`);
 
       // 401: Unauthorized (Clear session and redirect)
       if (
         error.code === ErrorCode.AUTH_TOKEN_EXPIRED ||
         error.code === ErrorCode.AUTH_INVALID_CREDENTIALS ||
-        error.code === ErrorCode.AUTH_SESSION_EXPIRED
+        error.code === ErrorCode.AUTH_SESSION_EXPIRED ||
+        error.code === ErrorCode.AUTH_TOKEN_INVALID ||
+        error.code === ErrorCode.AUTH_NOT_AUTHENTICATED ||
+        error.code === ErrorCode.AUTH_AUTHENTICATION_FAILED
       ) {
         const { logout, isAuthenticated } = (
           await import('@/modules/auth/store')
@@ -103,12 +121,12 @@ export class HTTPClient {
 
         if (isAuthenticated) {
           toast.error('Session expirée. Veuillez vous reconnecter.');
-          logout();
+          void logout();
         }
       }
+    } else {
+      logger.error(`API Error: ${error.message}`);
     }
-
-    logger.error(`API Error: ${error.message}`);
   }
 
   // --- Public API Methods ---
@@ -141,8 +159,10 @@ export class HTTPClient {
     if (data) {
       if (data instanceof FormData) {
         options.body = data;
+        logger.debug('[Payload]: FormData (not serializable via JSON)');
       } else {
         options.json = data;
+        logger.debug(`[Payload]: ${JSONService.stringify(data)}`);
       }
     }
 
@@ -159,20 +179,16 @@ export class HTTPClient {
         throw error;
       }
 
-      const data = await response.json<T>();
+      const responseData = await response.json<T>();
       logger.debug(`SUCCESS ${method.toUpperCase()} ${url}`);
-      return data;
+      return responseData;
     } catch (error) {
-      // Wrap non-BackendApiErrors (like network failures)
-      if (error instanceof BackendApiError) throw error;
+      // Wrap non-AppErrors (like network failures)
+      if (error instanceof BackendApiError || error instanceof NetworkError) throw error;
 
-      if (error && typeof error === 'object' && 'response' in error) {
-        const parsedError = await HTTPClient.parseError(error);
-        await this.handleResponseError(parsedError);
-        throw parsedError;
-      }
-
-      throw error;
+      const parsedError = await HTTPClient.parseError(error);
+      await this.handleResponseError(parsedError);
+      throw parsedError;
     }
   }
 }

@@ -47,7 +47,6 @@ export type ThemeColors = typeof darkColors;
 export const darkColors = {
   // Backgrounds
   background: palette.darkBackground,
-  surface: palette.darkSurface,
   inputBackground: palette.darkSurfaceVariant,
   cardBackground: palette.darkSurface,
 
@@ -116,7 +115,6 @@ export const darkColors = {
 export const lightColors: ThemeColors = {
   // Backgrounds
   background: palette.lightBackground,
-  surface: palette.lightSurface,
   inputBackground: palette.lightSurfaceVariant,
   cardBackground: palette.white,
 

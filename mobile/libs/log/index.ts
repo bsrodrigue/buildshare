@@ -174,7 +174,7 @@ export class Logger {
         console.debug(...output);
         break;
       case LogLevel.INFO:
-        console.info(...output);
+        console.debug(...output);
         break;
       case LogLevel.WARN:
         console.warn(...output);
@@ -183,7 +183,7 @@ export class Logger {
         console.error(...output);
         break;
       default:
-        console.log(...output);
+        console.debug(...output);
     }
   }
 

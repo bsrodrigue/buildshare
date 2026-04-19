@@ -6,6 +6,7 @@ import { KeyboardAvoidingView, Platform, ScrollView,StyleSheet, View } from 'rea
 import { Button, Card, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { setFormErrors } from '@/libs/api/forms';
+import { AppError } from '@/libs/api/types';
 import { useRegister } from '@/modules/auth/api/hooks';
 import { RegisterParams, RegisterParamsSchema } from '@/modules/auth/api/schemas';
 
@@ -30,7 +31,7 @@ export default function RegisterScreen() {
 
   const onRegister = (data: RegisterParams) => {
     mutation.mutate(data, {
-      onError: (err) => setFormErrors(err, setError),
+      onError: (err: AppError) => setFormErrors(err, setError),
     });
   };
 
@@ -45,7 +46,7 @@ export default function RegisterScreen() {
             Inscription
           </Text>
           <Text variant="bodyLarge" style={styles.subtitle}>
-            Rejoignez App-share dès aujourd'hui.
+            Rejoignez App-share dès aujourd&apos;hui.
           </Text>
         </View>
 
@@ -140,17 +141,17 @@ export default function RegisterScreen() {
 
             <Button
               mode="contained"
-              onPress={handleSubmit(onRegister)}
+              onPress={() => { void handleSubmit(onRegister)(); }}
               loading={mutation.isPending}
               disabled={mutation.isPending}
               style={styles.button}
             >
-              S'inscrire
+              S&apos;inscrire
             </Button>
 
             <Button
               mode="text"
-              onPress={() => router.push('/(auth)/login')}
+              onPress={() => { void router.push('/(auth)/login'); }}
               style={styles.link}
             >
               Déjà un compte ? Se connecter

@@ -22,7 +22,7 @@ class Application(BaseModel):
             models.UniqueConstraint(fields=["project", "app_id"], name=UNIQUE_APP_PER_PROJECT)
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.title} ({self.app_id})"
 
 
@@ -39,11 +39,11 @@ class Release(BaseModel):
             )
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.application.title} v{self.version_id} ({self.version_code})"
 
 
-def artifact_upload_path(instance, filename):
+def artifact_upload_path(instance: "Artifact", filename: str) -> str:
     return (
         f"artifacts/{instance.release.application.app_id}/"
         f"{instance.release.version_code}/{filename}"
@@ -66,5 +66,5 @@ class Artifact(BaseModel):
             ),
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Artifact for {self.release} ({self.architecture})"

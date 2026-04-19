@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import environ
@@ -11,7 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 APP_DIR = Path(__file__).resolve().parent.parent
 
 # Read .env file if it exists
-if os.path.exists(APP_DIR / ".env"):
+if (APP_DIR / ".env").exists():
     env.read_env(APP_DIR / ".env")
-elif os.path.exists(BASE_DIR / ".env"):
+elif (BASE_DIR / ".env").exists():
     env.read_env(BASE_DIR / ".env")

@@ -10,8 +10,8 @@ class Project(BaseModel):
     title = models.CharField("Titre", max_length=255)
     description = models.TextField("Description", blank=True)
 
-    def __str__(self):
-        return self.title
+    def __str__(self) -> str:
+        return str(self.title)
 
 
 class UserProjectProfile(BaseModel):
@@ -33,5 +33,5 @@ class UserProjectProfile(BaseModel):
             models.UniqueConstraint(fields=["user", "project"], name=UNIQUE_USER_PROJECT),
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.user.email} - {self.project.title} ({self.role})"

@@ -4,7 +4,7 @@ from .models import TaskJob
 
 
 @admin.register(TaskJob)
-class TaskJobAdmin(admin.ModelAdmin):
+class TaskJobAdmin(admin.ModelAdmin[TaskJob]):
     list_display = ("id", "type", "status", "user", "idempotency_key", "created_at")
     list_filter = ("status", "type", "created_at")
     search_fields = ("id", "user__email", "idempotency_key", "error_message")

@@ -29,11 +29,12 @@ class R2StorageService:
         Generates a presigned PUT URL for uploading a file directly to R2.
         """
         client = self.get_client()
-        return client.generate_presigned_url(
+        url = client.generate_presigned_url(
             ClientMethod="put_object",
             Params={"Bucket": self.bucket_name, "Key": key},
             ExpiresIn=expires,
         )
+        return str(url)
 
     def download_file(self, key: str, local_path: str) -> None:
         """

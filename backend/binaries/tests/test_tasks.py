@@ -13,17 +13,22 @@ from users.models import User
 @pytest.mark.django_db
 class TestProcessAPKTask:
     @pytest.fixture
-    def user(self):
-        return User.objects.create_user(email="test@example.com", password="password123")
+    def user(self) -> User:
+        return User.objects.create_user(
+            email="test@example.com",
+            password="password123",  # noqa: S106
+        )
 
     @pytest.fixture
-    def project(self, user):
+    def project(self, user: User) -> Project:
         project = Project.objects.create(title="Test Project")
-        UserProjectProfile.objects.create(user=user, project=project, role="ADMIN")
+        UserProjectProfile.objects.create(
+            user=user, project=project, role=UserProjectProfile.Role.ADMIN
+        )
         return project
 
     @pytest.fixture
-    def job(self, user, project):
+    def job(self, user: User, project: Project) -> TaskJob:
         return TaskJob.objects.create(
             user=user,
             type=TaskJobType.BINARY_PROCESSING,
@@ -35,9 +40,15 @@ class TestProcessAPKTask:
     @patch("binaries.tasks.open", create=True)
     @patch("binaries.tasks.File")
     @patch("os.remove")
-    def test_process_apk_task_success(
-        self, mock_remove, mock_file, mock_open, mock_apk, mock_r2_service_class, job
-    ):
+    def test_process_apk_task_success(  # noqa: PLR0913
+        self,
+        _mock_remove: MagicMock,
+        mock_file: MagicMock,
+        mock_open: MagicMock,
+        mock_apk: MagicMock,
+        mock_r2_service_class: MagicMock,
+        job: TaskJob,
+    ) -> None:
         # Setup mocks
         mock_r2_service = mock_r2_service_class.return_value
         mock_r2_service.download_file.return_value = None
@@ -60,20 +71,20 @@ class TestProcessAPKTask:
 
         # Verify job status
         job.refresh_from_db()
-        assert job.status == TaskJobStatus.SUCCESS
-        assert job.output_data["package_name"] == "com.test.app"
-        assert job.output_data["version_code"] == 100
+        assert job.status == TaskJobStatus.SUCCESS  # noqa: S101
+        assert job.output_data["package_name"] == "com.test.app"  # noqa: S101
+        assert job.output_data["version_code"] == 100  # noqa: S101, PLR2004
 
         # Verify database records
-        assert Application.objects.filter(app_id="com.test.app").exists()
-        assert Release.objects.filter(version_code=100).exists()
-        assert Artifact.objects.count() == 1
+        assert Application.objects.filter(app_id="com.test.app").exists()  # noqa: S101
+        assert Release.objects.filter(version_code=100).exists()  # noqa: S101, PLR2004
+        assert Artifact.objects.count() == 1  # noqa: S101
 
         app = Application.objects.get(app_id="com.test.app")
-        assert app.title == "Test App"
+        assert app.title == "Test App"  # noqa: S101
 
     @patch("binaries.tasks.R2StorageService")
-    def test_process_apk_task_failure(self, mock_r2_service_class, job):
+    def test_process_apk_task_failure(self, mock_r2_service_class: MagicMock, job: TaskJob) -> None:
         # Setup mock to raise exception
         mock_r2_service = mock_r2_service_class.return_value
         mock_r2_service.download_file.side_effect = Exception("Download failed")
@@ -84,5 +95,5 @@ class TestProcessAPKTask:
 
         # Verify job status
         job.refresh_from_db()
-        assert job.status == TaskJobStatus.FAILURE
-        assert "Download failed" in job.error_message
+        assert job.status == TaskJobStatus.FAILURE  # noqa: S101
+        assert "Download failed" in job.error_message  # noqa: S101

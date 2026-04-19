@@ -1,11 +1,14 @@
+from django.core.files.base import File
+
 from core.errors import ErrorCode
 from core.exceptions import ApplicationError
-from projects.models import UserProjectProfile
+from projects.models import Project, UserProjectProfile
+from users.models import User
 
 from .models import Application, Artifact, Release
 
 
-def _check_is_project_admin(*, user, project) -> None:
+def _check_is_project_admin(*, user: User, project: Project) -> None:
     is_admin = UserProjectProfile.objects.filter(
         user=user, project=project, role=UserProjectProfile.Role.ADMIN
     ).exists()
@@ -18,7 +21,7 @@ def _check_is_project_admin(*, user, project) -> None:
 
 
 def application_create(
-    *, project, app_id: str, title: str, description: str = "", user
+    *, project: Project, app_id: str, title: str, description: str = "", user: User
 ) -> Application:
     _check_is_project_admin(user=user, project=project)
 
@@ -30,7 +33,12 @@ def application_create(
 
 
 def release_create(
-    *, application, version_code: int, version_id: str, release_notes: str = "", user
+    *,
+    application: Application,
+    version_code: int,
+    version_id: str,
+    release_notes: str = "",
+    user: User,
 ) -> Release:
     _check_is_project_admin(user=user, project=application.project)
 
@@ -46,7 +54,9 @@ def release_create(
     return release
 
 
-def artifact_create(*, release, file, architecture: str = "", hash: str = "", user) -> Artifact:
+def artifact_create(
+    *, release: Release, file: File, architecture: str = "", hash: str = "", user: User
+) -> Artifact:
     _check_is_project_admin(user=user, project=release.application.project)
 
     artifact = Artifact(release=release, file=file, architecture=architecture, hash=hash)

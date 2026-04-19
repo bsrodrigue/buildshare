@@ -4,7 +4,7 @@ from django.apps import AppConfig
 class ProjectsConfig(AppConfig):
     name = "projects"
 
-    def ready(self):
+    def ready(self) -> None:
         from core.api.constraint_registry import ConstraintRegistry  # noqa: PLC0415
         from core.errors import ErrorCode  # noqa: PLC0415
 

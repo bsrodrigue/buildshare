@@ -1,10 +1,8 @@
-from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from core.flows import ERROR_MESSAGE_MAX_LENGTH, TaskJobFlow
 from core.models import TaskJob, TaskJobStatus, TaskJobType
-
-User = get_user_model()
+from users.models import User
 
 
 class TaskJobFlowTest(TestCase):

@@ -1,4 +1,5 @@
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -8,12 +9,12 @@ from .services import project_create
 
 
 class ProjectApi(APIView):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         projects = project_list(user=request.user)
         serializer = ProjectOutputSerializer(projects, many=True, context={"request": request})
         return Response(serializer.data)
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         serializer = ProjectInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 

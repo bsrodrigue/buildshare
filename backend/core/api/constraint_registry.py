@@ -18,7 +18,7 @@ class ConstraintRegistry:
     _mappings: dict[str, ConstraintMapping] = {}
 
     @classmethod
-    def register(cls, pattern: str, code: ErrorCode, message: str, field: str):
+    def register(cls, pattern: str, code: ErrorCode, message: str, field: str) -> None:
         cls._mappings[pattern] = ConstraintMapping(code, message, field)
 
     @classmethod

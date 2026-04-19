@@ -7,7 +7,7 @@ from core.models import TaskJob
 from .models import Application, Artifact, Release
 
 
-class ApplicationOutputSerializer(serializers.ModelSerializer):
+class ApplicationOutputSerializer(serializers.ModelSerializer[Application]):
     project = serializers.IntegerField(source="project.id")
     latest_release = serializers.SerializerMethodField()
 
@@ -26,20 +26,20 @@ class ApplicationOutputSerializer(serializers.ModelSerializer):
         }
 
 
-class ApplicationInputSerializer(serializers.Serializer):
+class ApplicationInputSerializer(serializers.Serializer[dict[str, Any]]):
     project_id = serializers.IntegerField()
     app_id = serializers.CharField(max_length=255)
     title = serializers.CharField(max_length=255)
     description = serializers.CharField(required=False, allow_blank=True, default="")
 
 
-class ArtifactOutputSerializer(serializers.ModelSerializer):
+class ArtifactOutputSerializer(serializers.ModelSerializer[Artifact]):
     class Meta:
         model = Artifact
         fields = ("id", "file", "architecture", "hash", "created_at")
 
 
-class ReleaseOutputSerializer(serializers.ModelSerializer):
+class ReleaseOutputSerializer(serializers.ModelSerializer[Release]):
     artifacts = ArtifactOutputSerializer(many=True, read_only=True)
 
     class Meta:
@@ -54,7 +54,7 @@ class ReleaseOutputSerializer(serializers.ModelSerializer):
         )
 
 
-class ArtifactInputSerializer(serializers.Serializer):
+class ArtifactInputSerializer(serializers.Serializer[dict[str, Any]]):
     application_id = serializers.IntegerField()
     version_code = serializers.IntegerField()
     version_id = serializers.CharField(max_length=50)
@@ -63,23 +63,23 @@ class ArtifactInputSerializer(serializers.Serializer):
     architecture = serializers.CharField(required=False, allow_blank=True, default="")
 
 
-class UploadIntentInputSerializer(serializers.Serializer):
+class UploadIntentInputSerializer(serializers.Serializer[dict[str, Any]]):
     project_id = serializers.IntegerField()
     idempotency_key = serializers.CharField(max_length=255, required=False)
 
 
-class UploadIntentOutputSerializer(serializers.Serializer):
+class UploadIntentOutputSerializer(serializers.Serializer[dict[str, Any]]):
     job_id = serializers.UUIDField()
     upload_url = serializers.URLField()
 
 
-class ProcessAPKInputSerializer(serializers.Serializer):
+class ProcessAPKInputSerializer(serializers.Serializer[dict[str, Any]]):
     job_id = serializers.UUIDField()
     title = serializers.CharField(max_length=255, required=False)
     description = serializers.CharField(required=False, allow_blank=True, default="")
 
 
-class TaskJobOutputSerializer(serializers.ModelSerializer):
+class TaskJobOutputSerializer(serializers.ModelSerializer[TaskJob]):
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     app_title = serializers.SerializerMethodField()
 
@@ -99,5 +99,5 @@ class TaskJobOutputSerializer(serializers.ModelSerializer):
             "created_at",
         )
 
-    def get_app_title(self, obj):
+    def get_app_title(self, obj: TaskJob) -> str:
         return obj.output_data.get("application_title") or obj.input_data.get("title") or ""

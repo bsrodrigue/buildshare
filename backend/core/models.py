@@ -90,5 +90,5 @@ class TaskJob(BaseModel):
             ),
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.type} - {self.status} ({self.id})"

@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import exceptions, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -25,7 +26,7 @@ from .tasks import process_apk_task
 
 
 class ApplicationApi(APIView):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         project_id = request.query_params.get("project_id")
         if not project_id:
             raise exceptions.ValidationError({"project_id": "Ce champ est obligatoire."})
@@ -34,7 +35,7 @@ class ApplicationApi(APIView):
         apps = application_list(project=project)
         return Response(ApplicationOutputSerializer(apps, many=True).data)
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         serializer = ApplicationInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -45,7 +46,7 @@ class ApplicationApi(APIView):
 
 
 class ArtifactUploadApi(APIView):
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         serializer = ArtifactInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -78,7 +79,7 @@ class ArtifactUploadApi(APIView):
 
 
 class UploadIntentApi(APIView):
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         serializer = UploadIntentInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -118,7 +119,7 @@ class UploadIntentApi(APIView):
 
 
 class ProcessAPKApi(APIView):
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         serializer = ProcessAPKInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -139,7 +140,7 @@ class ProcessAPKApi(APIView):
 
 
 class TaskJobApi(APIView):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         project_id = request.query_params.get("project_id")
         jobs = TaskJob.objects.filter(user=request.user)
 
@@ -151,7 +152,7 @@ class TaskJobApi(APIView):
 
 
 class ReleaseApi(APIView):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         application_id = request.query_params.get("application_id")
         if not application_id:
             raise exceptions.ValidationError({"application_id": "Ce champ est obligatoire."})

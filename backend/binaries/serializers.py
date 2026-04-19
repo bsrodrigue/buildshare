@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from .models import Application, Artifact
+from core.models import TaskJob
 
 
 class ApplicationOutputSerializer(serializers.ModelSerializer):
@@ -48,3 +49,22 @@ class ProcessAPKInputSerializer(serializers.Serializer):
     job_id = serializers.UUIDField()
     title = serializers.CharField(max_length=255, required=False)
     description = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class TaskJobOutputSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+
+    class Meta:
+        model = TaskJob
+        fields = (
+            "id",
+            "type",
+            "status",
+            "status_display",
+            "error_message",
+            "input_data",
+            "output_data",
+            "started_at",
+            "finished_at",
+            "created_at",
+        )

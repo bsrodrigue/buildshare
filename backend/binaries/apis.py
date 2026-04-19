@@ -11,9 +11,11 @@ from .models import Application, Release
 from .selectors import application_list
 from .serializers import (
     ApplicationInputSerializer,
+    ApplicationOutputSerializer,
     ArtifactInputSerializer,
     ArtifactOutputSerializer,
     ProcessAPKInputSerializer,
+    TaskJobOutputSerializer,
     UploadIntentInputSerializer,
     UploadIntentOutputSerializer,
 )
@@ -122,3 +124,15 @@ class ProcessAPKApi(APIView):
         )
 
         return Response({"message": "Tâche démarrée"}, status=status.HTTP_202_ACCEPTED)
+
+
+class TaskJobApi(APIView):
+    def get(self, request):
+        project_id = request.query_params.get("project_id")
+        jobs = TaskJob.objects.filter(user=request.user)
+        
+        if project_id:
+            # Filter jobs that were started for this project
+            jobs = jobs.filter(input_data__project_id=int(project_id))
+
+        return Response(TaskJobOutputSerializer(jobs, many=True).data)

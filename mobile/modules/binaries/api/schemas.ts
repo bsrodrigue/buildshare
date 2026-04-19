@@ -55,15 +55,25 @@ export const ApplicationCreateParamsSchema = z.object({
 export type ApplicationCreateParams = z.infer<typeof ApplicationCreateParamsSchema>;
 
 /**
- * Artifact Upload (includes Release info)
+ * Upload Intent Pipeline
  */
-export const ArtifactUploadParamsSchema = z.object({
-  application_id: z.number(),
-  version_code: z.number(),
-  version_id: z.string().min(1, 'Version requise (ex: 1.0.0)'),
-  release_notes: z.string().optional(),
-  architecture: z.string().optional(),
-  file: z.any(), // File object
+export const UploadIntentParamsSchema = z.object({
+  project_id: z.number(),
 });
 
-export type ArtifactUploadParams = z.infer<typeof ArtifactUploadParamsSchema>;
+export type UploadIntentParams = z.infer<typeof UploadIntentParamsSchema>;
+
+export const UploadIntentResponseSchema = z.object({
+  job_id: z.string(),
+  upload_url: z.string().url(),
+});
+
+export type UploadIntentResponse = z.infer<typeof UploadIntentResponseSchema>;
+
+export const ProcessAPKParamsSchema = z.object({
+  job_id: z.string(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+});
+
+export type ProcessAPKParams = z.infer<typeof ProcessAPKParamsSchema>;

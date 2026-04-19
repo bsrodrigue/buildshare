@@ -27,7 +27,17 @@ export default function ProjectDetailScreen() {
         title={item.title}
         subtitle={item.app_id}
         left={(props) => <List.Icon {...props} icon="android" color={theme.colors.secondary} />}
-        right={(props) => <IconButton {...props} icon="cloud-upload" onPress={() => router.push(`/(protected)/apps/${item.id}/upload` as any)} />}
+        right={(props) => (
+          <IconButton
+            {...props}
+            icon="cloud-upload"
+            onPress={() =>
+              router.push({
+                pathname: `/(protected)/projects/${projectId}/upload` as any,
+              })
+            }
+          />
+        )}
       />
     </Card>
   );
@@ -47,7 +57,13 @@ export default function ProjectDetailScreen() {
         <Text variant="headlineSmall" style={styles.title}>
           Applications
         </Text>
-        <View style={{ width: 48 }} /> 
+        <IconButton 
+          icon="clock-outline" 
+          onPress={() => router.push({
+            pathname: '/(protected)/activity',
+            params: { projectId }
+          })} 
+        />
       </View>
 
       <FlatList
@@ -61,21 +77,20 @@ export default function ProjectDetailScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text variant="bodyLarge">Aucune application.</Text>
-            <Text variant="bodySmall">Ajoutez une application Android pour commencer.</Text>
+            <Text variant="bodySmall">Propulsez un APK pour commencer.</Text>
           </View>
         }
       />
 
       <FAB
-        icon="plus"
-        label="Ajouter App"
+        icon="cloud-upload"
+        label="Propulser un APK"
         style={[
           styles.fab,
           { backgroundColor: theme.colors.secondaryContainer, bottom: insets.bottom + 16 },
         ]}
         onPress={() => router.push({
-          pathname: '/(protected)/apps/create' as any,
-          params: { projectId }
+          pathname: `/(protected)/projects/${projectId}/upload` as any,
         })}
       />
     </View>

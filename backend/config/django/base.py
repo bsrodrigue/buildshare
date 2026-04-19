@@ -6,7 +6,7 @@ from config.env import BASE_DIR, env
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env(
     "DJANGO_SECRET_KEY",
-    default="django-insecure-u7j))s0_4w!if0t0kh-4d-t=kaa%g=^(16=2=web4spbpq+lvu",
+    default=env("JWT_SECRET_KEY", default="django-insecure-u7j))s0_4w!if0t0kh-4d-t=kaa%g=^(16=2=web4spbpq+lvu"),
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -127,9 +127,10 @@ SPECTACULAR_SETTINGS = {
 
 # SimpleJWT
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env.int("JWT_ACCESS_TOKEN_MINUTES", default=60)),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=env.int("JWT_REFRESH_TOKEN_DAYS", default=1)),
     "AUTH_HEADER_TYPES": ("Bearer",),
+    "SIGNING_KEY": SECRET_KEY,
 }
 
 # CORS
@@ -149,5 +150,7 @@ R2_ACCESS_KEY_ID = env("R2_ACCESS_KEY_ID", default="")
 R2_SECRET_ACCESS_KEY = env("R2_SECRET_ACCESS_KEY", default="")
 R2_BUCKET_NAME = env("R2_BUCKET_NAME", default="")
 R2_ENDPOINT_URL = env(
-    "R2_ENDPOINT_URL", default=f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+    "R2_ENDPOINT_URL",
+    default=env("SPECIAL_ENDPOINT", default=f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com"),
 )
+R2_PUBLIC_DOMAIN = env("R2_PUBLIC_DOMAIN", default="")

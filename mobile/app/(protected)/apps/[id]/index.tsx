@@ -159,6 +159,7 @@ export default function AppDetailScreen() {
             void router.push({
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               pathname: `/(protected)/projects/${resolvedProjectId}/upload` as any,
+              params: { appId: applicationId.toString() },
             });
           }}
         />

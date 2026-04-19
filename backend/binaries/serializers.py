@@ -79,6 +79,7 @@ class ProcessAPKInputSerializer(serializers.Serializer):
 
 class TaskJobOutputSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source="get_status_display", read_only=True)
+    app_title = serializers.SerializerMethodField()
 
     class Meta:
         model = TaskJob
@@ -90,7 +91,11 @@ class TaskJobOutputSerializer(serializers.ModelSerializer):
             "error_message",
             "input_data",
             "output_data",
+            "app_title",
             "started_at",
             "finished_at",
             "created_at",
         )
+
+    def get_app_title(self, obj):
+        return obj.output_data.get("application_title") or obj.input_data.get("title") or ""

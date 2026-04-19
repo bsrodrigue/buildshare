@@ -43,12 +43,14 @@ export const useAPKUploadPipeline = () => {
     file: unknown;
     title?: string;
     description?: string;
+    onProgress?: (progress: number) => void;
   }>({
     mutationFn: async ({
       projectId,
       file,
       title,
       description,
+      onProgress,
     }) => {
       // Step 0: Generate a unique idempotency key for this attempt
       const idempotencyKey = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
@@ -60,7 +62,7 @@ export const useAPKUploadPipeline = () => {
       });
 
       // Step 2: Direct Binary PUT to Cloudflare R2
-      await binaryService.uploadToR2(intent.upload_url, file);
+      await binaryService.uploadToR2(intent.upload_url, file, onProgress);
 
       // Step 3: Trigger backend processing task
       return await binaryService.processAPK({

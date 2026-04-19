@@ -1,3 +1,4 @@
+import hashlib
 import tempfile
 from pathlib import Path
 
@@ -50,6 +51,13 @@ def process_apk_task(_self, job_id, title=None, description=None):
             version_code = int(apk.version_code)
             version_name = apk.version_name
 
+            # Calculate file hash
+            sha256_hash = hashlib.sha256()
+            with tmp_path.open("rb") as f:
+                for byte_block in iter(lambda: f.read(4096), b""):
+                    sha256_hash.update(byte_block)
+            file_hash = sha256_hash.hexdigest()
+
             with transaction.atomic():
                 # Get or Create Application
                 app, _ = Application.objects.get_or_create(
@@ -70,21 +78,31 @@ def process_apk_task(_self, job_id, title=None, description=None):
                     },
                 )
 
+                # Check if this exact artifact already exists
+                artifact = Artifact.objects.filter(release=release, hash=file_hash).first()
+
+                if artifact:
+                    raise ValueError("Ce binaire a déjà été téléversé pour cette version.")
+
                 # Create Artifact
                 with tmp_path.open("rb") as f:
                     artifact = Artifact.objects.create(
                         release=release,
                         file=File(f, name=f"{package_name}-{version_name}.apk"),
+                        hash=file_hash,
+                        architecture=getattr(apk, "architecture", "") or "",
                     )
 
                 # Update job output
                 job.output_data = {
                     "application_id": str(app.id),
+                    "application_title": app.title,
                     "release_id": str(release.id),
                     "artifact_id": str(artifact.id),
                     "package_name": package_name,
                     "version_code": version_code,
                     "version_name": version_name,
+                    "hash": file_hash,
                 }
 
                 flow.finish()

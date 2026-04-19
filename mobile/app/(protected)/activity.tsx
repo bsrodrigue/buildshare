@@ -3,10 +3,10 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, RefreshControl,StyleSheet, View } from 'react-native';
 import {
-  ActivityIndicator,
   Chip,
   IconButton,
   List,
+  SegmentedButtons,
   Surface,
   Text,
   useTheme,
@@ -25,12 +25,21 @@ export default function ActivityScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   
-  const { data: jobs, isLoading, isRefetching, refetch } = useTaskJobs(pid);
+  const [statusFilter, setStatusFilter] = React.useState('ALL');
+  const { data: jobs, isRefetching, refetch } = useTaskJobs(pid);
+
+  const filteredJobs = React.useMemo(() => {
+    if (!jobs) return [];
+    if (statusFilter === 'ALL') return jobs;
+    if (statusFilter === 'ACTIVE') return jobs.filter(j => j.status === 'PENDING' || j.status === 'STARTED');
+    return jobs.filter(j => j.status === statusFilter);
+  }, [jobs, statusFilter]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'SUCCESS': return 'check-circle';
       case 'FAILURE': return 'alert-circle';
+      case 'STARTED': return 'loading';
       default: return 'clock-outline';
     }
   };
@@ -39,65 +48,52 @@ export default function ActivityScreen() {
     switch (status) {
       case 'SUCCESS': return '#4CAF50';
       case 'FAILURE': return theme.colors.error;
-      default: return theme.colors.primary;
-    }
-  };
-
-  const getStatusContainerColor = (status: string) => {
-    switch (status) {
-      case 'SUCCESS': return '#E8F5E9';
-      case 'FAILURE': return theme.colors.errorContainer;
-      default: return theme.colors.primaryContainer;
+      case 'STARTED': return theme.colors.primary;
+      default: return theme.colors.outline;
     }
   };
 
   const renderJobItem = ({ item }: { item: TaskJob }) => {
     const jobId = String(item.id);
+    const title = item.app_title || t(`jobs.types.${item.type}`, { defaultValue: item.type });
+    
     return (
       <Surface style={[styles.jobItem, customTheme.shadows.soft]}>
         <List.Item
-          title={t(`jobs.types.${item.type}`, { defaultValue: item.type })}
+          title={title}
           description={`${jobId.substring(0, 8)} • ${
             item.status === 'FAILURE' 
               ? `${t('common.error')}: ${item.error_message}`
               : `${new Date(item.created_at).toLocaleString()}`
           }`}
-        titleStyle={[styles.jobTitle, { color: theme.colors.onSurface }]}
-        descriptionStyle={styles.jobDescription}
-        left={(props) => (
-          <View style={[styles.iconContainer, { backgroundColor: getStatusContainerColor(item.status) }]}>
-            <List.Icon
-              {...props}
-              icon={getStatusIcon(item.status)}
-              color={getStatusColor(item.status)}
-              style={styles.listIcon}
-            />
-          </View>
-        )}
-        right={() => (
-          <View style={styles.statusBadge}>
-            <Chip 
-              compact 
-              style={[styles.statusChip, { backgroundColor: getStatusContainerColor(item.status) + '40' }]}
-              textStyle={[styles.statusChipText, { color: getStatusColor(item.status) }]}
-            >
-              {t(`jobs.status.${item.status}`, { defaultValue: item.status_display })}
-            </Chip>
-          </View>
-        )}
-        style={styles.listItem}
-      />
-    </Surface>
-  );
-};
-
-  if (isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-      </View>
+          titleStyle={[styles.jobTitle, { color: theme.colors.onSurface }]}
+          descriptionStyle={styles.jobDescription}
+          left={(props) => (
+            <View style={[styles.iconContainer, { backgroundColor: getStatusColor(item.status) + '15' }]}>
+              <List.Icon
+                {...props}
+                icon={getStatusIcon(item.status)}
+                color={getStatusColor(item.status)}
+                style={styles.listIcon}
+              />
+            </View>
+          )}
+          right={() => (
+            <View style={styles.statusBadge}>
+              <Chip 
+                compact 
+                style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) + '15' }]}
+                textStyle={[styles.statusChipText, { color: getStatusColor(item.status) }]}
+              >
+                {t(`jobs.status.${item.status}`, { defaultValue: item.status_display })}
+              </Chip>
+            </View>
+          )}
+          style={styles.listItem}
+        />
+      </Surface>
     );
-  }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: customTheme.colors.background }]}>
@@ -122,8 +118,23 @@ export default function ActivityScreen() {
         />
       </View>
 
+      <View style={styles.filterContainer}>
+        <SegmentedButtons
+          value={statusFilter}
+          onValueChange={setStatusFilter}
+          density="medium"
+          style={styles.segmentedButtons}
+          buttons={[
+            { value: 'ALL', label: 'Tout' },
+            { value: 'ACTIVE', label: 'En cours' },
+            { value: 'SUCCESS', label: 'Succès' },
+            { value: 'FAILURE', label: 'Échecs' },
+          ]}
+        />
+      </View>
+
       <FlatList
-        data={jobs}
+        data={filteredJobs}
         keyExtractor={(item) => item.id}
         renderItem={renderJobItem}
         contentContainerStyle={styles.listContent}
@@ -153,6 +164,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: 'bold',
+  },
+  filterContainer: {
+    padding: 16,
+    paddingBottom: 8,
+  },
+  segmentedButtons: {
+    backgroundColor: 'transparent',
   },
   listContent: {
     padding: 16,

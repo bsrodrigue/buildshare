@@ -8,24 +8,26 @@ import {
   Card,
   IconButton,
   List,
-  ProgressBar,
-  Surface,
   Text,
   TextInput,
-  useTheme,
 } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
 import { AppError } from '@/libs/api/types';
 import { useAPKUploadPipeline } from '@/modules/binaries/api/hooks';
+import { ApkUploadInput } from '@/modules/binaries/components/ApkUploadInput';
 
 export default function UploadArtifactScreen() {
-  const { id } = useLocalSearchParams();
+  const { id, appId } = useLocalSearchParams();
   const pid = parseInt(id as string, 10);
-  const theme = useTheme();
+  const isReleaseMode = !!appId;
+  const insets = useSafeAreaInsets();
   
   const uploadPipeline = useAPKUploadPipeline();
+  
   const [selectedFile, setSelectedFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const {
     control,
@@ -38,24 +40,6 @@ export default function UploadArtifactScreen() {
     },
   });
 
-  const pickFile = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/vnd.android.package-archive',
-        copyToCacheDirectory: true,
-      });
-
-      if (!result.canceled) {
-        setSelectedFile(result.assets[0]);
-      }
-    } catch {
-      Toast.show({
-        type: 'error',
-        text1: 'Échec de la sélection',
-      });
-    }
-  };
-
   const onSubmit = (data: { title: string; description: string }) => {
     if (!selectedFile) {
       Toast.show({
@@ -66,15 +50,7 @@ export default function UploadArtifactScreen() {
       return;
     }
 
-    if (!pid) {
-      Toast.show({
-        type: 'error',
-        text1: 'Paramètre manquant',
-        text2: 'ID du projet introuvable.',
-      });
-      return;
-    }
-
+    setUploadProgress(0);
     uploadPipeline.mutate(
       {
         projectId: pid,
@@ -83,14 +59,16 @@ export default function UploadArtifactScreen() {
           name: selectedFile.name,
           type: selectedFile.mimeType || 'application/vnd.android.package-archive',
         },
-        title: data.title.trim() || undefined,
-        description: data.description.trim() || undefined,
+        title: isReleaseMode ? undefined : (data.title.trim() || undefined),
+        description: isReleaseMode ? undefined : (data.description.trim() || undefined),
+        onProgress: (p) => setUploadProgress(p),
       },
       {
         onSuccess: () => {
-          router.back();
+          router.push('/(protected)/activity');
         },
         onError: (error: AppError) => {
+          setUploadProgress(0);
           Toast.show({
             type: 'error',
             text1: 'Erreur de téléversement',
@@ -104,103 +82,82 @@ export default function UploadArtifactScreen() {
   const isPending = uploadPipeline.isPending;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
+    <ScrollView 
+      style={styles.container} 
+      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
+    >
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <IconButton icon="arrow-left" onPress={() => router.back()} />
         <Text variant="headlineSmall" style={styles.title}>
-          Propulser un APK
+          {isReleaseMode ? 'Nouvelle Release' : 'Nouvelle Application'}
         </Text>
         <View style={styles.spacer} />
       </View>
 
       <View style={styles.body}>
-        <Surface style={styles.uploadArea} elevation={selectedFile ? 1 : 0}>
-          <IconButton
-            icon={selectedFile ? 'check-circle' : 'cloud-upload'}
-            size={48}
-            iconColor={selectedFile ? theme.colors.primary : theme.colors.outline}
-          />
-          <Text variant="bodyLarge" style={styles.uploadText}>
-            {selectedFile ? selectedFile.name : 'Sélectionnez votre binaire Android'}
-          </Text>
-          <Button
-            mode={selectedFile ? 'text' : 'contained'}
-            onPress={() => { void pickFile(); }}
-            style={styles.pickButton}
-            disabled={isPending}
-          >
-            {selectedFile ? 'Changer de fichier' : 'Parcourir'}
-          </Button>
-          {selectedFile && (
-            <Text variant="bodySmall" style={styles.fileSize}>
-              {Math.round((selectedFile.size ?? 0) / (1024 * 1024))} Mo • APK
-            </Text>
-          )}
-        </Surface>
+        <ApkUploadInput 
+          selectedFile={selectedFile}
+          onFileSelect={setSelectedFile}
+          isUploading={isPending}
+          progress={uploadProgress}
+        />
 
-        <Card style={styles.formCard}>
-          <Card.Content>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
-              Détails de la Release
-            </Text>
-            
-            <Controller
-              control={control}
-              name="title"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  label="Nom de l'application (optionnel)"
-                  placeholder="ex: Mon Super Projet"
-                  value={value}
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  mode="outlined"
-                  style={styles.input}
-                  disabled={isPending}
-                />
-              )}
-            />
+        {!isReleaseMode && (
+          <Card style={styles.formCard}>
+            <Card.Content>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                Détails de l&apos;Application
+              </Text>
+              
+              <Controller
+                control={control}
+                name="title"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    label="Nom de l'application (optionnel)"
+                    placeholder="ex: Mon Super Projet"
+                    value={value}
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    mode="outlined"
+                    style={styles.input}
+                    disabled={isPending}
+                  />
+                )}
+              />
 
-            <Controller
-              control={control}
-              name="description"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  label="Description / Notes"
-                  placeholder="Quoi de neuf dans cette version ?"
-                  value={value}
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  mode="outlined"
-                  multiline
-                  numberOfLines={4}
-                  style={styles.input}
-                  disabled={isPending}
-                />
-              )}
-            />
+              <Controller
+                control={control}
+                name="description"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    label="Description"
+                    placeholder="Brève description du projet"
+                    value={value}
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    mode="outlined"
+                    multiline
+                    numberOfLines={4}
+                    style={styles.input}
+                    disabled={isPending}
+                  />
+                )}
+              />
+            </Card.Content>
+          </Card>
+        )}
 
-            {isPending && (
-              <View style={styles.progressContainer}>
-                <Text variant="bodySmall" style={styles.progressText}>
-                  Téléversement vers Cloudflare R2...
-                </Text>
-                <ProgressBar indeterminate color={theme.colors.primary} style={styles.progressBar} />
-              </View>
-            )}
-
-            <Button
-              mode="contained"
-              onPress={() => { void handleSubmit(onSubmit)(); }}
-              loading={isPending}
-              disabled={isPending || !selectedFile}
-              contentStyle={styles.submitButtonContent}
-              style={styles.submitButton}
-            >
-              Lancer le déploiement
-            </Button>
-          </Card.Content>
-        </Card>
+        <Button
+          mode="contained"
+          onPress={() => { void handleSubmit(onSubmit)(); }}
+          loading={isPending}
+          disabled={isPending || !selectedFile}
+          contentStyle={styles.submitButtonContent}
+          style={styles.submitButton}
+        >
+          {isReleaseMode ? 'Lancer la mise à jour' : 'Lancer le déploiement'}
+        </Button>
 
         <List.Section>
           <List.Subheader>Information</List.Subheader>
@@ -224,7 +181,6 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    paddingTop: 60,
     paddingBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -237,29 +193,6 @@ const styles = StyleSheet.create({
   },
   body: {
     padding: 16,
-  },
-  uploadArea: {
-    padding: 24,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderStyle: 'dashed',
-    backgroundColor: '#fafafa',
-    marginBottom: 24,
-  },
-  uploadText: {
-    textAlign: 'center',
-    marginVertical: 12,
-    fontWeight: '500',
-  },
-  pickButton: {
-    marginTop: 8,
-  },
-  fileSize: {
-    marginTop: 8,
-    opacity: 0.5,
   },
   formCard: {
     borderRadius: 16,
@@ -275,18 +208,6 @@ const styles = StyleSheet.create({
   input: {
     marginBottom: 16,
     backgroundColor: '#fff',
-  },
-  progressContainer: {
-    marginVertical: 16,
-  },
-  progressText: {
-    textAlign: 'center',
-    marginBottom: 8,
-    opacity: 0.7,
-  },
-  progressBar: {
-    height: 6,
-    borderRadius: 3,
   },
   submitButton: {
     marginTop: 8,

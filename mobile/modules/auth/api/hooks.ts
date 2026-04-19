@@ -25,12 +25,6 @@ export const useLogin = () => {
       const user = await authService.me();
       setUser(user);
 
-      Toast.show({
-        type: 'success',
-        text1: 'Bienvenue !',
-        text2: 'Connexion réussie.',
-      });
-
       router.replace('/(protected)');
     },
     onError: (error: AppError) => {

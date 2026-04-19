@@ -41,27 +41,45 @@ export const binaryService = {
 
   /**
    * Directly upload file to Cloudflare R2 (Step 2 of the new pipeline)
-   * Uses raw fetch to bypass global authentication headers.
+   * Uses XMLHttpRequest to allow progress tracking.
    */
-  uploadToR2: async (url: string, file: unknown): Promise<void> => {
-    const fileAsset = file as { uri: string; type?: string };
-    // Determine MIME type
-    const contentType = fileAsset.type || 'application/vnd.android.package-archive';
+  uploadToR2: async (
+    url: string, 
+    file: unknown, 
+    onProgress?: (progress: number) => void
+  ): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const fileAsset = file as { uri: string; type?: string; name?: string };
+      const contentType = fileAsset.type || 'application/vnd.android.package-archive';
 
-    // We use raw fetch here to ensure no global 'Authorization' headers
-    // from our HTTP client interfere with the R2 presigned URL.
-    const response = await fetch(url, {
-      method: 'PUT',
-      body: file as Blob,
-      headers: {
-        'Content-Type': contentType,
-      },
+      const xhr = new XMLHttpRequest();
+      
+      xhr.open('PUT', url);
+      xhr.setRequestHeader('Content-Type', contentType);
+
+      if (onProgress) {
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progress = (event.loaded / event.total) * 100;
+            onProgress(progress);
+          }
+        };
+      }
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+        } else {
+          reject(new Error(`Failed to upload to storage: ${xhr.status} ${xhr.responseText}`));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error during upload to R2'));
+
+      // React Native's XMLHttpRequest supports Blob/File/Uri-based objects
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      xhr.send(file as any);
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to upload to storage: ${response.status} ${errorText}`);
-    }
   },
 
   /**

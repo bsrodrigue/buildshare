@@ -1,17 +1,19 @@
+from typing import Any
+
 import boto3
 from botocore.config import Config
 from django.conf import settings
 
 
 class R2StorageService:
-    def __init__(self):
-        self.account_id = settings.R2_ACCOUNT_ID
-        self.access_key_id = settings.R2_ACCESS_KEY_ID
-        self.secret_access_key = settings.R2_SECRET_ACCESS_KEY
-        self.bucket_name = settings.R2_BUCKET_NAME
-        self.endpoint_url = settings.R2_ENDPOINT_URL
+    def __init__(self) -> None:
+        self.account_id: str = settings.R2_ACCOUNT_ID
+        self.access_key_id: str = settings.R2_ACCESS_KEY_ID
+        self.secret_access_key: str = settings.R2_SECRET_ACCESS_KEY
+        self.bucket_name: str = settings.R2_BUCKET_NAME
+        self.endpoint_url: str = settings.R2_ENDPOINT_URL
 
-    def get_client(self):
+    def get_client(self) -> Any:
         """Returns a configured boto3 client for Cloudflare R2."""
         return boto3.client(
             "s3",
@@ -33,7 +35,7 @@ class R2StorageService:
             ExpiresIn=expires,
         )
 
-    def download_file(self, key: str, local_path: str):
+    def download_file(self, key: str, local_path: str) -> None:
         """
         Downloads a file from R2 to the local filesystem.
         """

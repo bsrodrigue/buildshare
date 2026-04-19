@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('binaries', '0002_initial'),
+        ("binaries", "0002_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='release',
-            name='version_code',
-            field=models.PositiveIntegerField(verbose_name='Code de version'),
+            model_name="release",
+            name="version_code",
+            field=models.PositiveIntegerField(verbose_name="Code de version"),
         ),
         migrations.AlterField(
-            model_name='release',
-            name='version_id',
-            field=models.CharField(max_length=50, verbose_name='Nom de version (ID)'),
+            model_name="release",
+            name="version_id",
+            field=models.CharField(max_length=50, verbose_name="Nom de version (ID)"),
         ),
     ]

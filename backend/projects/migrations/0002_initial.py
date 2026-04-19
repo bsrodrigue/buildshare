@@ -6,26 +6,35 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('projects', '0001_initial'),
+        ("projects", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='userprojectprofile',
-            name='user',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='user_project_profiles', to=settings.AUTH_USER_MODEL),
+            model_name="userprojectprofile",
+            name="user",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="user_project_profiles",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddConstraint(
-            model_name='userprojectprofile',
-            constraint=models.UniqueConstraint(condition=models.Q(('role', 'ADMIN')), fields=('project',), name='unique_project_admin'),
+            model_name="userprojectprofile",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("role", "ADMIN")),
+                fields=("project",),
+                name="unique_project_admin",
+            ),
         ),
         migrations.AddConstraint(
-            model_name='userprojectprofile',
-            constraint=models.UniqueConstraint(fields=('user', 'project'), name='unique_user_project'),
+            model_name="userprojectprofile",
+            constraint=models.UniqueConstraint(
+                fields=("user", "project"), name="unique_user_project"
+            ),
         ),
     ]

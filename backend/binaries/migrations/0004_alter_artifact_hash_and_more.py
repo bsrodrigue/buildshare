@@ -4,23 +4,26 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('binaries', '0003_alter_release_version_code_alter_release_version_id'),
+        ("binaries", "0003_alter_release_version_code_alter_release_version_id"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='artifact',
-            name='hash',
-            field=models.CharField(max_length=64, verbose_name='Hash (SHA256)'),
+            model_name="artifact",
+            name="hash",
+            field=models.CharField(max_length=64, verbose_name="Hash (SHA256)"),
         ),
         migrations.AddConstraint(
-            model_name='artifact',
-            constraint=models.UniqueConstraint(fields=('release', 'hash'), name='unique_artifact_hash_per_release'),
+            model_name="artifact",
+            constraint=models.UniqueConstraint(
+                fields=("release", "hash"), name="unique_artifact_hash_per_release"
+            ),
         ),
         migrations.AddConstraint(
-            model_name='artifact',
-            constraint=models.UniqueConstraint(fields=('release', 'architecture'), name='unique_artifact_arch_per_release'),
+            model_name="artifact",
+            constraint=models.UniqueConstraint(
+                fields=("release", "architecture"), name="unique_artifact_arch_per_release"
+            ),
         ),
     ]

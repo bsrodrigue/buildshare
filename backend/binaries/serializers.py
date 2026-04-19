@@ -1,3 +1,5 @@
+from typing import Any
+
 from rest_framework import serializers
 
 from core.models import TaskJob
@@ -13,7 +15,7 @@ class ApplicationOutputSerializer(serializers.ModelSerializer):
         model = Application
         fields = ("id", "project", "app_id", "title", "description", "created_at", "latest_release")
 
-    def get_latest_release(self, obj):
+    def get_latest_release(self, obj: Application) -> Any | None:
         latest = obj.releases.order_by("-version_code").first()
         if not latest:
             return None

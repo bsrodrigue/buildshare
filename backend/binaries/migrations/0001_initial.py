@@ -7,47 +7,83 @@ import binaries.models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Application',
+            name="Application",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(db_index=True, default=django.utils.timezone.now)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('app_id', models.CharField(max_length=255, verbose_name="ID de l'application (Package name)")),
-                ('title', models.CharField(max_length=255, verbose_name='Titre')),
-                ('description', models.TextField(blank=True, verbose_name='Description')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(db_index=True, default=django.utils.timezone.now),
+                ),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "app_id",
+                    models.CharField(
+                        max_length=255, verbose_name="ID de l'application (Package name)"
+                    ),
+                ),
+                ("title", models.CharField(max_length=255, verbose_name="Titre")),
+                ("description", models.TextField(blank=True, verbose_name="Description")),
             ],
         ),
         migrations.CreateModel(
-            name='Artifact',
+            name="Artifact",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(db_index=True, default=django.utils.timezone.now)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('file', models.FileField(upload_to=binaries.models.artifact_upload_path, verbose_name='Fichier binaire')),
-                ('architecture', models.CharField(blank=True, max_length=50, verbose_name='Architecture')),
-                ('hash', models.CharField(blank=True, max_length=64, verbose_name='Hash (SHA256)')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(db_index=True, default=django.utils.timezone.now),
+                ),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "file",
+                    models.FileField(
+                        upload_to=binaries.models.artifact_upload_path,
+                        verbose_name="Fichier binaire",
+                    ),
+                ),
+                (
+                    "architecture",
+                    models.CharField(blank=True, max_length=50, verbose_name="Architecture"),
+                ),
+                ("hash", models.CharField(blank=True, max_length=64, verbose_name="Hash (SHA256)")),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.CreateModel(
-            name='Release',
+            name="Release",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(db_index=True, default=django.utils.timezone.now)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('version_code', models.PositiveIntegerField(verbose_name='Version Code')),
-                ('version_id', models.CharField(max_length=50, verbose_name='Version ID (Name)')),
-                ('release_notes', models.TextField(blank=True, verbose_name='Notes de version')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(db_index=True, default=django.utils.timezone.now),
+                ),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("version_code", models.PositiveIntegerField(verbose_name="Version Code")),
+                ("version_id", models.CharField(max_length=50, verbose_name="Version ID (Name)")),
+                ("release_notes", models.TextField(blank=True, verbose_name="Notes de version")),
             ],
         ),
     ]

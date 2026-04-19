@@ -5,36 +5,51 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('binaries', '0001_initial'),
-        ('projects', '0001_initial'),
+        ("binaries", "0001_initial"),
+        ("projects", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='application',
-            name='project',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='applications', to='projects.project'),
+            model_name="application",
+            name="project",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="applications",
+                to="projects.project",
+            ),
         ),
         migrations.AddField(
-            model_name='release',
-            name='application',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='releases', to='binaries.application'),
+            model_name="release",
+            name="application",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="releases",
+                to="binaries.application",
+            ),
         ),
         migrations.AddField(
-            model_name='artifact',
-            name='release',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='artifacts', to='binaries.release'),
+            model_name="artifact",
+            name="release",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="artifacts",
+                to="binaries.release",
+            ),
         ),
         migrations.AddConstraint(
-            model_name='application',
-            constraint=models.UniqueConstraint(fields=('project', 'app_id'), name='unique_app_per_project'),
+            model_name="application",
+            constraint=models.UniqueConstraint(
+                fields=("project", "app_id"), name="unique_app_per_project"
+            ),
         ),
         migrations.AddConstraint(
-            model_name='release',
-            constraint=models.UniqueConstraint(fields=('application', 'version_code'), name='unique_release_per_app'),
+            model_name="release",
+            constraint=models.UniqueConstraint(
+                fields=("application", "version_code"), name="unique_release_per_app"
+            ),
         ),
     ]

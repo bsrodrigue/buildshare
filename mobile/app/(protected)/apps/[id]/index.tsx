@@ -6,6 +6,7 @@ import { ActivityIndicator, Chip, FAB, IconButton, List, Surface, Text } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { env } from '@/libs/env';
+import { formatTimelineDate } from '@/libs/utils/date';
 import { useReleases } from '@/modules/binaries/api/hooks';
 import { Release, ReleaseArtifact } from '@/modules/binaries/api/schemas';
 import { useTheme } from '@/modules/shared/theme/ThemeProvider';
@@ -16,14 +17,13 @@ export default function AppDetailScreen() {
   const resolvedProjectId = projectId ? parseInt(projectId as string, 10) : undefined;
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
-  
+  const { t, i18n } = useTranslation();
+
   const { data: releases, isLoading, isRefetching, refetch } = useReleases(applicationId);
 
   const handleDownload = (artifact: ReleaseArtifact) => {
     if (artifact.file) {
       let url = artifact.file;
-      // Prepend API_URL if the path is relative
       if (!url.startsWith('http')) {
         const baseUrl = env.API_URL.endsWith('/') ? env.API_URL.slice(0, -1) : env.API_URL;
         const filePath = url.startsWith('/') ? url : `/${url}`;
@@ -33,73 +33,149 @@ export default function AppDetailScreen() {
     }
   };
 
-  const renderReleaseItem = ({ item, index }: { item: Release; index: number }) => (
-    <View style={styles.timelineItem}>
-      {/* Timeline connector */}
-      <View style={styles.timelineLeft}>
-        <View style={[styles.timelineLine, { backgroundColor: theme.colors.outline + '40' }, index === 0 && styles.timelineLineFirst, index === (releases?.length || 0) - 1 && styles.timelineLineLast]} />
-        <View style={[styles.timelineDot, { backgroundColor: theme.colors.primary }]} />
-      </View>
+  const renderReleaseItem = ({ item, index }: { item: Release; index: number }) => {
+    const cardColors = [
+      {
+        bg: theme.colors.primaryContainer,
+        onBg: theme.colors.onPrimaryContainer,
+        icon: 'rocket-launch',
+      },
+      {
+        bg: theme.colors.secondaryContainer,
+        onBg: theme.colors.onSecondaryContainer,
+        icon: 'auto-fix',
+      },
+      {
+        bg: theme.colors.tertiaryContainer,
+        onBg: theme.colors.onTertiaryContainer,
+        icon: 'bottle-tonic-plus',
+      },
+      { bg: theme.colors.surfaceVariant, onBg: theme.colors.onSurfaceVariant, icon: 'cube-send' },
+    ];
+    const cardTheme = cardColors[index % cardColors.length];
 
-      <View style={styles.timelineRight}>
-        <Surface style={[styles.releaseCard, styles.whiteBackground, theme.shadows.soft]}>
-          <View style={styles.releaseHeader}>
-            <View>
-              <Text variant="titleMedium" style={[styles.versionId, { color: theme.colors.text }]}>
-                {item.version_id}
-              </Text>
-              <Text variant="bodySmall" style={styles.buildId}>
-                {t('screens.release_list.build_info', { code: item.version_code, date: new Date(item.created_at).toLocaleDateString() })}
-              </Text>
-            </View>
-            <Chip 
-              compact 
-              style={[styles.statusChip, { backgroundColor: theme.colors.primaryContainer }]}
-              textStyle={styles.statusChipText}
-            >
-              {t('screens.release_list.stable_chip')}
-            </Chip>
-          </View>
+    return (
+      <View style={styles.timelineItem}>
+        {/* Timeline Left: Minimal Gutter */}
+        <View style={styles.timelineLeftColumn}>
+          <View
+            style={[
+              styles.timelineLine,
+              { backgroundColor: theme.colors.outline },
+              index === 0 && styles.timelineLineFirst,
+              index === (releases?.length || 0) - 1 && styles.timelineLineLast,
+            ]}
+          />
+          <View
+            style={[
+              styles.timelineDot,
+              { borderColor: theme.colors.primary, backgroundColor: theme.colors.surface },
+            ]}
+          />
+        </View>
 
-          {item.release_notes && (
-            <Text variant="bodyMedium" style={styles.notes}>
-              {item.release_notes}
-            </Text>
-          )}
-
-          <View style={styles.divider} />
-
-          <Text variant="labelLarge" style={styles.artifactTitle}>{t('screens.release_list.artifact_title')}</Text>
-          
-          {item.artifacts?.map((artifact: ReleaseArtifact) => (
-             <List.Item
-              key={artifact.id}
-              title={artifact.architecture || 'Universal'}
-              description={`${artifact.file_size_display || 'N/A'} • ${String(artifact.id).substring(0, 8)}`}
-              titleStyle={styles.artifactText}
-              descriptionStyle={styles.artifactSubText}
-              left={(props) => (
-                <View style={styles.artifactIconContainer}>
-                  <List.Icon {...props} icon="android" color="#3DDC84" style={styles.listIcon} />
+        <View style={styles.timelineRight}>
+          <Surface
+            style={[styles.releaseCard, { backgroundColor: cardTheme.bg }, theme.shadows.soft]}
+            elevation={1}
+          >
+            <View style={styles.releaseHeader}>
+              <View style={styles.headerLeft}>
+                <View
+                  style={[
+                    styles.headerIconCircle,
+                    { backgroundColor: theme.colors.surface + '40' },
+                  ]}
+                >
+                  <IconButton
+                    icon={cardTheme.icon}
+                    size={20}
+                    iconColor={cardTheme.onBg}
+                    style={styles.headerIcon}
+                  />
                 </View>
-              )}
-              right={(props) => (
-                <IconButton 
-                  {...props} 
-                  icon="download" 
-                  mode="contained-tonal"
-                  onPress={() => {
-                    handleDownload(artifact);
-                  }} 
-                />
-              )}
-              style={styles.artifactItem}
-            />
-          ))}
-        </Surface>
+                <View style={styles.headerTitleContainer}>
+                  <Text variant="titleMedium" style={[styles.versionId, { color: cardTheme.onBg }]}>
+                    {item.version_id}
+                  </Text>
+                  <Text
+                    variant="labelSmall"
+                    style={[styles.buildId, { color: cardTheme.onBg }, styles.opacity70]}
+                  >
+                    {formatTimelineDate(item.created_at, i18n.language)} •{' '}
+                    {t('screens.release_list.build_info', {
+                      code: item.version_code,
+                      date: '',
+                    }).replace(' • ', '')}
+                  </Text>
+                </View>
+              </View>
+              <Chip
+                compact
+                style={[styles.statusChip, { backgroundColor: theme.colors.surface + '60' }]}
+                textStyle={[styles.statusChipText, { color: cardTheme.onBg }]}
+              >
+                {t('screens.release_list.stable_chip')}
+              </Chip>
+            </View>
+
+            {item.release_notes && (
+              <Text variant="bodyMedium" style={[styles.notes, { color: cardTheme.onBg }]}>
+                {item.release_notes}
+              </Text>
+            )}
+
+            <View style={[styles.divider, { backgroundColor: cardTheme.onBg + '20' }]} />
+
+            <Text
+              variant="labelLarge"
+              style={[styles.artifactTitle, { color: cardTheme.onBg }, styles.opacity80]}
+            >
+              {t('screens.release_list.artifact_title')}
+            </Text>
+
+            {item.artifacts?.map((artifact: ReleaseArtifact) => (
+              <List.Item
+                key={artifact.id}
+                title={artifact.architecture || 'Universal'}
+                description={`${artifact.file_size_display || 'N/A'} • ${String(artifact.id).substring(0, 8)}`}
+                titleStyle={[styles.artifactText, { color: cardTheme.onBg }]}
+                descriptionStyle={[
+                  styles.artifactSubText,
+                  { color: cardTheme.onBg },
+                  styles.opacity60,
+                ]}
+                left={(props) => (
+                  <View
+                    style={[
+                      styles.artifactIconContainer,
+                      { backgroundColor: theme.colors.surface + '40' },
+                    ]}
+                  >
+                    <List.Icon {...props} icon="android" color="#3DDC84" style={styles.listIcon} />
+                  </View>
+                )}
+                right={(props) => (
+                  <IconButton
+                    {...props}
+                    icon="download"
+                    mode="contained"
+                    containerColor={theme.colors.surface + '80'}
+                    iconColor={cardTheme.onBg}
+                    size={20}
+                    onPress={() => {
+                      handleDownload(artifact);
+                    }}
+                  />
+                )}
+                style={styles.artifactItem}
+              />
+            ))}
+          </Surface>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   if (isLoading) {
     return (
@@ -111,24 +187,33 @@ export default function AppDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.outline + '20' }]}>
-        <IconButton 
-          icon="arrow-left" 
-          iconColor={theme.colors.onSurfaceVariant} 
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top + 16,
+            backgroundColor: theme.colors.surface,
+            borderBottomColor: theme.colors.outline + '20',
+          },
+        ]}
+      >
+        <IconButton
+          icon="arrow-left"
+          iconColor={theme.colors.onSurfaceVariant}
           onPress={() => {
             void router.back();
-          }} 
+          }}
         />
-        <Text variant="headlineSmall" style={[styles.title, { color: theme.colors.onSurface }]}>
+        <Text variant="titleLarge" style={[styles.title, { color: theme.colors.onSurface }]}>
           {t('screens.release_list.title')}
         </Text>
-        <IconButton 
-          icon="refresh" 
-          iconColor={theme.colors.onSurfaceVariant} 
+        <IconButton
+          icon="refresh"
+          iconColor={theme.colors.onSurfaceVariant}
           onPress={() => {
             void refetch();
-          }} 
-          loading={isRefetching} 
+          }}
+          loading={isRefetching}
         />
       </View>
 
@@ -138,7 +223,13 @@ export default function AppDetailScreen() {
         renderItem={renderReleaseItem}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch(); }} />
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={() => {
+              void refetch();
+            }}
+            tintColor={theme.colors.primary}
+          />
         }
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -149,14 +240,11 @@ export default function AppDetailScreen() {
 
       {resolvedProjectId && (
         <FAB
-          icon="upload"
+          icon="plus"
           label={t('screens.release_list.fab_new_release')}
           variant="primary"
           mode="elevated"
-          style={[
-            styles.fab,
-            { bottom: insets.bottom + 16 },
-          ]}
+          style={[styles.fab, { bottom: insets.bottom + 16 }]}
           onPress={() => {
             void router.push({
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -184,102 +272,125 @@ const styles = StyleSheet.create({
   title: {
     fontWeight: 'bold',
   },
-  statusChipText: { color: '#000', fontSize: 10 }, 
+  statusChipText: { fontWeight: '600', fontSize: 10 },
   listContent: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 100,
   },
   timelineItem: {
     flexDirection: 'row',
-    minHeight: 120,
   },
-  timelineLeft: {
-    width: 40,
+  timelineLeftColumn: {
+    width: 24,
     alignItems: 'center',
   },
   timelineLine: {
-    width: 2,
+    width: 1.5,
     flex: 1,
   },
   timelineLineFirst: {
-    marginTop: 24,
+    marginTop: 30,
   },
   timelineLineLast: {
-    height: '50%',
+    height: 30,
+    flex: 0,
   },
   timelineDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
+    borderWidth: 2,
     position: 'absolute',
     top: 24,
+    zIndex: 1,
   },
   timelineRight: {
     flex: 1,
-    paddingBottom: 24,
+    paddingBottom: 32,
+    paddingLeft: 4,
   },
   releaseCard: {
-    borderRadius: 28,
+    borderRadius: 24,
     padding: 20,
-    backgroundColor: '#fff',
-  },
-  whiteBackground: {
-    backgroundColor: '#ffffff',
   },
   releaseHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  headerIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  headerIcon: {
+    margin: 0,
+  },
+  headerTitleContainer: {
+    flex: 1,
   },
   versionId: {
     fontWeight: 'bold',
     fontSize: 18,
   },
   buildId: {
-    opacity: 0.5,
-    marginTop: 2,
+    marginTop: 1,
   },
   statusChip: {
-    borderRadius: 8,
+    borderRadius: 12,
   },
   notes: {
-    opacity: 0.8,
-    marginBottom: 16,
-    lineHeight: 20,
+    marginBottom: 20,
+    lineHeight: 22,
+    opacity: 0.9,
   },
   divider: {
     height: 1,
-    backgroundColor: '#00000010',
     marginBottom: 16,
   },
   artifactTitle: {
-    marginBottom: 8,
-    opacity: 0.7,
+    marginBottom: 12,
   },
   artifactItem: {
     paddingVertical: 4,
     paddingHorizontal: 0,
   },
   artifactIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-    backgroundColor: '#3DDC8420',
   },
   artifactText: {
-    fontWeight: '600',
+    fontWeight: 'bold',
     fontSize: 14,
   },
   listIcon: {
     margin: 0,
   },
   artifactSubText: {
-    fontSize: 11,
-    opacity: 0.5,
+    fontSize: 12,
+  },
+  opacity60: {
+    opacity: 0.6,
+  },
+  opacity70: {
+    opacity: 0.7,
+  },
+  opacity80: {
+    opacity: 0.8,
   },
   center: {
     flex: 1,

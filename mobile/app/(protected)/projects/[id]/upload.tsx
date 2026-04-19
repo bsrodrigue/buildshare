@@ -1,21 +1,15 @@
 import * as DocumentPicker from 'expo-document-picker';
-import { router,useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
-import { Controller,useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { ScrollView,StyleSheet, View } from 'react-native';
-import {
-  Button,
-  Card,
-  IconButton,
-  List,
-  Text,
-  TextInput,
-} from 'react-native-paper';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Button, Card, IconButton, List, Text, TextInput } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
 import { AppError } from '@/libs/api/types';
+import { analyzeAPK, APKAnalysisResult } from '@/libs/apk';
 import { useAPKUploadPipeline } from '@/modules/binaries/api/hooks';
 import { ApkUploadInput } from '@/modules/binaries/components/ApkUploadInput';
 
@@ -25,12 +19,16 @@ export default function UploadArtifactScreen() {
   const isReleaseMode = !!appId;
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  
+
   const uploadPipeline = useAPKUploadPipeline();
-  
+
   const [selectedFile, setSelectedFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
+
+  const [isAnalysing, setIsAnalysing] = useState(false);
+  const [analysis, setAnalysis] = useState<APKAnalysisResult | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   const {
     control,
@@ -42,6 +40,30 @@ export default function UploadArtifactScreen() {
       description: '',
     },
   });
+
+  const handleFileSelect = async (file: DocumentPicker.DocumentPickerAsset | null) => {
+    setSelectedFile(file);
+    setAnalysis(null);
+    setAnalysisError(null);
+
+    if (file) {
+      setIsAnalysing(true);
+      try {
+        const result = await analyzeAPK(file.uri);
+        setAnalysis(result);
+
+        // Strict validation in Release Mode
+        if (isReleaseMode && appId && result.appId !== appId) {
+          setAnalysisError(t('screens.upload.apk_id_mismatch'));
+        }
+      } catch (err) {
+        console.error('APK Analysis failed:', err);
+        setAnalysisError(t('common.error'));
+      } finally {
+        setIsAnalysing(false);
+      }
+    }
+  };
 
   const onSubmit = (data: { title: string; description: string }) => {
     if (!selectedFile) {
@@ -62,8 +84,8 @@ export default function UploadArtifactScreen() {
           name: selectedFile.name,
           type: selectedFile.mimeType || 'application/vnd.android.package-archive',
         },
-        title: isReleaseMode ? undefined : (data.title.trim() || undefined),
-        description: isReleaseMode ? undefined : (data.description.trim() || undefined),
+        title: isReleaseMode ? undefined : data.title.trim() || undefined,
+        description: isReleaseMode ? undefined : data.description.trim() || undefined,
         onProgress: (p) => setUploadProgress(p),
       },
       {
@@ -83,7 +105,7 @@ export default function UploadArtifactScreen() {
             text2: error.message,
           });
         },
-      }
+      },
     );
   };
 
@@ -94,27 +116,79 @@ export default function UploadArtifactScreen() {
       <View style={styles.header}>
         <IconButton icon="arrow-left" onPress={() => router.back()} />
         <Text variant="headlineSmall" style={styles.title}>
-          {isReleaseMode ? t('screens.upload.title_new_release') : t('screens.upload.title_new_app')}
+          {isReleaseMode
+            ? t('screens.upload.title_new_release')
+            : t('screens.upload.title_new_app')}
         </Text>
         <View style={styles.spacer} />
       </View>
 
-      <ScrollView 
-        style={styles.container} 
+      <ScrollView
+        style={styles.container}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
       >
         <View style={styles.body}>
-          <ApkUploadInput 
+          <ApkUploadInput
             selectedFile={selectedFile}
-            onFileSelect={setSelectedFile}
+            onFileSelect={(file) => {
+              void handleFileSelect(file);
+            }}
             isUploading={isPending}
             progress={uploadProgress}
           />
 
+          {isAnalysing && (
+            <Card style={styles.analysisCard}>
+              <Card.Content style={styles.inlineLoader}>
+                <Text variant="bodySmall" style={styles.analysingText}>
+                  {t('screens.upload.apk_analysing')}
+                </Text>
+              </Card.Content>
+            </Card>
+          )}
+
+          {analysis && (
+            <Card
+              style={[styles.analysisCard, analysisError ? styles.errorCard : styles.successCard]}
+            >
+              <Card.Content>
+                <View style={styles.analysisHeader}>
+                  <IconButton
+                    icon={analysisError ? 'alert-circle' : 'check-circle'}
+                    iconColor={analysisError ? '#ba1a1a' : '#2e7d32'}
+                    size={20}
+                    style={styles.analysisIcon}
+                  />
+                  <Text
+                    variant="bodyMedium"
+                    style={[
+                      styles.analysisTitle,
+                      analysisError ? styles.errorText : styles.successText,
+                    ]}
+                  >
+                    {analysisError ||
+                      t('screens.upload.apk_detected_info', {
+                        appId: analysis.appId,
+                        versionCode: analysis.versionCode,
+                      })}
+                  </Text>
+                </View>
+                {analysisError && isReleaseMode && (
+                  <Text variant="bodySmall" style={styles.errorSubtext}>
+                    {t('screens.upload.apk_id_mismatch_desc', {
+                      detected: analysis.appId,
+                      expected: appId,
+                    })}
+                  </Text>
+                )}
+              </Card.Content>
+            </Card>
+          )}
+
           {!isReleaseMode && !showDetails && (
-            <Button 
-              mode="text" 
-              icon="plus" 
+            <Button
+              mode="text"
+              icon="plus"
               onPress={() => setShowDetails(true)}
               style={styles.addDetailsBtn}
             >
@@ -129,13 +203,9 @@ export default function UploadArtifactScreen() {
                   <Text variant="titleMedium" style={styles.sectionTitle}>
                     {t('screens.upload.app_details_title')}
                   </Text>
-                  <IconButton 
-                    icon="close" 
-                    size={20} 
-                    onPress={() => setShowDetails(false)} 
-                  />
+                  <IconButton icon="close" size={20} onPress={() => setShowDetails(false)} />
                 </View>
-                
+
                 <Controller
                   control={control}
                   name="title"
@@ -177,9 +247,11 @@ export default function UploadArtifactScreen() {
 
           <Button
             mode="contained"
-            onPress={() => { void handleSubmit(onSubmit)(); }}
+            onPress={() => {
+              void handleSubmit(onSubmit)();
+            }}
             loading={isPending}
-            disabled={isPending || !selectedFile}
+            disabled={isPending || !selectedFile || isAnalysing || !!analysisError}
             contentStyle={styles.submitButtonContent}
             style={styles.submitButton}
           >
@@ -191,7 +263,7 @@ export default function UploadArtifactScreen() {
             <List.Item
               title={t('screens.upload.async_info_title')}
               description={t('screens.upload.async_info_desc')}
-              left={props => <List.Icon {...props} icon="information-outline" />}
+              left={(props) => <List.Icon {...props} icon="information-outline" />}
             />
           </List.Section>
         </View>
@@ -252,5 +324,52 @@ const styles = StyleSheet.create({
   },
   submitButtonContent: {
     height: 48,
+  },
+  analysisCard: {
+    marginTop: 16,
+    borderRadius: 12,
+    backgroundColor: '#f8f9fa',
+    elevation: 0,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    marginBottom: 8,
+  },
+  successCard: {
+    backgroundColor: '#f1f8e9',
+    borderColor: '#c5e1a5',
+  },
+  errorCard: {
+    backgroundColor: '#fdf2f2',
+    borderColor: '#f9d2d2',
+  },
+  inlineLoader: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  analysingText: {
+    color: '#6c757d',
+  },
+  analysisHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  analysisIcon: {
+    margin: 0,
+    marginLeft: -8,
+  },
+  analysisTitle: {
+    fontWeight: '600',
+    flex: 1,
+  },
+  errorText: {
+    color: '#ba1a1a',
+  },
+  successText: {
+    color: '#2e7d32',
+  },
+  errorSubtext: {
+    color: '#ba1a1a',
+    marginTop: 4,
+    opacity: 0.8,
   },
 });

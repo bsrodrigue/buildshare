@@ -1,4 +1,5 @@
 from django.contrib import admin
+
 from .models import TaskJob
 
 
@@ -12,8 +13,11 @@ class TaskJobAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {"fields": ("id", "user", "type", "status", "idempotency_key")}),
         ("Données", {"fields": ("input_data", "output_data", "error_message")}),
-        ("Dates", {"fields": ("created_at", "updated_at", "started_at", "finished_at", "expires_at")}),
+        (
+            "Dates",
+            {"fields": ("created_at", "updated_at", "started_at", "finished_at", "expires_at")},
+        ),
     )
 
-    def has_add_permission(self, request):
+    def has_add_permission(self, _request: object) -> bool:
         return False  # Jobs should be created via code, not admin UI

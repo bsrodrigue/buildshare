@@ -1,4 +1,5 @@
 from typing import NamedTuple
+
 from core.errors import ErrorCode
 
 
@@ -13,6 +14,7 @@ class ConstraintRegistry:
     Registry for database constraint mappings.
     constraint_pattern -> (code, message, field)
     """
+
     _mappings: dict[str, ConstraintMapping] = {}
 
     @classmethod

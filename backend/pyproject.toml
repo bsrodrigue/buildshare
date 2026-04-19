@@ -35,13 +35,21 @@ dev = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py313" # Adjust if 3.14 isn't supported yet in ruff
+target-version = "py313" 
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "W", "UP", "N", "S", "B", "T20", "RET", "SIM", "ARG", "PTH", "ERA", "PL"]
 
 [tool.mypy]
 python_version = "3.14"
 plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
 strict = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+strict_equality = true
 ignore_missing_imports = true
 
 [tool.django-stubs]

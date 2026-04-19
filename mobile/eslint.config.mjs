@@ -27,6 +27,11 @@ export default tseslint.config(
         tsconfigRootDir: import.meta.dirname,
       },
     },
+    settings: {
+      react: {
+        version: '19.1.0',
+      },
+    },
     plugins: {
       '@typescript-eslint': tseslint.default.plugin,
       'simple-import-sort': simpleImportSort,
@@ -35,12 +40,15 @@ export default tseslint.config(
     },
     rules: {
       // General Code Quality
-      'no-console': ['error', { allow: ['warn', 'error', 'debug'] }],
+      'no-console': ['warn', { allow: ['warn', 'error', 'debug'] }],
       'no-debugger': 'error',
       'no-alert': 'error',
       'no-var': 'error',
       'prefer-const': 'error',
       eqeqeq: ['error', 'always'],
+
+      // React compatibility (avoiding crashes in some versions)
+      'react/display-name': 'off',
 
       // Import sorting
       'simple-import-sort/imports': 'error',
@@ -59,7 +67,7 @@ export default tseslint.config(
       ],
 
       // React Native specific
-      'react-native/no-inline-styles': 'error',
+      'react-native/no-inline-styles': 'warn',
       'react-native/no-raw-text': 'off',
 
       // TypeScript basics (Non-type-aware)

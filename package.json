@@ -1,0 +1,33 @@
+{
+  "name": "build-share-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "mobile-lint": "npm --prefix mobile run lint",
+    "mobile-typecheck": "npm --prefix mobile run typecheck",
+    "backend-lint": "cd backend && uv run ruff check .",
+    "backend-typecheck": "cd backend && ./.venv/bin/python -m mypy .",
+    "backend-test": "cd backend && ./.venv/bin/python manage.py test",
+    "validate-all": "npm run mobile-typecheck && npm run mobile-lint && npm run backend-typecheck && npm run backend-lint && npm run backend-test"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.3",
+    "prettier": "^3.8.3"
+  },
+  "lint-staged": {
+    "mobile/**/*.{ts,tsx,js,jsx}": [
+      "npx prettier --write",
+      "npm --prefix mobile run lint:fix --"
+    ],
+    "backend/**/*.py": [
+      "uv run --project backend ruff check --fix",
+      "uv run --project backend ruff format"
+    ],
+    "**/*.{json,md,css}": [
+      "npx prettier --write"
+    ]
+  }
+}

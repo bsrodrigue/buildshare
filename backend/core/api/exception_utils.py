@@ -1,5 +1,7 @@
 from typing import Any, cast
+
 from rest_framework.exceptions import ErrorDetail
+
 from core.errors import ErrorCode
 
 
@@ -44,13 +46,17 @@ def extract_non_field_errors(formatted_fields: Any) -> tuple[Any, list[dict[str,
         return {}, formatted_fields
 
     if isinstance(formatted_fields, dict):
-        errors = formatted_fields.pop("non_field_errors", None) or formatted_fields.pop("__all__", None)
+        errors = formatted_fields.pop("non_field_errors", None) or formatted_fields.pop(
+            "__all__", None
+        )
         return formatted_fields, errors
 
     return formatted_fields, None
 
 
-def promote_error(standardized_data: dict[str, Any], non_field_errors: list[dict[str, Any]]) -> None:
+def promote_error(
+    standardized_data: dict[str, Any], non_field_errors: list[dict[str, Any]]
+) -> None:
     """
     Promote the first meaningful non-field error to the top-level message and code.
     """
@@ -60,9 +66,9 @@ def promote_error(standardized_data: dict[str, Any], non_field_errors: list[dict
     # Try to find an error with a meaningful code, otherwise take the first one
     error_to_promote = next(
         (e for e in non_field_errors if e.get("code") and e.get("code") != "None"),
-        non_field_errors[0]
+        non_field_errors[0],
     )
-    
+
     standardized_data["message"] = error_to_promote["message"]
     promoted_code = error_to_promote.get("code")
     if promoted_code and promoted_code != "None":

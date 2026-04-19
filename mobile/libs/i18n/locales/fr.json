@@ -69,7 +69,11 @@
       "submit_app": "Lancer le déploiement",
       "info_header": "Information",
       "async_info_title": "Traitement asynchrone",
-      "async_info_desc": "Le serveur extraira automatiquement les métadonnées de l'APK (ID, Version)."
+      "async_info_desc": "Le serveur extraira automatiquement les métadonnées de l'APK (ID, Version).",
+      "apk_analysing": "Analyse de l'APK en cours...",
+      "apk_id_mismatch": "ID de l'application incorrect",
+      "apk_id_mismatch_desc": "L'APK ({{detected}}) ne correspond pas à l'application attendue ({{expected}}).",
+      "apk_detected_info": "Package détecté : {{appId}} (Build {{versionCode}})"
     },
     "activity": {
       "title": "Activité Récente",

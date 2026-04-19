@@ -1,4 +1,3 @@
-import os
 from datetime import timedelta
 
 from config.env import BASE_DIR, env
@@ -6,7 +5,10 @@ from config.env import BASE_DIR, env
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env(
     "DJANGO_SECRET_KEY",
-    default=env("JWT_SECRET_KEY", default="django-insecure-u7j))s0_4w!if0t0kh-4d-t=kaa%g=^(16=2=web4spbpq+lvu"),
+    default=env(
+        "JWT_SECRET_KEY",
+        default="django-insecure-u7j))s0_4w!if0t0kh-4d-t=kaa%g=^(16=2=web4spbpq+lvu",
+    ),
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -94,11 +96,11 @@ USE_TZ = True
 
 # Static files
 STATIC_URL = "static/"
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Media files
 MEDIA_URL = "media/"
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -143,7 +145,7 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
- 
+
 # Cloudflare R2
 R2_ACCOUNT_ID = env("R2_ACCOUNT_ID", default="")
 R2_ACCESS_KEY_ID = env("R2_ACCESS_KEY_ID", default="")

@@ -1,4 +1,5 @@
 from django.contrib import admin
+
 from .models import Project, UserProjectProfile
 
 
@@ -16,6 +17,7 @@ class ProjectAdmin(admin.ModelAdmin):
 
     def get_member_count(self, obj):
         return obj.user_profiles.count()
+
     get_member_count.short_description = "Nombre de membres"
 
 

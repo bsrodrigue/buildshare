@@ -6,34 +6,63 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Project',
+            name="Project",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(db_index=True, default=django.utils.timezone.now)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('title', models.CharField(max_length=255, verbose_name='Titre')),
-                ('description', models.TextField(blank=True, verbose_name='Description')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(db_index=True, default=django.utils.timezone.now),
+                ),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("title", models.CharField(max_length=255, verbose_name="Titre")),
+                ("description", models.TextField(blank=True, verbose_name="Description")),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.CreateModel(
-            name='UserProjectProfile',
+            name="UserProjectProfile",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(db_index=True, default=django.utils.timezone.now)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('role', models.CharField(choices=[('ADMIN', 'Administrateur'), ('MEMBER', 'Membre')], default='MEMBER', max_length=20, verbose_name='Rôle')),
-                ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='user_profiles', to='projects.project')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(db_index=True, default=django.utils.timezone.now),
+                ),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "role",
+                    models.CharField(
+                        choices=[("ADMIN", "Administrateur"), ("MEMBER", "Membre")],
+                        default="MEMBER",
+                        max_length=20,
+                        verbose_name="Rôle",
+                    ),
+                ),
+                (
+                    "project",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="user_profiles",
+                        to="projects.project",
+                    ),
+                ),
             ],
         ),
     ]

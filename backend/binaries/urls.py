@@ -1,6 +1,13 @@
 from django.urls import path
 
-from .apis import ApplicationApi, ArtifactUploadApi, ProcessAPKApi, ReleaseApi, TaskJobApi, UploadIntentApi
+from .apis import (
+    ApplicationApi,
+    ArtifactUploadApi,
+    ProcessAPKApi,
+    ReleaseApi,
+    TaskJobApi,
+    UploadIntentApi,
+)
 
 urlpatterns = [
     path("applications/", ApplicationApi.as_view(), name="application-list-create"),

@@ -10,9 +10,7 @@ def project_create(*, title: str, description: str = "", user) -> Project:
     project.save()
 
     UserProjectProfile.objects.create(
-        user=user,
-        project=project,
-        role=UserProjectProfile.Role.ADMIN
+        user=user, project=project, role=UserProjectProfile.Role.ADMIN
     )
 
     return project

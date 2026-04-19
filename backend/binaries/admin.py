@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Application, Release, Artifact
+
+from .models import Application, Artifact, Release
 
 
 class ArtifactInline(admin.TabularInline):

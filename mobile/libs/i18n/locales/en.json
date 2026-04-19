@@ -69,7 +69,7 @@
       "submit_app": "Launch Deployment",
       "info_header": "Information",
       "async_info_title": "Asynchronous Processing",
-      "async_info_desc": "The server will automatically extract APK metadata (ID, Version)."
+      "apk_detected_info": "Detected Package: {{appId}} (Build {{versionCode}})"
     },
     "activity": {
       "title": "Recent Activity",

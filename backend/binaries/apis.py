@@ -20,7 +20,8 @@ from .serializers import (
     UploadIntentInputSerializer,
     UploadIntentOutputSerializer,
 )
-from .services import application_create, artifact_create, release_create
+from .services import _check_is_project_admin, application_create, artifact_create, release_create
+from .tasks import process_apk_task
 
 
 class ApplicationApi(APIView):
@@ -51,7 +52,6 @@ class ArtifactUploadApi(APIView):
         app = get_object_or_404(Application, id=serializer.validated_data.pop("application_id"))
 
         # Explicit Admin check at the boundary
-        from .services import _check_is_project_admin
         _check_is_project_admin(user=request.user, project=app.project)
 
         version_code = serializer.validated_data.pop("version_code")
@@ -64,14 +64,14 @@ class ArtifactUploadApi(APIView):
                 version_code=version_code,
                 version_id=serializer.validated_data.pop("version_id"),
                 release_notes=serializer.validated_data.pop("release_notes"),
-                user=request.user
+                user=request.user,
             )
 
         artifact = artifact_create(
             release=release,
             file=serializer.validated_data.pop("file"),
             architecture=serializer.validated_data.pop("architecture"),
-            user=request.user
+            user=request.user,
         )
 
         return Response(ArtifactOutputSerializer(artifact).data, status=status.HTTP_201_CREATED)
@@ -129,8 +129,6 @@ class ProcessAPKApi(APIView):
             type=TaskJobType.BINARY_PROCESSING,
         )
 
-        from .tasks import process_apk_task
-
         process_apk_task.delay(
             job_id=str(job.id),
             title=serializer.validated_data.get("title"),
@@ -144,7 +142,7 @@ class TaskJobApi(APIView):
     def get(self, request):
         project_id = request.query_params.get("project_id")
         jobs = TaskJob.objects.filter(user=request.user)
-        
+
         if project_id:
             # Filter jobs that were started for this project
             jobs = jobs.filter(input_data__project_id=int(project_id))
@@ -160,9 +158,7 @@ class ReleaseApi(APIView):
 
         # Validate that the user has access to the project containing this application
         application = get_object_or_404(
-            Application,
-            id=application_id,
-            project__user_profiles__user=request.user
+            Application, id=application_id, project__user_profiles__user=request.user
         )
 
         releases = (

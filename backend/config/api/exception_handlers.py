@@ -1,41 +1,43 @@
+from typing import Any
+
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError
 from rest_framework import exceptions, status
 from rest_framework.response import Response
+from rest_framework.serializers import as_serializer_error
 from rest_framework.views import exception_handler
 
-from core.errors import ErrorCode
-from core.exceptions import ApplicationError
-from core.api.constraint_registry import ConstraintRegistry, AUTH_MESSAGES
+from core.api.constraint_registry import AUTH_MESSAGES
 from core.api.exception_utils import (
-    format_field_errors,
     extract_error_code,
     extract_non_field_errors,
-    promote_error
+    format_field_errors,
+    promote_error,
 )
+from core.api.mapping import resolve_db_error
+from core.errors import ErrorCode
+from core.exceptions import ApplicationError
 
 
-def _handle_integrity_error(exc: IntegrityError) -> Response | None:
+def _handle_integrity_error(exc: IntegrityError) -> Response:
     """
     Handle database integrity errors by matching against Registered Constraints.
+    Always returns a standardized response to prevent 500s.
     """
-    exc_str = str(exc)
-    mappings = ConstraintRegistry.get_mappings()
+    mapping = resolve_db_error(exc)
 
-    for pattern, mapping in mappings.items():
-        if pattern in exc_str:
-            return Response(
-                {
-                    "code": ErrorCode.VALIDATION_ERROR,
-                    "message": "Certains champs sont invalides.",
-                    "fields": {
-                        mapping.field: [{"message": mapping.message, "code": mapping.code}]
-                    },
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+    if mapping:
+        return Response(
+            {
+                "code": ErrorCode.VALIDATION_ERROR,
+                "message": "Certains champs sont invalides.",
+                "fields": {mapping.field: [{"message": mapping.message, "code": mapping.code}]},
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
-    if "UNIQUE" in exc_str.upper():
+    # Fallback for unmapped unique constraints
+    if "UNIQUE" in str(exc).upper():
         return Response(
             {
                 "code": ErrorCode.UNIQUE_CONSTRAINT_VIOLATED,
@@ -45,7 +47,15 @@ def _handle_integrity_error(exc: IntegrityError) -> Response | None:
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    return None
+    # Final fallback for other IntegrityErrors (e.g. NOT NULL, ForeignKey)
+    return Response(
+        {
+            "code": ErrorCode.VALIDATION_ERROR,
+            "message": "Une erreur de base de données est survenue.",
+            "fields": {},
+        },
+        status=status.HTTP_400_BAD_REQUEST,
+    )
 
 
 def _handle_application_error(exc: ApplicationError) -> Response:
@@ -58,11 +68,11 @@ def _handle_application_error(exc: ApplicationError) -> Response:
             "message": exc.message,
             "fields": exc.extra.get("fields", {}),
         },
-        status=status.HTTP_400_BAD_REQUEST
+        status=status.HTTP_400_BAD_REQUEST,
     )
 
 
-def _apply_auth_translations(standardized_data: dict, code: str) -> None:
+def _apply_auth_translations(standardized_data: dict[str, Any], code: str) -> None:
     """
     Apply French translations for standard auth error codes.
     """
@@ -76,7 +86,7 @@ def _apply_auth_translations(standardized_data: dict, code: str) -> None:
         standardized_data["code"], standardized_data["message"] = AUTH_MESSAGES[msg]
 
 
-def custom_exception_handler(exc, context):
+def custom_exception_handler(exc: Exception, context: Any) -> Response | None:
     """
     Robust DRF exception handler with standardized error responses:
     {
@@ -87,8 +97,7 @@ def custom_exception_handler(exc, context):
     """
     # 1. Database Integrity Errors
     if isinstance(exc, IntegrityError):
-        if (response := _handle_integrity_error(exc)) is not None:
-            return response
+        return _handle_integrity_error(exc)
 
     # 2. Project-specific Application Errors
     if isinstance(exc, ApplicationError):
@@ -100,7 +109,6 @@ def custom_exception_handler(exc, context):
         # but normally one would convert it here if needed for non-view contexts.
         # For now, we rely on services calling full_clean() which might raise this.
         # If it's a Django ValidationError, we wrap it in a DRF one.
-        from rest_framework.serializers import as_serializer_error
         exc = exceptions.ValidationError(as_serializer_error(exc))
 
     # 4. Standard DRF Exception Handling

@@ -155,7 +155,7 @@ def _save_artifacts(
         }
 
 
-@shared_task(bind=True, name="binaries.tasks.process_apk_task")  # type: ignore[misc]
+@shared_task(bind=True, name="binaries.tasks.process_apk_task")  # type: ignore[untyped-decorator]
 def process_apk_task(
     _self: object, job_id: str, title: str | None = None, description: str | None = None
 ) -> None:

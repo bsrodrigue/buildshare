@@ -18,25 +18,25 @@ class TaskJobFlow:
     def __init__(self, task_job: TaskJob) -> None:
         self.task_job = task_job
 
-    @status.getter()  # type: ignore[misc]
+    @status.getter()  # type: ignore[untyped-decorator]
     def _get_status(self) -> str:
         return str(self.task_job.status)
 
-    @status.setter()  # type: ignore[misc]
+    @status.setter()  # type: ignore[untyped-decorator]
     def _set_status(self, value: str) -> None:
         self.task_job.status = value
 
-    @status.transition(source=TaskJobStatus.PENDING, target=TaskJobStatus.STARTED)  # type: ignore[misc]
+    @status.transition(source=TaskJobStatus.PENDING, target=TaskJobStatus.STARTED)  # type: ignore[untyped-decorator]
     def start(self) -> None:
         """Transition from PENDING to STARTED."""
         self.task_job.started_at = timezone.now()
 
-    @status.transition(source=TaskJobStatus.STARTED, target=TaskJobStatus.SUCCESS)  # type: ignore[misc]
+    @status.transition(source=TaskJobStatus.STARTED, target=TaskJobStatus.SUCCESS)  # type: ignore[untyped-decorator]
     def finish(self) -> None:
         """Transition from STARTED to SUCCESS."""
         self.task_job.finished_at = timezone.now()
 
-    @status.transition(  # type: ignore[misc]
+    @status.transition(  # type: ignore[untyped-decorator]
         source=[TaskJobStatus.PENDING, TaskJobStatus.STARTED], target=TaskJobStatus.FAILURE
     )
     def fail(self, error_message: str) -> None:
@@ -54,7 +54,7 @@ class TaskJobFlow:
             else clean_message
         )
 
-    @status.transition(  # type: ignore[misc]
+    @status.transition(  # type: ignore[untyped-decorator]
         source=[TaskJobStatus.PENDING, TaskJobStatus.STARTED],
         target=TaskJobStatus.CANCELLED,
     )
@@ -62,7 +62,7 @@ class TaskJobFlow:
         """Transition to CANCELLED from either PENDING or STARTED."""
         self.task_job.finished_at = timezone.now()
 
-    @status.on_success()  # type: ignore[misc]
+    @status.on_success()  # type: ignore[untyped-decorator]
     def _save_task_job(
         self, _descriptor: object, _source: object, _target: object, **_kwargs: object
     ) -> None:

@@ -3,6 +3,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from users.models import User
+
 from .selectors import project_list
 from .serializers import ProjectInputSerializer, ProjectOutputSerializer
 from .services import project_create
@@ -10,11 +12,13 @@ from .services import project_create
 
 class ProjectApi(APIView):
     def get(self, request: Request) -> Response:
+        assert isinstance(request.user, User)  # noqa: S101
         projects = project_list(user=request.user)
         serializer = ProjectOutputSerializer(projects, many=True, context={"request": request})
         return Response(serializer.data)
 
     def post(self, request: Request) -> Response:
+        assert isinstance(request.user, User)  # noqa: S101
         serializer = ProjectInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 

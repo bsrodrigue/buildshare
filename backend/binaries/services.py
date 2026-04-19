@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.core.files.base import File
 
 from core.errors import ErrorCode
@@ -55,7 +57,7 @@ def release_create(
 
 
 def artifact_create(
-    *, release: Release, file: File, architecture: str = "", hash: str = "", user: User
+    *, release: Release, file: File[Any], architecture: str = "", hash: str = "", user: User
 ) -> Artifact:
     _check_is_project_admin(user=user, project=release.application.project)
 

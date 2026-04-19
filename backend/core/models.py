@@ -3,6 +3,7 @@ import uuid
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from django_stubs_ext.db.models import TypedModelMeta
 
 from .constraints import (
     CHECK_TASK_JOB_ERROR_ON_FAILURE,
@@ -28,7 +29,7 @@ class BaseModel(models.Model):
     created_at = models.DateTimeField(db_index=True, default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
+    class Meta(TypedModelMeta):
         abstract = True
 
 
@@ -64,7 +65,7 @@ class TaskJob(BaseModel):
     finished_at = models.DateTimeField("Terminé le", null=True, blank=True)
     expires_at = models.DateTimeField("Expire le", null=True, blank=True)
 
-    class Meta:
+    class Meta(TypedModelMeta):
         verbose_name = "Tâche de traitement"
         verbose_name_plural = "Tâches de traitement"
         ordering = ["-created_at"]

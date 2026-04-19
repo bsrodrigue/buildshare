@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django_stubs_ext.db.models import TypedModelMeta
 
 from core.models import BaseModel
 
@@ -25,7 +26,7 @@ class UserProjectProfile(BaseModel):
     project = models.ForeignKey(Project, related_name="user_profiles", on_delete=models.CASCADE)
     role = models.CharField("Rôle", max_length=20, choices=Role.choices, default=Role.MEMBER)
 
-    class Meta:
+    class Meta(TypedModelMeta):
         constraints = [
             models.UniqueConstraint(
                 fields=["project"], condition=models.Q(role="ADMIN"), name=UNIQUE_PROJECT_ADMIN

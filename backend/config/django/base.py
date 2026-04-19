@@ -1,6 +1,10 @@
 from datetime import timedelta
 
-from config.env import BASE_DIR, env
+import django_stubs_ext
+
+django_stubs_ext.monkeypatch()
+
+from config.env import BASE_DIR, env  # noqa: E402
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env(

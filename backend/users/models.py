@@ -29,7 +29,7 @@ class User(AbstractUser, BaseModel):
     username = None  # type: ignore[assignment]
     email = models.EmailField("Adresse email", unique=True)
 
-    objects = UserManager()  # type: ignore[assignment]
+    objects = UserManager()  # type: ignore[assignment, misc]
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

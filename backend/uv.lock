@@ -38,6 +38,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "django-stubs" },
+    { name = "django-stubs-ext" },
     { name = "djangorestframework-stubs" },
     { name = "mypy" },
     { name = "pytest-django" },
@@ -65,6 +66,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "django-stubs", specifier = ">=5.1.0" },
+    { name = "django-stubs-ext", specifier = ">=6.0.2" },
     { name = "djangorestframework-stubs", specifier = ">=3.15.0" },
     { name = "mypy", specifier = ">=1.13.0" },
     { name = "pytest-django", specifier = ">=4.9.0" },

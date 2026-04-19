@@ -1,4 +1,5 @@
 from django.db import models
+from django_stubs_ext.db.models import TypedModelMeta
 
 from core.models import BaseModel
 from projects.models import Project
@@ -17,7 +18,7 @@ class Application(BaseModel):
     title = models.CharField("Titre", max_length=255)
     description = models.TextField("Description", blank=True)
 
-    class Meta:
+    class Meta(TypedModelMeta):
         constraints = [
             models.UniqueConstraint(fields=["project", "app_id"], name=UNIQUE_APP_PER_PROJECT)
         ]
@@ -32,7 +33,7 @@ class Release(BaseModel):
     version_id = models.CharField("Nom de version (ID)", max_length=50)
     release_notes = models.TextField("Notes de version", blank=True)
 
-    class Meta:
+    class Meta(TypedModelMeta):
         constraints = [
             models.UniqueConstraint(
                 fields=["application", "version_code"], name=UNIQUE_RELEASE_PER_APP
@@ -56,7 +57,7 @@ class Artifact(BaseModel):
     architecture = models.CharField("Architecture", max_length=50, blank=True)
     hash = models.CharField("Hash (SHA256)", max_length=64)
 
-    class Meta:
+    class Meta(TypedModelMeta):
         constraints = [
             models.UniqueConstraint(
                 fields=["release", "hash"], name=UNIQUE_ARTIFACT_HASH_PER_RELEASE

@@ -70,10 +70,12 @@
     "expo-system-ui": "~6.0.9",
     "expo-task-manager": "~14.0.9",
     "expo-web-browser": "~15.0.10",
+    "i18next": "^26.0.6",
     "ky": "^2.0.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-hook-form": "^7.68.0",
+    "react-i18next": "^17.0.4",
     "react-native": "0.81.5",
     "react-native-gesture-handler": "~2.28.0",
     "react-native-image-crop-picker": "^0.51.1",
@@ -92,7 +94,7 @@
     "react-native-skeleton-placeholder": {
       "@react-native-masked-view/masked-view": "$@react-native-masked-view/masked-view"
     },
-    "react-native-worklets": "0.6.0"
+    "react-native-worklets": "^0.6.0"
   },
   "devDependencies": {
     "@eslint/compat": "^2.0.5",

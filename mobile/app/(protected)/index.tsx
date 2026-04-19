@@ -65,13 +65,23 @@ export default function DashboardScreen() {
             Voici vos projets actuels.
           </Text>
         </View>
-        <IconButton 
-          icon="logout" 
-          iconColor={theme.colors.onSurfaceVariant} 
-          onPress={() => {
-            void logout();
-          }} 
-        />
+        <View style={styles.headerRight}>
+          <IconButton 
+            icon="history" 
+            iconColor={theme.colors.onSurfaceVariant} 
+            onPress={() => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              void router.push('/(protected)/activity' as any);
+            }} 
+          />
+          <IconButton 
+            icon="logout" 
+            iconColor={theme.colors.onSurfaceVariant} 
+            onPress={() => {
+              void logout();
+            }} 
+          />
+        </View>
       </View>
 
       <FlatList
@@ -119,6 +129,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
+  },
+  headerRight: {
+    flexDirection: 'row',
   },
   welcome: {
     fontWeight: 'bold',

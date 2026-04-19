@@ -1,5 +1,6 @@
 import { router,useLocalSearchParams } from 'expo-router';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { FlatList, RefreshControl,StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
@@ -22,6 +23,7 @@ export default function ActivityScreen() {
   const theme = useTheme();
   const customTheme = useCustomTheme();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   
   const { data: jobs, isLoading, isRefetching, refetch } = useTaskJobs(pid);
 
@@ -54,11 +56,11 @@ export default function ActivityScreen() {
     return (
       <Surface style={[styles.jobItem, customTheme.shadows.soft]}>
         <List.Item
-          title={`${item.type}`}
+          title={t(`jobs.types.${item.type}`, { defaultValue: item.type })}
           description={`${jobId.substring(0, 8)} • ${
             item.status === 'FAILURE' 
-              ? `Erreur: ${item.error_message}`
-              : `Créé le ${new Date(item.created_at).toLocaleString()}`
+              ? `${t('common.error')}: ${item.error_message}`
+              : `${new Date(item.created_at).toLocaleString()}`
           }`}
         titleStyle={[styles.jobTitle, { color: theme.colors.onSurface }]}
         descriptionStyle={styles.jobDescription}
@@ -79,7 +81,7 @@ export default function ActivityScreen() {
               style={[styles.statusChip, { backgroundColor: getStatusContainerColor(item.status) + '40' }]}
               textStyle={[styles.statusChipText, { color: getStatusColor(item.status) }]}
             >
-              {item.status_display}
+              {t(`jobs.status.${item.status}`, { defaultValue: item.status_display })}
             </Chip>
           </View>
         )}
@@ -130,7 +132,7 @@ export default function ActivityScreen() {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text variant="bodyLarge">Aucun job trouvé.</Text>
+            <Text variant="bodyLarge">Aucune activité.</Text>
           </View>
         }
       />

@@ -30,7 +30,7 @@ export default function ProjectDetailScreen() {
         descriptionStyle={[styles.appSubtitle, { color: theme.colors.onSurfaceVariant }]}
         onPress={() => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          void router.push(`/(protected)/apps/${item.id}` as any);
+          void router.push(`/(protected)/apps/${item.id}?projectId=${item.project}` as any);
         }}
         left={(props) => (
           <View style={[styles.avatarContainer, { backgroundColor: theme.colors.secondaryContainer }]}>
@@ -50,8 +50,8 @@ export default function ProjectDetailScreen() {
               icon="chevron-right"
               iconColor={theme.colors.onSurfaceVariant}
               onPress={() => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                void router.push(`/(protected)/apps/${item.id}` as any);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                void router.push(`/(protected)/apps/${item.id}?projectId=${item.project}` as any);
               }}
             />
           </View>
@@ -108,8 +108,8 @@ export default function ProjectDetailScreen() {
       />
 
       <FAB
-        icon="upload"
-        label="Nouvelle Release"
+        icon="plus"
+        label="Nouvelle Application"
         variant="primary"
         mode="elevated"
         style={[

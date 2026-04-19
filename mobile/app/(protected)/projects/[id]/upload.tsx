@@ -83,8 +83,8 @@ export default function UploadArtifactScreen() {
           name: selectedFile.name,
           type: selectedFile.mimeType || 'application/vnd.android.package-archive',
         },
-        title: data.title,
-        description: data.description,
+        title: data.title.trim() || undefined,
+        description: data.description.trim() || undefined,
       },
       {
         onSuccess: () => {

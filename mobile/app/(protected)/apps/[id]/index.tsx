@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { FlatList, Linking, RefreshControl, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Chip, IconButton, List, Surface, Text } from 'react-native-paper';
+import { ActivityIndicator, Chip, FAB, IconButton, List, Surface, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { env } from '@/libs/env';
@@ -10,8 +10,9 @@ import { Release, ReleaseArtifact } from '@/modules/binaries/api/schemas';
 import { useTheme } from '@/modules/shared/theme/ThemeProvider';
 
 export default function AppDetailScreen() {
-  const { id } = useLocalSearchParams();
+  const { id, projectId } = useLocalSearchParams();
   const applicationId = parseInt(id as string, 10);
+  const resolvedProjectId = projectId ? parseInt(projectId as string, 10) : undefined;
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   
@@ -143,6 +144,25 @@ export default function AppDetailScreen() {
           </View>
         }
       />
+
+      {resolvedProjectId && (
+        <FAB
+          icon="upload"
+          label="Nouvelle Release"
+          variant="primary"
+          mode="elevated"
+          style={[
+            styles.fab,
+            { bottom: insets.bottom + 16 },
+          ]}
+          onPress={() => {
+            void router.push({
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              pathname: `/(protected)/projects/${resolvedProjectId}/upload` as any,
+            });
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -267,5 +287,10 @@ const styles = StyleSheet.create({
     marginTop: 100,
     alignItems: 'center',
     opacity: 0.5,
+  },
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
   },
 });

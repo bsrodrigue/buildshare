@@ -8,10 +8,11 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "eslint app modules libs hooks --ext .ts,.tsx,.js,.jsx --max-warnings 0",
-    "lint:fix": "eslint app modules libs hooks --ext .ts,.tsx,.js,.jsx --fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
     "lint:expo": "expo lint --max-warnings 0",
     "typecheck": "tsc --noEmit --pretty false",
+    "validate": "npm run typecheck && npm run lint",
     "format": "prettier --write .",
     "test": "jest",
     "test:coverage": "jest --coverage",
@@ -83,6 +84,7 @@
     "react-native-screens": "~4.16.0",
     "react-native-skeleton-placeholder": "^5.2.4",
     "react-native-toast-message": "^2.3.3",
+    "react-native-worklets": "^0.6.0",
     "zod": "^4.1.13",
     "zustand": "^5.0.9"
   },
@@ -93,6 +95,8 @@
     "react-native-worklets": "0.6.0"
   },
   "devDependencies": {
+    "@eslint/compat": "^2.0.5",
+    "@eslint/js": "^10.0.1",
     "@react-native-community/cli": "latest",
     "@react-native/metro-config": "latest",
     "@testing-library/react-native": "^13.3.3",
@@ -100,6 +104,12 @@
     "@types/react": "~19.1.0",
     "babel-plugin-transform-remove-console": "^6.9.4",
     "baseline-browser-mapping": "^2.10.7",
+    "eslint": "^9.39.4",
+    "eslint-config-expo": "^55.0.0",
+    "eslint-plugin-deprecation": "^3.0.0",
+    "eslint-plugin-react-native": "^5.0.0",
+    "eslint-plugin-simple-import-sort": "^13.0.0",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "expo-atlas": "^0.4.3",
     "globals": "^17.5.0",
     "husky": "^9.1.7",
@@ -108,7 +118,8 @@
     "lint-staged": "^16.3.3",
     "prettier": "^3.8.1",
     "react-test-renderer": "^19.1.0",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.58.2"
   },
   "private": true
 }

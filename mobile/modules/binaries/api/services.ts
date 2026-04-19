@@ -78,4 +78,14 @@ export const binaryService = {
     });
     return response;
   },
+
+  /**
+   * Fetch all releases for a specific application
+   */
+  listReleases: async (applicationId: number): Promise<any[]> => {
+    const response = await http.get<any[]>('binaries/releases/', {
+      searchParams: { application_id: applicationId },
+    });
+    return response;
+  },
 };

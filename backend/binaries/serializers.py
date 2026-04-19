@@ -1,7 +1,8 @@
 from rest_framework import serializers
 
-from .models import Application, Artifact
 from core.models import TaskJob
+
+from .models import Application, Artifact, Release
 
 
 class ApplicationOutputSerializer(serializers.ModelSerializer):
@@ -20,11 +21,24 @@ class ApplicationInputSerializer(serializers.Serializer):
 
 
 class ArtifactOutputSerializer(serializers.ModelSerializer):
-    release = serializers.IntegerField(source="release.id")
-
     class Meta:
         model = Artifact
-        fields = ("id", "release", "file", "architecture", "hash", "created_at")
+        fields = ("id", "file", "architecture", "hash", "created_at")
+
+
+class ReleaseOutputSerializer(serializers.ModelSerializer):
+    artifacts = ArtifactOutputSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Release
+        fields = (
+            "id",
+            "version_code",
+            "version_id",
+            "release_notes",
+            "created_at",
+            "artifacts",
+        )
 
 
 class ArtifactInputSerializer(serializers.Serializer):
@@ -38,6 +52,7 @@ class ArtifactInputSerializer(serializers.Serializer):
 
 class UploadIntentInputSerializer(serializers.Serializer):
     project_id = serializers.IntegerField()
+    idempotency_key = serializers.CharField(max_length=255, required=False)
 
 
 class UploadIntentOutputSerializer(serializers.Serializer):

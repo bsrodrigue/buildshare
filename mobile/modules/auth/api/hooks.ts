@@ -2,10 +2,11 @@ import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import Toast from 'react-native-toast-message';
 
-import { authService } from '@/modules/auth/api/services';
-import { useAuthStore } from '@/modules/auth/store';
 import { SecureStorage } from '@/libs/secure-storage';
 import { SecureStorageKey } from '@/libs/secure-storage/keys';
+import { authService } from '@/modules/auth/api/services';
+import { useAuthStore } from '@/modules/auth/store';
+
 import { LoginParams, RegisterParams } from './schemas';
 
 /**

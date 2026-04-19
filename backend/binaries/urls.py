@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .apis import ApplicationApi, ArtifactUploadApi, ProcessAPKApi, TaskJobApi, UploadIntentApi
+from .apis import ApplicationApi, ArtifactUploadApi, ProcessAPKApi, ReleaseApi, TaskJobApi, UploadIntentApi
 
 urlpatterns = [
     path("applications/", ApplicationApi.as_view(), name="application-list-create"),
@@ -8,4 +8,5 @@ urlpatterns = [
     path("upload-intent/", UploadIntentApi.as_view(), name="upload-intent"),
     path("process-apk/", ProcessAPKApi.as_view(), name="process-apk"),
     path("jobs/", TaskJobApi.as_view(), name="task-job-list"),
+    path("releases/", ReleaseApi.as_view(), name="release-list"),
 ]

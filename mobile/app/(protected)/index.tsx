@@ -1,10 +1,12 @@
-import React from 'react';
-import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
-import { Text, Card, FAB, useTheme, ActivityIndicator, IconButton } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { useProjects } from '@/modules/projects/api/hooks';
+import React from 'react';
+import { FlatList, RefreshControl,StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Card, FAB, IconButton, Text } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { useAuthStore } from '@/modules/auth/store';
+import { useProjects } from '@/modules/projects/api/hooks';
+import { useTheme } from '@/modules/shared/theme/ThemeProvider';
 
 export default function DashboardScreen() {
   const theme = useTheme();
@@ -14,14 +16,28 @@ export default function DashboardScreen() {
 
   const renderProjectItem = ({ item }: { item: any }) => (
     <Card
-      style={styles.projectCard}
+      style={[styles.projectCard, theme.shadows.soft]}
       onPress={() => router.push(`/(protected)/projects/${item.id}` as any)}
+      mode="contained"
     >
       <Card.Title
         title={item.title}
         subtitle={item.description || 'Aucune description'}
-        left={(props) => <IconButton {...props} icon="folder" iconColor={theme.colors.primary} />}
-        right={(props) => <IconButton {...props} icon="chevron-right" />}
+        titleStyle={[styles.cardTitle, { color: theme.colors.onSurface }]}
+        subtitleStyle={styles.cardSubtitle}
+        left={(props) => (
+          <View style={[styles.iconContainer, { backgroundColor: theme.colors.secondaryContainer }]}>
+            <IconButton 
+              {...props} 
+              icon="folder" 
+              iconColor={theme.colors.onSecondaryContainer} 
+              size={24}
+              style={styles.iconButton}
+            />
+          </View>
+        )}
+        right={(props) => <IconButton {...props} icon="chevron-right" iconColor={theme.colors.onSurfaceVariant} />}
+        style={styles.cardInternal}
       />
     </Card>
   );
@@ -35,17 +51,17 @@ export default function DashboardScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.outline + '20' }]}>
         <View>
-          <Text variant="headlineMedium" style={styles.welcome}>
+          <Text variant="headlineMedium" style={[styles.welcome, { color: theme.colors.onSurface }]}>
             Salut, {user?.first_name} !
           </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
+          <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>
             Voici vos projets actuels.
           </Text>
         </View>
-        <IconButton icon="logout" onPress={logout} />
+        <IconButton icon="logout" iconColor={theme.colors.onSurfaceVariant} onPress={logout} />
       </View>
 
       <FlatList
@@ -67,9 +83,11 @@ export default function DashboardScreen() {
       <FAB
         icon="plus"
         label="Nouveau Projet"
+        variant="primary"
+        mode="elevated"
         style={[
           styles.fab,
-          { backgroundColor: theme.colors.primaryContainer, bottom: insets.bottom + 16 },
+          { bottom: insets.bottom + 16 },
         ]}
         onPress={() => router.push('/(protected)/projects/create' as any)}
       />
@@ -80,17 +98,14 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
   },
   header: {
     padding: 24,
-    paddingTop: 60,
+    paddingTop: 64,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   welcome: {
     fontWeight: 'bold',
@@ -103,9 +118,31 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   projectCard: {
-    marginBottom: 12,
-    elevation: 1,
-    backgroundColor: '#fff',
+    marginBottom: 16,
+    borderRadius: 28,
+    backgroundColor: '#ffffff',
+  },
+  cardInternal: {
+    paddingRight: 8,
+  },
+  cardTitle: {
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  cardSubtitle: {
+    opacity: 0.6,
+    fontSize: 13,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 0,
+  },
+  iconButton: {
+    margin: 0,
   },
   center: {
     flex: 1,

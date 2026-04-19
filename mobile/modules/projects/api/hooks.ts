@@ -1,6 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { projectService } from './services';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { ProjectCreateParams } from './schemas';
+import { projectService } from './services';
 
 /**
  * Hook to list all projects.

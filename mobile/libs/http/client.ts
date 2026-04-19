@@ -3,12 +3,12 @@ import ky, { HTTPError, Options } from 'ky';
 import { ErrorCode } from '@/libs/api/error-codes';
 import { ApiErrorSchema, BackendApiError } from '@/libs/api/types';
 
+import { JSONService } from '../json';
 import { Logger } from '../log';
 import { toast } from '../notification/toast';
 import { PlatformService } from '../platform';
 import { SecureStorage } from '../secure-storage';
 import { SecureStorageKey } from '../secure-storage/keys';
-import { JSONService } from '../json';
 
 const logger = new Logger('HTTPClient');
 

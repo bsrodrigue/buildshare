@@ -1,21 +1,26 @@
+import { router,useLocalSearchParams } from 'expo-router';
 import React from 'react';
-import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
+import { FlatList, RefreshControl,StyleSheet, View } from 'react-native';
 import {
-  Text,
-  useTheme,
   ActivityIndicator,
+  Chip,
   IconButton,
   List,
   Surface,
-  Chip,
+  Text,
+  useTheme,
 } from 'react-native-paper';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useTheme as useCustomTheme } from '@/modules/shared/theme/ThemeProvider';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { useTaskJobs } from '@/modules/binaries/api/hooks';
 
 export default function ActivityScreen() {
   const { projectId } = useLocalSearchParams();
   const pid = projectId ? parseInt(projectId as string, 10) : undefined;
   const theme = useTheme();
+  const customTheme = useCustomTheme();
+  const insets = useSafeAreaInsets();
   
   const { data: jobs, isLoading, isRefetching, refetch } = useTaskJobs(pid);
 
@@ -48,32 +53,39 @@ export default function ActivityScreen() {
   };
 
   const renderJobItem = ({ item }: { item: any }) => (
-    <Surface style={styles.jobItem} elevation={1}>
+    <Surface style={[styles.jobItem, customTheme.shadows.soft]}>
       <List.Item
-        title={`${item.type} (${item.id.substring(0, 8)})`}
+        title={`${item.type}`}
+        subtitle={`${item.id.substring(0, 8)}`}
         description={
           item.status === 'FAILURE' 
             ? `Erreur: ${item.error_message}`
             : `Créé le ${new Date(item.created_at).toLocaleString()}`
         }
+        titleStyle={[styles.jobTitle, { color: theme.colors.onSurface }]}
+        descriptionStyle={styles.jobDescription}
         left={(props) => (
-          <List.Icon
-            {...props}
-            icon={getStatusIcon(item.status)}
-            color={getStatusColor(item.status)}
-          />
+          <View style={[styles.iconContainer, { backgroundColor: getStatusContainerColor(item.status) }]}>
+            <List.Icon
+              {...props}
+              icon={getStatusIcon(item.status)}
+              color={getStatusColor(item.status)}
+              style={styles.listIcon}
+            />
+          </View>
         )}
         right={() => (
           <View style={styles.statusBadge}>
             <Chip 
               compact 
-              style={{ backgroundColor: getStatusContainerColor(item.status) }}
-              textStyle={{ color: getStatusColor(item.status), fontSize: 10, fontWeight: 'bold' }}
+              style={{ backgroundColor: getStatusContainerColor(item.status) + '40', borderRadius: 8 }}
+              textStyle={{ color: getStatusColor(item.status), fontSize: 10, fontWeight: '700' }}
             >
               {item.status_display}
             </Chip>
           </View>
         )}
+        style={styles.listItem}
       />
     </Surface>
   );
@@ -87,13 +99,13 @@ export default function ActivityScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <IconButton icon="arrow-left" onPress={() => router.back()} />
-        <Text variant="headlineSmall" style={styles.title}>
+    <View style={[styles.container, { backgroundColor: customTheme.colors.background }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: customTheme.colors.surface, borderBottomColor: customTheme.colors.outline + '20' }]}>
+        <IconButton icon="arrow-left" iconColor={customTheme.colors.onSurfaceVariant} onPress={() => router.back()} />
+        <Text variant="headlineSmall" style={[styles.title, { color: customTheme.colors.onSurface }]}>
           Activité Récente
         </Text>
-        <IconButton icon="refresh" onPress={() => refetch()} loading={isRefetching} />
+        <IconButton icon="refresh" iconColor={customTheme.colors.onSurfaceVariant} onPress={() => refetch()} loading={isRefetching} />
       </View>
 
       <FlatList
@@ -118,17 +130,13 @@ export default function ActivityScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
   },
   header: {
-    paddingTop: 60,
     paddingBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   title: {
     fontWeight: 'bold',
@@ -138,14 +146,36 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   jobItem: {
-    marginBottom: 12,
-    borderRadius: 12,
+    marginBottom: 16,
+    borderRadius: 28,
     backgroundColor: '#fff',
     overflow: 'hidden',
   },
+  listItem: {
+    paddingVertical: 8,
+  },
+  jobTitle: {
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  jobDescription: {
+    fontSize: 12,
+    opacity: 0.6,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  listIcon: {
+    margin: 0,
+  },
   statusBadge: {
     justifyContent: 'center',
-    paddingRight: 8,
+    paddingRight: 12,
   },
   center: {
     flex: 1,

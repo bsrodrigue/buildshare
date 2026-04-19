@@ -15,6 +15,7 @@ from .serializers import (
     ArtifactInputSerializer,
     ArtifactOutputSerializer,
     ProcessAPKInputSerializer,
+    ReleaseOutputSerializer,
     TaskJobOutputSerializer,
     UploadIntentInputSerializer,
     UploadIntentOutputSerializer,
@@ -82,13 +83,26 @@ class UploadIntentApi(APIView):
         serializer.is_valid(raise_exception=True)
 
         project_id = serializer.validated_data["project_id"]
+        idempotency_key = serializer.validated_data.get("idempotency_key")
+
         # Validate that the user has access to this project
         get_object_or_404(Project, id=project_id, user_profiles__user=request.user)
 
-        job = TaskJob.objects.create(
-            user=request.user,
-            type=TaskJobType.BINARY_PROCESSING,
-        )
+        # Idempotency check: reuse existing job if same key is provided
+        job = None
+        if idempotency_key:
+            job = TaskJob.objects.filter(
+                user=request.user,
+                type=TaskJobType.BINARY_PROCESSING,
+                idempotency_key=idempotency_key,
+            ).first()
+
+        if not job:
+            job = TaskJob.objects.create(
+                user=request.user,
+                type=TaskJobType.BINARY_PROCESSING,
+                idempotency_key=idempotency_key,
+            )
 
         storage_service = R2StorageService()
         key = f"uploads/{job.id}.apk"
@@ -136,3 +150,25 @@ class TaskJobApi(APIView):
             jobs = jobs.filter(input_data__project_id=int(project_id))
 
         return Response(TaskJobOutputSerializer(jobs, many=True).data)
+
+
+class ReleaseApi(APIView):
+    def get(self, request):
+        application_id = request.query_params.get("application_id")
+        if not application_id:
+            raise exceptions.ValidationError({"application_id": "Ce champ est obligatoire."})
+
+        # Validate that the user has access to the project containing this application
+        application = get_object_or_404(
+            Application,
+            id=application_id,
+            project__user_profiles__user=request.user
+        )
+
+        releases = (
+            Release.objects.filter(application=application)
+            .prefetch_related("artifacts")
+            .order_by("-version_code")
+        )
+
+        return Response(ReleaseOutputSerializer(releases, many=True).data)

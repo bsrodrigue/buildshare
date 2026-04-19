@@ -33,8 +33,10 @@ const borderRadius = {
   xs: 4,
   sm: 8,
   md: 12,
-  lg: 20,
-  xl: 30,
+  lg: 24,
+  xl: 28,
+  xxl: 32,
+  full: 9999,
 } as const;
 
 const fontSize = {
@@ -60,6 +62,37 @@ const fontFamily = {
   heading: 'System',
 };
 
+const shadows = {
+  none: {
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
+  soft: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  medium: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  strong: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+};
+
 export interface Theme {
   colors: ThemeColors;
   spacing: typeof spacing;
@@ -68,6 +101,7 @@ export interface Theme {
   fontSize: typeof fontSize;
   fontWeight: typeof fontWeight;
   fontFamily: typeof fontFamily;
+  shadows: typeof shadows;
   colorScheme: ColorScheme;
 }
 
@@ -82,6 +116,7 @@ export function buildTheme(colorScheme: ColorScheme): Theme {
     fontSize,
     fontWeight,
     fontFamily,
+    shadows,
     colorScheme,
   };
 }

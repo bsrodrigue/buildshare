@@ -59,6 +59,7 @@ export type ApplicationCreateParams = z.infer<typeof ApplicationCreateParamsSche
  */
 export const UploadIntentParamsSchema = z.object({
   project_id: z.number(),
+  idempotency_key: z.string().optional(),
 });
 
 export type UploadIntentParams = z.infer<typeof UploadIntentParamsSchema>;

@@ -1,12 +1,13 @@
-import React from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { Text, TextInput, Button, Card, useTheme } from 'react-native-paper';
-import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
+import React from 'react';
+import { Controller,useForm } from 'react-hook-form';
+import { KeyboardAvoidingView, Platform, ScrollView,StyleSheet, View } from 'react-native';
+import { Button, Card, Text, TextInput, useTheme } from 'react-native-paper';
+
+import { setFormErrors } from '@/libs/api/forms';
 import { useRegister } from '@/modules/auth/api/hooks';
 import { RegisterParams, RegisterParamsSchema } from '@/modules/auth/api/schemas';
-import { setFormErrors } from '@/libs/api/forms';
 
 export default function RegisterScreen() {
   const theme = useTheme();

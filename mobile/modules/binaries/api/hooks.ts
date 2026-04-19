@@ -1,7 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
-import { binaryService } from './services';
+
 import { ApplicationCreateParams } from './schemas';
+import { binaryService } from './services';
 
 /**
  * Hook to list all applications for a given project.
@@ -47,8 +48,14 @@ export const useAPKUploadPipeline = () => {
       title?: string;
       description?: string;
     }) => {
+      // Step 0: Generate a unique idempotency key for this attempt
+      const idempotencyKey = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+
       // Step 1: Request Intent (get signed URL and tracking job ID)
-      const intent = await binaryService.getUploadIntent({ project_id: projectId });
+      const intent = await binaryService.getUploadIntent({ 
+        project_id: projectId,
+        idempotency_key: idempotencyKey
+      });
 
       // Step 2: Direct Binary PUT to Cloudflare R2
       await binaryService.uploadToR2(intent.upload_url, file);
@@ -89,5 +96,16 @@ export const useTaskJobs = (projectId?: number) => {
       );
       return hasActiveJobs ? 5000 : false;
     },
+  });
+};
+
+/**
+ * Hook to fetch releases for an application.
+ */
+export const useReleases = (applicationId: number) => {
+  return useQuery({
+    queryKey: ['releases', applicationId],
+    queryFn: () => binaryService.listReleases(applicationId),
+    enabled: !!applicationId,
   });
 };

@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-import { ErrorCode } from './error-codes';
 
 /**
  * Field Error format

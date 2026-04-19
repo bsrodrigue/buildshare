@@ -1,9 +1,11 @@
+import { router,useLocalSearchParams } from 'expo-router';
 import React from 'react';
-import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
-import { Text, Card, FAB, useTheme, ActivityIndicator, IconButton, List } from 'react-native-paper';
+import { FlatList, RefreshControl,StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Avatar, FAB, IconButton, List, Surface, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, router } from 'expo-router';
+
 import { useApplications } from '@/modules/binaries/api/hooks';
+import { useTheme } from '@/modules/shared/theme/ThemeProvider';
 
 export default function ProjectDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -19,27 +21,37 @@ export default function ProjectDetailScreen() {
   } = useApplications(projectId);
 
   const renderAppItem = ({ item }: { item: any }) => (
-    <Card
-      style={styles.appCard}
-      onPress={() => router.push(`/(protected)/apps/${item.id}` as any)}
-    >
-      <Card.Title
+    <Surface style={[styles.appCard, { backgroundColor: theme.colors.background }]}>
+      <List.Item
         title={item.title}
-        subtitle={item.app_id}
-        left={(props) => <List.Icon {...props} icon="android" color={theme.colors.secondary} />}
-        right={(props) => (
-          <IconButton
-            {...props}
-            icon="cloud-upload"
-            onPress={() =>
-              router.push({
-                pathname: `/(protected)/projects/${projectId}/upload` as any,
-              })
-            }
-          />
+        description={item.app_id}
+        titleStyle={[styles.appTitle, { color: theme.colors.text }]}
+        descriptionStyle={[styles.appSubtitle, { color: theme.colors.onSurfaceVariant }]}
+        onPress={() => router.push(`/(protected)/apps/${item.id}` as any)}
+        left={(props) => (
+          <View style={[styles.avatarContainer, { backgroundColor: theme.colors.secondaryContainer }]}>
+            <Avatar.Icon 
+              {...props} 
+              icon="android" 
+              size={32}
+              style={styles.avatarIcon} 
+              color={theme.colors.onSecondaryContainer} 
+            />
+          </View>
         )}
+        right={(props) => (
+          <View style={styles.row}>
+            <IconButton
+              {...props}
+              icon="chevron-right"
+              iconColor={theme.colors.onSurfaceVariant}
+              onPress={() => router.push(`/(protected)/apps/${item.id}` as any)}
+            />
+          </View>
+        )}
+        style={styles.listItem}
       />
-    </Card>
+    </Surface>
   );
 
   if (isLoading) {
@@ -51,14 +63,15 @@ export default function ProjectDetailScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <IconButton icon="arrow-left" onPress={() => router.back()} />
-        <Text variant="headlineSmall" style={styles.title}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.outline + '20' }]}>
+        <IconButton icon="arrow-left" iconColor={theme.colors.onSurfaceVariant} onPress={() => router.back()} />
+        <Text variant="headlineSmall" style={[styles.title, { color: theme.colors.onSurface }]}>
           Applications
         </Text>
         <IconButton 
           icon="clock-outline" 
+          iconColor={theme.colors.onSurfaceVariant}
           onPress={() => router.push({
             pathname: '/(protected)/activity',
             params: { projectId }
@@ -85,9 +98,11 @@ export default function ProjectDetailScreen() {
       <FAB
         icon="cloud-upload"
         label="Propulser un APK"
+        variant="secondary"
+        mode="elevated"
         style={[
           styles.fab,
-          { backgroundColor: theme.colors.secondaryContainer, bottom: insets.bottom + 16 },
+          { bottom: insets.bottom + 16 },
         ]}
         onPress={() => router.push({
           pathname: `/(protected)/projects/${projectId}/upload` as any,
@@ -100,17 +115,14 @@ export default function ProjectDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
   },
   header: {
-    paddingTop: 60,
+    paddingTop: 64,
     paddingBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   title: {
     fontWeight: 'bold',
@@ -120,9 +132,39 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   appCard: {
-    marginBottom: 12,
-    elevation: 1,
-    backgroundColor: '#fff',
+    marginBottom: 16,
+    borderRadius: 28,
+    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+  },
+  listItem: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  appTitle: {
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  appSubtitle: {
+    fontSize: 13,
+    opacity: 0.6,
+  },
+  avatarContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+    marginLeft: 8,
+  },
+  avatarIcon: {
+    backgroundColor: 'transparent',
+    margin: 0,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   center: {
     flex: 1,

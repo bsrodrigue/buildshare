@@ -7,24 +7,27 @@ import { createLogger } from '../log';
 const logger = createLogger('APIService');
 
 export class APIService {
-  private static defaultClient: HTTPClient;
+  private static defaultClient: HTTPClient | null = null;
 
-  private static isInitialized: boolean = false;
-
+  /**
+   * Initialize (or re-initialize) the default HTTP client with a new base URL.
+   * Safe to call multiple times — each call replaces the current client.
+   */
   public static initializeDefaultClient(baseURL: string): void {
-    if (APIService.isInitialized) {
-      logger.debug('APIService has already been initialized. Skipping re-initialization.');
-      return;
-    }
-
     APIService.defaultClient = new HTTPClient(baseURL, {});
-
-    APIService.isInitialized = true;
     logger.debug(`APIService initialized with baseURL: ${baseURL}`);
   }
 
+  /**
+   * Replace the base URL of the HTTP client at runtime.
+   * Identical to initializeDefaultClient — provided for semantic clarity at call sites.
+   */
+  public static reinitialize(baseURL: string): void {
+    APIService.initializeDefaultClient(baseURL);
+  }
+
   public static getClient(): HTTPClient {
-    if (!APIService.isInitialized) {
+    if (!APIService.defaultClient) {
       throw new Error(
         'APIService not initialized. Call APIService.initializeDefaultClient() first.',
       );

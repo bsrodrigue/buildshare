@@ -65,7 +65,11 @@ export default function DashboardScreen() {
       <View
         style={[
           styles.header,
-          { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.outline + '20' },
+          {
+            backgroundColor: theme.colors.surface,
+            borderBottomColor: theme.colors.outline + '20',
+            paddingTop: insets.top + 16,
+          },
         ]}
       >
         <View>
@@ -102,7 +106,7 @@ export default function DashboardScreen() {
         data={projects}
         keyExtractor={(item: Project) => item.id.toString()}
         renderItem={renderProjectItem}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 96 }]}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
@@ -140,7 +144,6 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 24,
-    paddingTop: 64,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -157,7 +160,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    paddingBottom: 100,
   },
   projectCard: {
     marginBottom: 16,

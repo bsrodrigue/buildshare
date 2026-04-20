@@ -250,7 +250,7 @@ export default function ProjectDetailScreen() {
         numColumns={2}
         keyExtractor={(item: Application) => item.id.toString()}
         renderItem={renderAppItem}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 96 }]}
         columnWrapperStyle={styles.columnWrapper}
         refreshControl={
           <RefreshControl
@@ -365,7 +365,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 12,
-    paddingBottom: 100,
   },
   columnWrapper: {
     justifyContent: 'space-between',

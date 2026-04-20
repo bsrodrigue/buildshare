@@ -308,7 +308,7 @@ export default function AppDetailScreen() {
         data={releases}
         keyExtractor={(item: Release) => item.id.toString()}
         renderItem={renderReleaseItem}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 96 }]}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
@@ -372,7 +372,6 @@ const styles = StyleSheet.create({
   statusChipText: { fontWeight: '600', fontSize: 10 },
   listContent: {
     padding: 16,
-    paddingBottom: 100,
   },
   timelineItem: {
     flexDirection: 'row',

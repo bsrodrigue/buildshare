@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import {
   Chip,
   IconButton,
@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTaskJobs } from '@/modules/binaries/api/hooks';
 import { TaskJob } from '@/modules/binaries/api/schemas';
+import { JobDetailSheet } from '@/modules/shared/components/JobDetailSheet';
 import { useTheme as useCustomTheme } from '@/modules/shared/theme/ThemeProvider';
 
 export default function ActivityScreen() {
@@ -26,6 +27,7 @@ export default function ActivityScreen() {
   const { t } = useTranslation();
 
   const [statusFilter, setStatusFilter] = React.useState('ALL');
+  const [selectedJob, setSelectedJob] = React.useState<TaskJob | null>(null);
   const { data: jobs, isRefetching, refetch } = useTaskJobs(pid);
 
   const filteredJobs = React.useMemo(() => {
@@ -67,45 +69,54 @@ export default function ActivityScreen() {
     const title = item.app_title || t(`jobs.types.${item.type}`, { defaultValue: item.type });
 
     return (
-      <Surface style={[styles.jobItem, customTheme.shadows.soft]}>
-        <List.Item
-          title={title}
-          description={`${jobId.substring(0, 8)} • ${
-            item.status === 'FAILURE'
-              ? `${t('common.error')}: ${item.error_message}`
-              : `${new Date(item.created_at).toLocaleString()}`
-          }`}
-          titleStyle={[styles.jobTitle, { color: theme.colors.onSurface }]}
-          descriptionStyle={styles.jobDescription}
-          left={(props) => (
-            <View
-              style={[
-                styles.iconContainer,
-                { backgroundColor: getStatusColor(item.status) + '15' },
-              ]}
-            >
-              <List.Icon
-                {...props}
-                icon={getStatusIcon(item.status)}
-                color={getStatusColor(item.status)}
-                style={styles.listIcon}
-              />
-            </View>
-          )}
-          right={() => (
-            <View style={styles.statusBadge}>
-              <Chip
-                compact
-                style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) + '15' }]}
-                textStyle={[styles.statusChipText, { color: getStatusColor(item.status) }]}
+      <Pressable
+        onPress={() => setSelectedJob(item)}
+        android_ripple={{ color: theme.colors.primary + '18', borderless: false }}
+        style={styles.pressable}
+      >
+        <Surface style={[styles.jobItem, customTheme.shadows.soft]}>
+          <List.Item
+            title={title}
+            description={`${jobId.substring(0, 8)} • ${
+              item.status === 'FAILURE'
+                ? `${t('common.error')}: ${item.error_message}`
+                : `${new Date(item.created_at).toLocaleString()}`
+            }`}
+            titleStyle={[styles.jobTitle, { color: theme.colors.onSurface }]}
+            descriptionStyle={styles.jobDescription}
+            left={(props) => (
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: getStatusColor(item.status) + '15' },
+                ]}
               >
-                {t(`jobs.status.${item.status}`, { defaultValue: item.status_display })}
-              </Chip>
-            </View>
-          )}
-          style={styles.listItem}
-        />
-      </Surface>
+                <List.Icon
+                  {...props}
+                  icon={getStatusIcon(item.status)}
+                  color={getStatusColor(item.status)}
+                  style={styles.listIcon}
+                />
+              </View>
+            )}
+            right={() => (
+              <View style={styles.statusBadge}>
+                <Chip
+                  compact
+                  style={[
+                    styles.statusChip,
+                    { backgroundColor: getStatusColor(item.status) + '15' },
+                  ]}
+                  textStyle={[styles.statusChipText, { color: getStatusColor(item.status) }]}
+                >
+                  {t(`jobs.status.${item.status}`, { defaultValue: item.status_display })}
+                </Chip>
+              </View>
+            )}
+            style={styles.listItem}
+          />
+        </Surface>
+      </Pressable>
     );
   };
 
@@ -178,6 +189,8 @@ export default function ActivityScreen() {
           </View>
         }
       />
+
+      <JobDetailSheet job={selectedJob} onDismiss={() => setSelectedJob(null)} />
     </View>
   );
 }
@@ -207,8 +220,12 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
   },
-  jobItem: {
+  pressable: {
     marginBottom: 16,
+    borderRadius: 28,
+    overflow: 'hidden',
+  },
+  jobItem: {
     borderRadius: 28,
     backgroundColor: '#fff',
     overflow: 'hidden',

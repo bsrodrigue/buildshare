@@ -3,8 +3,7 @@ import { useEffect, useRef } from 'react';
 import { APIService } from '@/libs/api/client';
 import { ErrorCode } from '@/libs/api/error-codes';
 import { BackendApiError } from '@/libs/api/types';
-import { env } from '@/libs/env';
-import { JSONService } from '@/libs/json';
+import { AppConfig } from '@/libs/app-config';
 import { createLogger } from '@/libs/log';
 import { SecureStorage } from '@/libs/secure-storage';
 import { SecureStorageKey } from '@/libs/secure-storage/keys';
@@ -24,7 +23,8 @@ export default function useInitApp() {
     async function initApplication() {
       logger.debug('Initializing application');
 
-      APIService.initializeDefaultClient(env.API_URL);
+      const apiUrl = await AppConfig.getApiUrl();
+      APIService.initializeDefaultClient(apiUrl);
 
       const token = await SecureStorage.getItem(SecureStorageKey.BEARER_TOKEN);
 
@@ -38,7 +38,7 @@ export default function useInitApp() {
       try {
         const user = await authService.me();
         setUser(user);
-        logger.debug(`User authenticated: ${JSONService.stringify(user)}`);
+        logger.debug(`User authenticated: ${JSON.stringify(user)}`);
       } catch (error: unknown) {
         const isAuthError =
           error instanceof BackendApiError &&

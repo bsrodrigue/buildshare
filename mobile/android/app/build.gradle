@@ -158,32 +158,6 @@ android {
     // The standard aaptOptions was ineffective for res/raw/ fonts.
 }
 
-// 💎 DIAMOND QUALITY: THE SURGICAL STRIKE
-// We intercept the Expo resource bundling task and physically delete the heavy fonts 
-// from the staging area before they are packaged into the APK.
-tasks.configureEach { task ->
-    if (task.name.endsWith("BundleReleaseJsAndAssets")) {
-        task.doLast {
-            println("💎 Stripping unused vector fonts from staging area...")
-            def rawDir = file("${project.buildDir}/generated/res/createBundleReleaseJsAndAssets/raw")
-            if (rawDir.exists()) {
-                def fontsToStrip = [
-                    "antdesign", "entypo", "evilicons", "feather", "fontawesome", 
-                    "fontisto", "foundation", "materialcommunityicons", "materialicons", 
-                    "octicons", "simplelineicons", "zocial"
-                ]
-                rawDir.listFiles().each { file ->
-                    def filename = file.name.toLowerCase()
-                    if (filename.endsWith(".ttf") && fontsToStrip.any { filename.contains(it) }) {
-                        println("🗑️ Removed: ${file.name}")
-                        file.delete()
-                    }
-                }
-            }
-        }
-    }
-}
-
 configurations.all { config ->
     if (config.name.contains("Release")) {
         exclude group: 'com.google.mlkit', module: 'barcode-scanning'

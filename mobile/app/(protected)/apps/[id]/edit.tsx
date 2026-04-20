@@ -1,67 +1,100 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router } from 'expo-router';
-import React from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Card, Text, TextInput, useTheme } from 'react-native-paper';
+import { ActivityIndicator, Button, Card, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { setFormErrors } from '@/libs/api/forms';
 import { AppError } from '@/libs/api/types';
 import { toast } from '@/libs/notification/toast';
-import { useCreateProject } from '@/modules/projects/api/hooks';
-import { ProjectCreateParams, ProjectCreateParamsSchema } from '@/modules/projects/api/schemas';
+import { useApplication, useUpdateApplication } from '@/modules/binaries/api/hooks';
+import {
+  ApplicationUpdateParams,
+  ApplicationUpdateParamsSchema,
+} from '@/modules/binaries/api/schemas';
 
-export default function CreateProjectScreen() {
+export default function EditAppScreen() {
+  const { id } = useLocalSearchParams();
+  const applicationId = parseInt(id as string, 10);
   const theme = useTheme();
   const { t } = useTranslation();
-  const createProject = useCreateProject();
+
+  const { data: application, isLoading } = useApplication(applicationId);
+  const updateApplication = useUpdateApplication();
 
   const {
     control,
     handleSubmit,
     setError,
+    reset,
     formState: { errors },
-  } = useForm<ProjectCreateParams>({
-    resolver: zodResolver(ProjectCreateParamsSchema),
+  } = useForm<ApplicationUpdateParams>({
+    resolver: zodResolver(ApplicationUpdateParamsSchema),
     defaultValues: {
       title: '',
       description: '',
     },
   });
 
-  const onSubmit = (data: ProjectCreateParams) => {
-    createProject.mutate(data, {
-      onSuccess: () => {
-        toast.success(t('screens.create_project.success'));
-        router.back();
+  useEffect(() => {
+    if (application) {
+      reset({
+        title: application.title,
+        description: application.description || '',
+      });
+    }
+  }, [application, reset]);
+
+  const onSubmit = (data: ApplicationUpdateParams) => {
+    updateApplication.mutate(
+      { id: applicationId, params: data },
+      {
+        onSuccess: () => {
+          toast.success(t('screens.edit_application.success'));
+          router.back();
+        },
+        onError: (error: AppError) => {
+          const handled = setFormErrors(error, setError);
+          if (!handled) {
+            toast.error(t('common.error'), error.message || t('screens.edit_application.error'));
+          }
+        },
       },
-      onError: (error: AppError) => {
-        const handled = setFormErrors(error, setError);
-        if (!handled) {
-          toast.error(t('common.error'), error.message || t('screens.create_project.error'));
-        }
-      },
-    });
+    );
   };
 
+  if (isLoading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      contentContainerStyle={styles.content}
+    >
       <View style={styles.header}>
-        <Text variant="headlineSmall" style={styles.title}>
-          {t('screens.create_project.title')}
+        <Text variant="headlineSmall" style={[styles.title, { color: theme.colors.onSurface }]}>
+          {t('screens.edit_application.title')}
         </Text>
-        <Text variant="bodyMedium">{t('screens.create_project.subtitle')}</Text>
+        <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+          {t('screens.edit_application.subtitle')}
+        </Text>
       </View>
 
-      <Card style={styles.card}>
+      <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
         <Card.Content>
           <Controller
             control={control}
             name="title"
             render={({ field: { onChange, onBlur, value } }) => (
               <TextInput
-                label={t('screens.create_project.name_label')}
+                label={t('screens.upload.app_name_label')}
                 value={value}
                 onBlur={onBlur}
                 onChangeText={onChange}
@@ -82,7 +115,7 @@ export default function CreateProjectScreen() {
             name="description"
             render={({ field: { onChange, onBlur, value } }) => (
               <TextInput
-                label={t('screens.create_project.description_label')}
+                label={t('screens.upload.description_label')}
                 value={value}
                 onBlur={onBlur}
                 onChangeText={onChange}
@@ -99,11 +132,11 @@ export default function CreateProjectScreen() {
             onPress={() => {
               void handleSubmit(onSubmit)();
             }}
-            loading={createProject.isPending}
-            disabled={createProject.isPending}
+            loading={updateApplication.isPending}
+            disabled={updateApplication.isPending}
             style={styles.button}
           >
-            {t('screens.create_project.submit')}
+            {t('screens.edit_application.submit')}
           </Button>
 
           <Button mode="outlined" onPress={() => router.back()} style={styles.cancel}>
@@ -118,7 +151,6 @@ export default function CreateProjectScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
   },
   content: {
     padding: 20,
@@ -133,7 +165,6 @@ const styles = StyleSheet.create({
   card: {
     elevation: 2,
     borderRadius: 12,
-    backgroundColor: '#fff',
   },
   input: {
     marginBottom: 16,
@@ -144,5 +175,10 @@ const styles = StyleSheet.create({
   },
   cancel: {
     marginTop: 12,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

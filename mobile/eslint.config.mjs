@@ -78,7 +78,13 @@ export default tseslint.config(
   },
   {
     // Type-Aware Rules - Only for Source Files to avoid config file errors
-    files: ['app/**/*.{ts,tsx}', 'modules/**/*.{ts,tsx}', 'libs/**/*.{ts,tsx}', 'hooks/**/*.{ts,tsx}', 'constants/**/*.{ts,tsx}'],
+    files: [
+      'app/**/*.{ts,tsx}',
+      'modules/**/*.{ts,tsx}',
+      'libs/**/*.{ts,tsx}',
+      'hooks/**/*.{ts,tsx}',
+      'constants/**/*.{ts,tsx}',
+    ],
     plugins: {
       deprecation: fixupPluginRules({
         rules: deprecation.rules,

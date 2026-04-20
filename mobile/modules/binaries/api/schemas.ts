@@ -10,11 +10,14 @@ export const ApplicationSchema = z.object({
   app_id: z.string(),
   title: z.string(),
   description: z.string(),
-  latest_release: z.object({
-    id: z.number(),
-    version_id: z.string(),
-    created_at: z.string(),
-  }).optional().nullable(),
+  latest_release: z
+    .object({
+      id: z.number(),
+      version_id: z.string(),
+      created_at: z.string(),
+    })
+    .optional()
+    .nullable(),
   created_at: z.string(),
 });
 
@@ -29,13 +32,18 @@ export const ReleaseSchema = z.object({
   version_code: z.number(),
   version_id: z.string(),
   release_notes: z.string(),
-  artifacts: z.array(z.object({
-    id: z.number(),
-    architecture: z.string(),
-    file: z.string(),
-    hash: z.string(),
-    created_at: z.string(),
-  })).optional().nullable(),
+  artifacts: z
+    .array(
+      z.object({
+        id: z.number(),
+        architecture: z.string(),
+        file: z.string(),
+        hash: z.string(),
+        created_at: z.string(),
+      }),
+    )
+    .optional()
+    .nullable(),
   created_at: z.string(),
 });
 
@@ -74,6 +82,16 @@ export const ApplicationCreateParamsSchema = z.object({
 });
 
 export type ApplicationCreateParams = z.infer<typeof ApplicationCreateParamsSchema>;
+
+/**
+ * Application Update
+ */
+export const ApplicationUpdateParamsSchema = z.object({
+  title: z.string().min(1, "Titre de l'application requis"),
+  description: z.string().optional(),
+});
+
+export type ApplicationUpdateParams = z.infer<typeof ApplicationUpdateParamsSchema>;
 
 /**
  * Upload Intent Pipeline

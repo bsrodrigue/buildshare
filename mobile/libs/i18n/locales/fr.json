@@ -6,6 +6,7 @@
     "loading": "Chargement...",
     "cancel": "Annuler",
     "save": "Enregistrer",
+    "delete": "Supprimer",
     "close": "Fermer"
   },
   "auth": {
@@ -41,7 +42,11 @@
       "title": "Applications",
       "empty_title": "Aucune application.",
       "empty_subtitle": "Téléversez votre premier APK pour commencer.",
-      "fab_new_app": "Nouvelle Application"
+      "fab_new_app": "Nouvelle Application",
+      "delete_confirm_title": "Supprimer le projet",
+      "delete_confirm_message": "Voulez-vous vraiment supprimer ce projet ? Cette action est irréversible.",
+      "delete_success": "Projet supprimé avec succès",
+      "delete_error": "Échec de la suppression du projet"
     },
     "release_list": {
       "title": "Releases",
@@ -49,7 +54,11 @@
       "artifact_title": "Binary Artifacts",
       "stable_chip": "Stable",
       "build_info": "Build {{code}} • {{date}}",
-      "fab_new_release": "Nouvelle Release"
+      "fab_new_release": "Nouvelle Release",
+      "delete_confirm_title": "Supprimer l'application",
+      "delete_confirm_message": "Voulez-vous vraiment supprimer cette application et toutes ses releases ? Cette action est irréversible.",
+      "delete_success": "Application supprimée avec succès",
+      "delete_error": "Échec de la suppression de l'application"
     },
     "upload": {
       "title_new_release": "Nouvelle Release",
@@ -93,6 +102,20 @@
       "submit": "Créer le projet",
       "success": "Projet créé !",
       "error": "Impossible de créer le projet."
+    },
+    "edit_project": {
+      "title": "Modifier le projet",
+      "subtitle": "Mettez à jour les informations de votre projet.",
+      "submit": "Enregistrer les modifications",
+      "success": "Projet mis à jour !",
+      "error": "Échec de la mise à jour du projet."
+    },
+    "edit_application": {
+      "title": "Modifier l'application",
+      "subtitle": "Mettez à jour les informations de votre application.",
+      "submit": "Enregistrer les modifications",
+      "success": "Application mise à jour !",
+      "error": "Échec de la mise à jour de l'application."
     }
   },
   "components": {

@@ -6,6 +6,7 @@
     "loading": "Loading...",
     "cancel": "Cancel",
     "save": "Save",
+    "delete": "Delete",
     "close": "Close"
   },
   "auth": {
@@ -41,7 +42,11 @@
       "title": "Applications",
       "empty_title": "No applications.",
       "empty_subtitle": "Upload your first APK to get started.",
-      "fab_new_app": "New Application"
+      "fab_new_app": "New Application",
+      "delete_confirm_title": "Delete Project",
+      "delete_confirm_message": "Are you sure you want to delete this project? This action is irreversible.",
+      "delete_success": "Project deleted successfully",
+      "delete_error": "Failed to delete project"
     },
     "release_list": {
       "title": "Releases",
@@ -49,7 +54,11 @@
       "artifact_title": "Binary Artifacts",
       "stable_chip": "Stable",
       "build_info": "Build {{code}} • {{date}}",
-      "fab_new_release": "New Release"
+      "fab_new_release": "New Release",
+      "delete_confirm_title": "Delete Application",
+      "delete_confirm_message": "Are you sure you want to delete this application and all its releases? This action is irreversible.",
+      "delete_success": "Application deleted successfully",
+      "delete_error": "Failed to delete application"
     },
     "upload": {
       "title_new_release": "New Release",
@@ -89,6 +98,20 @@
       "submit": "Create Project",
       "success": "Project created!",
       "error": "Failed to create project."
+    },
+    "edit_project": {
+      "title": "Edit Project",
+      "subtitle": "Update your project information.",
+      "submit": "Save Changes",
+      "success": "Project updated!",
+      "error": "Failed to update project."
+    },
+    "edit_application": {
+      "title": "Edit Application",
+      "subtitle": "Update your application information.",
+      "submit": "Save Changes",
+      "success": "Application updated!",
+      "error": "Failed to update application."
     }
   },
   "components": {

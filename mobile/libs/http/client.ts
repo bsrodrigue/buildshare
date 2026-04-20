@@ -45,7 +45,7 @@ export class HTTPClient {
     // Fallback for unknown error formats
     const fallbackMessage =
       responseData && typeof responseData === 'object' && 'message' in responseData
-        ? (responseData as Record<string, unknown>).message as string
+        ? ((responseData as Record<string, unknown>).message as string)
         : `Request failed with status ${response.status}`;
 
     return new Error(fallbackMessage);
@@ -101,9 +101,10 @@ export class HTTPClient {
 
   private async handleResponseError(error: AppError) {
     if (error instanceof BackendApiError) {
-      const fieldsLog = error.fields && Object.keys(error.fields).length > 0 
-        ? ` | Fields: ${JSONService.stringify(error.fields)}` 
-        : '';
+      const fieldsLog =
+        error.fields && Object.keys(error.fields).length > 0
+          ? ` | Fields: ${JSONService.stringify(error.fields)}`
+          : '';
       logger.error(`Backend Error [${error.code}]: ${error.message}${fieldsLog}`);
 
       // 401: Unauthorized (Clear session and redirect)
@@ -177,6 +178,11 @@ export class HTTPClient {
         const error = await HTTPClient.parseResponseError(response);
         await this.handleResponseError(error);
         throw error;
+      }
+
+      if (response.status === 204 || response.status === 205) {
+        logger.debug(`SUCCESS (No Content) ${method.toUpperCase()} ${url}`);
+        return {} as T;
       }
 
       const responseData = await response.json<T>();

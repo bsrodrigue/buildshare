@@ -1,13 +1,13 @@
-import { FieldValues, Path,UseFormSetError } from 'react-hook-form';
+import { FieldValues, Path, UseFormSetError } from 'react-hook-form';
 
-import { AppError,BackendApiError } from '@/libs/api/types';
+import { AppError, BackendApiError } from '@/libs/api/types';
 
 /**
  * Maps structured backend field errors to react-hook-form's setError state.
  */
 export const setFormErrors = <T extends FieldValues>(
   error: AppError,
-  setError: UseFormSetError<T>
+  setError: UseFormSetError<T>,
 ): boolean => {
   if (error instanceof BackendApiError && error.fields) {
     Object.entries(error.fields).forEach(([field, issues]) => {

@@ -1,9 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import Toast from 'react-native-toast-message';
 
 import { AppError } from '@/libs/api/types';
+import { toast } from '@/libs/notification/toast';
 
-import { Application, ApplicationCreateParams, Release, TaskJob } from './schemas';
+import {
+  Application,
+  ApplicationCreateParams,
+  ApplicationUpdateParams,
+  Release,
+  TaskJob,
+} from './schemas';
 import { binaryService } from './services';
 
 /**
@@ -24,10 +30,55 @@ export const useCreateApplication = () => {
   const queryClient = useQueryClient();
 
   return useMutation<Application, AppError, ApplicationCreateParams>({
-    mutationFn: (params: ApplicationCreateParams) =>
-      binaryService.createApplication(params),
+    mutationFn: (params: ApplicationCreateParams) => binaryService.createApplication(params),
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: ['applications', variables.project_id] });
+    },
+  });
+};
+
+/**
+ * Hook to fetch a single application detail.
+ */
+export const useApplication = (applicationId: number) => {
+  return useQuery<Application, AppError>({
+    queryKey: ['application', applicationId],
+    queryFn: () => binaryService.getApplication(applicationId),
+    enabled: !!applicationId,
+  });
+};
+
+/**
+ * Hook to update an existing application.
+ */
+export const useUpdateApplication = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<Application, AppError, { id: number; params: ApplicationUpdateParams }>({
+    mutationFn: ({ id, params }) => binaryService.updateApplication(id, params),
+    onSuccess: (data) => {
+      // Invalidate the list and the single app cache
+      void queryClient.invalidateQueries({ queryKey: ['applications', data.project] });
+      void queryClient.invalidateQueries({ queryKey: ['application', data.id] });
+
+      toast.success('Application mise à jour !');
+    },
+  });
+};
+
+/**
+ * Hook to delete an application.
+ */
+export const useDeleteApplication = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, AppError, { id: number; projectId: number }>({
+    mutationFn: ({ id }) => binaryService.deleteApplication(id),
+    onSuccess: (_, variables) => {
+      // Invalidate the applications list for the project
+      void queryClient.invalidateQueries({ queryKey: ['applications', variables.projectId] });
+
+      toast.success('Application supprimée !');
     },
   });
 };
@@ -38,27 +89,25 @@ export const useCreateApplication = () => {
 export const useAPKUploadPipeline = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<{ message: string }, AppError, {
-    projectId: number;
-    file: unknown;
-    title?: string;
-    description?: string;
-    onProgress?: (progress: number) => void;
-  }>({
-    mutationFn: async ({
-      projectId,
-      file,
-      title,
-      description,
-      onProgress,
-    }) => {
+  return useMutation<
+    { message: string },
+    AppError,
+    {
+      projectId: number;
+      file: unknown;
+      title?: string;
+      description?: string;
+      onProgress?: (progress: number) => void;
+    }
+  >({
+    mutationFn: async ({ projectId, file, title, description, onProgress }) => {
       // Step 0: Generate a unique idempotency key for this attempt
       const idempotencyKey = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
 
       // Step 1: Request Intent (get signed URL and tracking job ID)
-      const intent = await binaryService.getUploadIntent({ 
+      const intent = await binaryService.getUploadIntent({
         project_id: projectId,
-        idempotency_key: idempotencyKey
+        idempotency_key: idempotencyKey,
       });
 
       // Step 2: Direct Binary PUT to Cloudflare R2
@@ -75,12 +124,8 @@ export const useAPKUploadPipeline = () => {
       // Invalidate relevant queries to refresh the UI
       void queryClient.invalidateQueries({ queryKey: ['applications', variables.projectId] });
       void queryClient.invalidateQueries({ queryKey: ['artifacts'] });
-      
-      Toast.show({
-        type: 'success',
-        text1: 'Upload réussi !',
-        text2: 'L\'APK est en cours de traitement par le serveur.',
-      });
+
+      toast.success('Upload réussi !', "L'APK est en cours de traitement par le serveur.");
     },
   });
 };
@@ -96,7 +141,7 @@ export const useTaskJobs = (projectId?: number) => {
     refetchInterval: (query) => {
       // Auto-refresh every 5s if any job is still PENDING or STARTED
       const hasActiveJobs = query.state.data?.some(
-        (job) => job.status === 'PENDING' || job.status === 'STARTED'
+        (job) => job.status === 'PENDING' || job.status === 'STARTED',
       );
       return hasActiveJobs ? 5000 : false;
     },

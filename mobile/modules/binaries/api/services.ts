@@ -5,6 +5,7 @@ import {
   Application,
   ApplicationCreateParams,
   ApplicationSchema,
+  ApplicationUpdateParams,
   ProcessAPKParams,
   Release,
   TaskJob,
@@ -44,16 +45,16 @@ export const binaryService = {
    * Uses XMLHttpRequest to allow progress tracking.
    */
   uploadToR2: async (
-    url: string, 
-    file: unknown, 
-    onProgress?: (progress: number) => void
+    url: string,
+    file: unknown,
+    onProgress?: (progress: number) => void,
   ): Promise<void> => {
     return new Promise((resolve, reject) => {
       const fileAsset = file as { uri: string; type?: string; name?: string };
       const contentType = fileAsset.type || 'application/vnd.android.package-archive';
 
       const xhr = new XMLHttpRequest();
-      
+
       xhr.open('PUT', url);
       xhr.setRequestHeader('Content-Type', contentType);
 
@@ -108,5 +109,28 @@ export const binaryService = {
       searchParams: { application_id: applicationId },
     });
     return response;
+  },
+
+  /**
+   * Get a single application detail
+   */
+  getApplication: async (id: number): Promise<Application> => {
+    const response = await http.get<Application>(`binaries/applications/${id}/`);
+    return validateModel(ApplicationSchema, response, 'Application Get');
+  },
+
+  /**
+   * Update an application
+   */
+  updateApplication: async (id: number, params: ApplicationUpdateParams): Promise<Application> => {
+    const response = await http.put<Application>(`binaries/applications/${id}/`, params);
+    return validateModel(ApplicationSchema, response, 'Application Update');
+  },
+
+  /**
+   * Delete an application
+   */
+  deleteApplication: async (id: number): Promise<void> => {
+    await http.delete(`binaries/applications/${id}/`);
   },
 };

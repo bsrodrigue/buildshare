@@ -1,12 +1,24 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Avatar, FAB, IconButton, List, Surface, Text } from 'react-native-paper';
+import { Alert, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Avatar,
+  Chip,
+  FAB,
+  IconButton,
+  List,
+  Menu,
+  Surface,
+  Text,
+} from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { toast } from '@/libs/notification/toast';
 import { useApplications } from '@/modules/binaries/api/hooks';
 import { Application } from '@/modules/binaries/api/schemas';
+import { useDeleteProject, useProject } from '@/modules/projects/api/hooks';
 import { useTheme } from '@/modules/shared/theme/ThemeProvider';
 
 export default function ProjectDetailScreen() {
@@ -15,13 +27,47 @@ export default function ProjectDetailScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  
-  const { 
-    data: applications, 
-    isLoading, 
-    isRefetching, 
-    refetch 
+
+  const {
+    data: applications,
+    isLoading: isAppsLoading,
+    isRefetching,
+    refetch,
   } = useApplications(projectId);
+
+  const { data: project, isLoading: isProjectLoading } = useProject(projectId);
+
+  const deleteProject = useDeleteProject();
+  const [menuVisible, setMenuVisible] = React.useState(false);
+
+  const openMenu = () => setMenuVisible(true);
+  const closeMenu = () => setMenuVisible(false);
+
+  const handleDelete = () => {
+    closeMenu();
+    Alert.alert(
+      t('screens.project_detail.delete_confirm_title'),
+      t('screens.project_detail.delete_confirm_message'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: () => {
+            deleteProject.mutate(projectId, {
+              onSuccess: () => {
+                toast.success(t('screens.project_detail.delete_success'));
+                router.replace('/(protected)');
+              },
+              onError: (error) => {
+                toast.error(t('screens.project_detail.delete_error'), error.message);
+              },
+            });
+          },
+        },
+      ],
+    );
+  };
 
   const renderAppItem = ({ item }: { item: Application }) => (
     <Surface style={[styles.appCard, { backgroundColor: theme.colors.background }]}>
@@ -35,12 +81,14 @@ export default function ProjectDetailScreen() {
           void router.push(`/(protected)/apps/${item.id}?projectId=${item.project}` as any);
         }}
         left={(props) => (
-          <View style={[styles.avatarContainer, { backgroundColor: theme.colors.secondaryContainer }]}>
-            <Avatar.Icon 
-              {...props} 
-              icon="android" 
-              size={40} 
-              color={theme.colors.onSecondaryContainer} 
+          <View
+            style={[styles.avatarContainer, { backgroundColor: theme.colors.secondaryContainer }]}
+          >
+            <Avatar.Icon
+              {...props}
+              icon="android"
+              size={40}
+              color={theme.colors.onSecondaryContainer}
               style={styles.avatar}
             />
           </View>
@@ -62,7 +110,7 @@ export default function ProjectDetailScreen() {
     </Surface>
   );
 
-  if (isLoading) {
+  if (isAppsLoading || isProjectLoading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" />
@@ -72,26 +120,123 @@ export default function ProjectDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.outline + '20' }]}>
-        <IconButton 
-          icon="arrow-left" 
-          iconColor={theme.colors.onSurfaceVariant} 
-          onPress={() => {
-            void router.back();
-          }} 
-        />
-        <Text variant="headlineSmall" style={[styles.title, { color: theme.colors.onSurface }]}>
-          {t('screens.project_detail.title')}
-        </Text>
-        <IconButton 
-          icon="refresh" 
-          iconColor={theme.colors.onSurfaceVariant} 
-          onPress={() => {
-            void refetch();
-          }} 
-          loading={isRefetching} 
-        />
-      </View>
+      <Surface
+        style={[
+          styles.unifiedHeader,
+          { backgroundColor: theme.colors.surface },
+          theme.shadows.soft,
+        ]}
+        elevation={0}
+      >
+        <View
+          style={[
+            styles.header,
+            {
+              paddingTop: insets.top + 16,
+            },
+          ]}
+        >
+          <View style={styles.headerLeft}>
+            <IconButton
+              icon="arrow-left"
+              iconColor={theme.colors.onSurfaceVariant}
+              onPress={() => {
+                void router.back();
+              }}
+            />
+          </View>
+
+          <View style={styles.headerActions}>
+            <IconButton
+              icon="refresh"
+              iconColor={theme.colors.onSurfaceVariant}
+              onPress={() => {
+                void refetch();
+              }}
+              loading={isRefetching}
+            />
+            <Menu
+              visible={menuVisible}
+              onDismiss={closeMenu}
+              anchor={
+                <IconButton
+                  icon="dots-vertical"
+                  iconColor={theme.colors.onSurfaceVariant}
+                  onPress={openMenu}
+                />
+              }
+            >
+              <Menu.Item
+                onPress={() => {
+                  closeMenu();
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  void router.push(`/(protected)/projects/${projectId}/edit` as any);
+                }}
+                title={t('screens.edit_project.title')}
+                leadingIcon="pencil"
+              />
+              <Menu.Item
+                onPress={handleDelete}
+                title={t('common.delete')}
+                leadingIcon="delete"
+                titleStyle={{ color: theme.colors.error }}
+              />
+            </Menu>
+          </View>
+        </View>
+
+        <View style={styles.heroContent}>
+          <View style={styles.heroHeader}>
+            <View
+              style={[
+                styles.projectIconContainer,
+                { backgroundColor: theme.colors.primaryContainer },
+              ]}
+            >
+              <Avatar.Icon
+                icon="folder-zip"
+                size={48}
+                style={styles.heroAvatar}
+                color={theme.colors.onPrimaryContainer}
+              />
+            </View>
+            <View style={styles.heroTextContent}>
+              <Text
+                variant="headlineSmall"
+                style={[styles.title, { color: theme.colors.onSurface }]}
+              >
+                {project?.title || t('screens.project_detail.title')}
+              </Text>
+              <View style={styles.statsRow}>
+                <Chip
+                  icon="layers-outline"
+                  compact
+                  style={styles.statChip}
+                  textStyle={styles.statChipText}
+                >
+                  {applications?.length || 0} {t('screens.project_detail.title')}
+                </Chip>
+              </View>
+            </View>
+          </View>
+
+          {project?.description ? (
+            <Text
+              variant="bodyMedium"
+              style={[styles.description, { color: theme.colors.onSurfaceVariant }]}
+            >
+              {project.description}
+            </Text>
+          ) : (
+            <Text
+              variant="bodySmall"
+              style={[styles.noDescription, { color: theme.colors.onSurfaceVariant }]}
+            >
+              {t('screens.dashboard.no_description')}
+            </Text>
+          )}
+        </View>
+      </Surface>
 
       <FlatList
         data={applications}
@@ -99,7 +244,12 @@ export default function ProjectDetailScreen() {
         renderItem={renderAppItem}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch(); }} />
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={() => {
+              void refetch();
+            }}
+          />
         }
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -114,10 +264,7 @@ export default function ProjectDetailScreen() {
         label={t('screens.project_detail.fab_new_app')}
         variant="primary"
         mode="elevated"
-        style={[
-          styles.fab,
-          { bottom: insets.bottom + 16 },
-        ]}
+        style={[styles.fab, { bottom: insets.bottom + 16 }]}
         onPress={() => {
           void router.push({
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -134,14 +281,78 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingBottom: 16,
+    paddingBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   title: {
     fontWeight: 'bold',
+    flexShrink: 1,
+  },
+  unifiedHeader: {
+    paddingBottom: 24,
+    marginBottom: 8,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  heroSection: {
+    paddingBottom: 24,
+    marginBottom: 8,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  heroContent: {
+    paddingHorizontal: 20,
+  },
+  heroHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  projectIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  heroAvatar: {
+    backgroundColor: 'transparent',
+  },
+  heroTextContent: {
+    flex: 1,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    marginTop: 4,
+  },
+  statChip: {
+    borderRadius: 8,
+    paddingHorizontal: 4,
+  },
+  statChipText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    lineHeight: 14,
+  },
+  description: {
+    lineHeight: 20,
+    opacity: 0.8,
+  },
+  noDescription: {
+    fontStyle: 'italic',
+    opacity: 0.5,
   },
   listContent: {
     padding: 16,

@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { z } from 'zod';
 
 import { Logger } from '../log';
-import { Toaster } from '../notification/toast';
+import { toast } from '../notification/toast';
 
 const logger = new Logger('RouterUtils');
 
@@ -24,7 +24,7 @@ export function useValidatedParams<T extends z.ZodTypeAny>(schema: T, fallbackRo
   useEffect(() => {
     if (!result.success) {
       logger.error('Invalid route parameters', result.error.format());
-      Toaster.error('Paramètres invalides', 'Redirection en cours...');
+      toast.error('Paramètres invalides', 'Redirection en cours...');
       router.replace(fallbackRoute as Href);
     }
   }, [result.success, result.error, router, fallbackRoute]);

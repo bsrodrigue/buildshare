@@ -11,6 +11,7 @@ import Toast from 'react-native-toast-message';
 import useInitApp from '@/hooks/init';
 import { useAppFonts } from '@/hooks/useAppFonts';
 import { createLogger } from '@/libs/log';
+import { toastConfig } from '@/libs/notification/toast/ToastConfig';
 import { ThemeProvider, useTheme } from '@/modules/shared/theme/ThemeProvider';
 
 const logger = createLogger('RootLayout');
@@ -54,7 +55,7 @@ function RootLayoutContent() {
           </Stack>
         </KeyboardProvider>
 
-        <Toast />
+        <Toast config={toastConfig} />
       </PaperProvider>
     </SafeAreaProvider>
   );

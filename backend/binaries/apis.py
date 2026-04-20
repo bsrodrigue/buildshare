@@ -10,7 +10,7 @@ from projects.models import Project
 from users.models import User
 
 from .models import Application, Release
-from .selectors import application_list
+from .selectors import application_get, application_list
 from .serializers import (
     ApplicationInputSerializer,
     ApplicationOutputSerializer,
@@ -22,7 +22,14 @@ from .serializers import (
     UploadIntentInputSerializer,
     UploadIntentOutputSerializer,
 )
-from .services import _check_is_project_admin, application_create, artifact_create, release_create
+from .services import (
+    _check_is_project_admin,
+    application_create,
+    application_delete,
+    application_update,
+    artifact_create,
+    release_create,
+)
 from .tasks import process_apk_task
 
 
@@ -46,6 +53,39 @@ class ApplicationApi(APIView):
         app = application_create(project=project, user=request.user, **serializer.validated_data)
 
         return Response(ApplicationOutputSerializer(app).data, status=status.HTTP_201_CREATED)
+
+
+class ApplicationDetailApi(APIView):
+    def get(self, request: Request, application_id: int) -> Response:
+        assert isinstance(request.user, User)  # noqa: S101
+        app = application_get(user=request.user, application_id=application_id)
+        return Response(ApplicationOutputSerializer(app).data)
+
+    def put(self, request: Request, application_id: int) -> Response:
+        assert isinstance(request.user, User)  # noqa: S101
+        app = application_get(user=request.user, application_id=application_id)
+
+        # We reuse ApplicationInputSerializer but we don't need project_id/app_id from user input
+        # since they are already known and shouldn't be changed.
+        serializer = ApplicationInputSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        app = application_update(
+            application=app,
+            user=request.user,
+            title=serializer.validated_data.get("title", app.title),
+            description=serializer.validated_data.get("description", app.description),
+        )
+
+        return Response(ApplicationOutputSerializer(app).data)
+
+    def delete(self, request: Request, application_id: int) -> Response:
+        assert isinstance(request.user, User)  # noqa: S101
+        app = application_get(user=request.user, application_id=application_id)
+
+        application_delete(application=app, user=request.user)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ArtifactUploadApi(APIView):

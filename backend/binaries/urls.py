@@ -2,6 +2,7 @@ from django.urls import path
 
 from .apis import (
     ApplicationApi,
+    ApplicationDetailApi,
     ArtifactUploadApi,
     ProcessAPKApi,
     ReleaseApi,
@@ -11,6 +12,11 @@ from .apis import (
 
 urlpatterns = [
     path("applications/", ApplicationApi.as_view(), name="application-list-create"),
+    path(
+        "applications/<int:application_id>/",
+        ApplicationDetailApi.as_view(),
+        name="application-detail",
+    ),
     path("artifacts/upload/", ArtifactUploadApi.as_view(), name="artifact-upload"),
     path("upload-intent/", UploadIntentApi.as_view(), name="upload-intent"),
     path("process-apk/", ProcessAPKApi.as_view(), name="process-apk"),

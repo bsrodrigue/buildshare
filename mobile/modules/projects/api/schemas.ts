@@ -24,6 +24,12 @@ export const ProjectCreateParamsSchema = z.object({
 export type ProjectCreateParams = z.infer<typeof ProjectCreateParamsSchema>;
 
 /**
+ * Project Update
+ */
+export const ProjectUpdateParamsSchema = ProjectCreateParamsSchema;
+export type ProjectUpdateParams = ProjectCreateParams;
+
+/**
  * Project List Response (Paginated)
  */
 export const ProjectListResponseSchema = z.array(ProjectSchema);

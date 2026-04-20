@@ -132,10 +132,12 @@ export async function myAction(params: MyParams): Promise<MyResponse> {
 ### Project Specific Rules
 
 ### Quality & Type Safety
+
 1. **The "Diamond Resistant" Mandate**: Never use `any` or `unknown` in data flows. Every API response must be validated via Zod.
 2. **Schema Synchronization**: Always ensure that Zod schemas (mobile) exactly match Backend Serializers (Django). Never assume field names or structures. Don't make the user angry and avoid stupid bugs.
 3. **Routing Integrity**: In Expo Router, always ensure `Stack.Screen` names match the actual file paths (including `/index` for folders).
 4. **No Hardcoded Text**: **STRICT FORBIDDEN**. All user-facing strings, including labels, placeholders, titles, and notifications, MUST be externalized into the i18n translation system (`@/libs/i18n`). Use the `t()` function from `react-i18next`.
+5. **TanStack Query Invalidation**: After any mutation (create, update, delete), always invalidate relevant queries using `queryClient.invalidateQueries`. This ensures data consistency across the application without requiring manual refreshes.
 
 ### 8.1 Automated Import Sorting
 

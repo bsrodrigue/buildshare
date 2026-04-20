@@ -1,13 +1,23 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, Linking, RefreshControl, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Chip, FAB, IconButton, List, Surface, Text } from 'react-native-paper';
+import { Alert, FlatList, Linking, RefreshControl, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Chip,
+  FAB,
+  IconButton,
+  List,
+  Menu,
+  Surface,
+  Text,
+} from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { env } from '@/libs/env';
+import { toast } from '@/libs/notification/toast';
 import { formatTimelineDate } from '@/libs/utils/date';
-import { useReleases } from '@/modules/binaries/api/hooks';
+import { useApplication, useDeleteApplication, useReleases } from '@/modules/binaries/api/hooks';
 import { Release, ReleaseArtifact } from '@/modules/binaries/api/schemas';
 import { useTheme } from '@/modules/shared/theme/ThemeProvider';
 
@@ -19,7 +29,52 @@ export default function AppDetailScreen() {
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
 
-  const { data: releases, isLoading, isRefetching, refetch } = useReleases(applicationId);
+  const {
+    data: releases,
+    isLoading: isReleasesLoading,
+    isRefetching,
+    refetch,
+  } = useReleases(applicationId);
+  const { data: application, isLoading: isAppLoading } = useApplication(applicationId);
+
+  const deleteApplication = useDeleteApplication();
+  const [menuVisible, setMenuVisible] = React.useState(false);
+
+  const openMenu = () => setMenuVisible(true);
+  const closeMenu = () => setMenuVisible(false);
+
+  const handleDelete = () => {
+    closeMenu();
+    Alert.alert(
+      t('screens.release_list.delete_confirm_title'),
+      t('screens.release_list.delete_confirm_message'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: () => {
+            if (!resolvedProjectId) return;
+            deleteApplication.mutate(
+              { id: applicationId, projectId: resolvedProjectId },
+              {
+                onSuccess: () => {
+                  toast.success(t('screens.release_list.delete_success'));
+                  router.replace({
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    pathname: `/(protected)/projects/${resolvedProjectId}` as any,
+                  });
+                },
+                onError: (error) => {
+                  toast.error(t('screens.release_list.delete_error'), error.message);
+                },
+              },
+            );
+          },
+        },
+      ],
+    );
+  };
 
   const handleDownload = (artifact: ReleaseArtifact) => {
     if (artifact.file) {
@@ -177,7 +232,7 @@ export default function AppDetailScreen() {
     );
   };
 
-  if (isLoading) {
+  if (isReleasesLoading || isAppLoading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" />
@@ -197,24 +252,56 @@ export default function AppDetailScreen() {
           },
         ]}
       >
-        <IconButton
-          icon="arrow-left"
-          iconColor={theme.colors.onSurfaceVariant}
-          onPress={() => {
-            void router.back();
-          }}
-        />
-        <Text variant="titleLarge" style={[styles.title, { color: theme.colors.onSurface }]}>
-          {t('screens.release_list.title')}
-        </Text>
-        <IconButton
-          icon="refresh"
-          iconColor={theme.colors.onSurfaceVariant}
-          onPress={() => {
-            void refetch();
-          }}
-          loading={isRefetching}
-        />
+        <View style={styles.headerLeftContainer}>
+          <IconButton
+            icon="arrow-left"
+            iconColor={theme.colors.onSurfaceVariant}
+            onPress={() => {
+              void router.back();
+            }}
+          />
+          <Text variant="titleLarge" style={[styles.title, { color: theme.colors.onSurface }]}>
+            {application?.title || t('screens.release_list.title')}
+          </Text>
+        </View>
+
+        <View style={styles.headerActions}>
+          <IconButton
+            icon="refresh"
+            iconColor={theme.colors.onSurfaceVariant}
+            onPress={() => {
+              void refetch();
+            }}
+            loading={isRefetching}
+          />
+          <Menu
+            visible={menuVisible}
+            onDismiss={closeMenu}
+            anchor={
+              <IconButton
+                icon="dots-vertical"
+                iconColor={theme.colors.onSurfaceVariant}
+                onPress={openMenu}
+              />
+            }
+          >
+            <Menu.Item
+              onPress={() => {
+                closeMenu();
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                void router.push(`/(protected)/apps/${applicationId}/edit` as any);
+              }}
+              title={t('screens.edit_application.title')}
+              leadingIcon="pencil"
+            />
+            <Menu.Item
+              onPress={handleDelete}
+              title={t('common.delete')}
+              leadingIcon="delete"
+              titleStyle={{ color: theme.colors.error }}
+            />
+          </Menu>
+        </View>
       </View>
 
       <FlatList
@@ -269,8 +356,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderBottomWidth: 1,
   },
+  headerLeftContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   title: {
     fontWeight: 'bold',
+    flexShrink: 1,
   },
   statusChipText: { fontWeight: '600', fontSize: 10 },
   listContent: {

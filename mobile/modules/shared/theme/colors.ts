@@ -63,20 +63,20 @@ export const darkColors = {
   onPrimary: '#381E72',
   primaryContainer: '#4F378B',
   onPrimaryContainer: '#EADDFF',
-  
+
   accent: palette.secondaryDark,
   onSecondary: '#332D41',
   secondaryContainer: '#4A4458',
   onSecondaryContainer: '#E8DEF8',
-  
+
   tertiaryContainer: '#633B48',
   onTertiaryContainer: '#FFD8E4',
-  
+
   surface: palette.darkSurface,
   onSurface: '#E6E1E5',
   surfaceVariant: palette.darkSurfaceVariant,
   onSurfaceVariant: '#CAC4D0',
-  
+
   outline: '#938F99',
   splashBackground: palette.primaryDark,
 
@@ -131,20 +131,20 @@ export const lightColors: ThemeColors = {
   onPrimary: palette.white,
   primaryContainer: '#EADDFF',
   onPrimaryContainer: '#21005D',
-  
+
   accent: palette.secondary,
   onSecondary: palette.white,
   secondaryContainer: '#E8DEF8',
   onSecondaryContainer: '#1D192B',
-  
+
   tertiaryContainer: '#FFD8E4',
   onTertiaryContainer: '#31111D',
-  
+
   surface: palette.lightSurface,
   onSurface: '#1C1B1F',
   surfaceVariant: palette.lightSurfaceVariant,
   onSurfaceVariant: '#49454F',
-  
+
   outline: '#79747E',
   splashBackground: palette.primary,
 

@@ -1,9 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import React from 'react';
-import { Controller,useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, ScrollView,StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Card, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { setFormErrors } from '@/libs/api/forms';
@@ -104,7 +104,9 @@ export default function LoginScreen() {
 
             <Button
               mode="contained"
-              onPress={() => { void handleSubmit(onLogin)(); }}
+              onPress={() => {
+                void handleSubmit(onLogin)();
+              }}
               loading={mutation.isPending}
               disabled={mutation.isPending}
               style={styles.button}
@@ -112,7 +114,13 @@ export default function LoginScreen() {
               {t('auth.login.submit')}
             </Button>
 
-            <Button mode="text" onPress={() => { void router.push('/(auth)/register'); }} style={styles.link}>
+            <Button
+              mode="text"
+              onPress={() => {
+                void router.push('/(auth)/register');
+              }}
+              style={styles.link}
+            >
               {t('auth.login.register_link')}
             </Button>
           </Card.Content>

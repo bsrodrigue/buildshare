@@ -2,14 +2,14 @@ import { Linking } from 'react-native';
 
 import { Logger } from '@/libs/log';
 
-import { Toaster } from '../notification/toast';
+import { toast } from '../notification/toast';
 
 const logger = new Logger('LauncherUtils');
 
 export class LauncherUtils {
   public static async openWhatsApp(phone: string) {
     if (!phone) {
-      Toaster.error('Information', 'Numéro de téléphone non disponible');
+      toast.error('Information', 'Numéro de téléphone non disponible');
       return;
     }
 
@@ -35,13 +35,13 @@ export class LauncherUtils {
       await Linking.openURL(webUrl);
     } catch (e) {
       logger.error(`Could not open web WhatsApp fallback ${webUrl}: ${(e as Error).message}`);
-      Toaster.error('WhatsApp', "Impossible d'ouvrir WhatsApp.");
+      toast.error('WhatsApp', "Impossible d'ouvrir WhatsApp.");
     }
   }
 
   public static async openCall(phone: string) {
     if (!phone) {
-      Toaster.error('Information', 'Numéro de téléphone non disponible');
+      toast.error('Information', 'Numéro de téléphone non disponible');
       return;
     }
 
@@ -56,7 +56,7 @@ export class LauncherUtils {
       // Log the actual error message, not just the object
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`Failed to open dialer for ${url}: ${msg}`);
-      Toaster.error('Appel', "Impossible de lancer l'appel.");
+      toast.error('Appel', "Impossible de lancer l'appel.");
     }
   }
 
@@ -83,7 +83,7 @@ export class LauncherUtils {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`Failed to open URL ${url}: ${msg}`);
-      Toaster.error(errorTitle, errorMessage);
+      toast.error(errorTitle, errorMessage);
     }
   }
 

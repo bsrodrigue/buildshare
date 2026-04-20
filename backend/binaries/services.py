@@ -34,6 +34,25 @@ def application_create(
     return app
 
 
+def application_update(
+    *, application: Application, title: str, description: str = "", user: User
+) -> Application:
+    _check_is_project_admin(user=user, project=application.project)
+
+    application.title = title
+    application.description = description
+    application.full_clean()
+    application.save()
+
+    return application
+
+
+def application_delete(*, application: Application, user: User) -> None:
+    _check_is_project_admin(user=user, project=application.project)
+
+    application.delete()
+
+
 def release_create(
     *,
     application: Application,

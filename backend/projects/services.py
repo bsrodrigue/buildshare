@@ -16,3 +16,18 @@ def project_create(*, title: str, description: str = "", user: User) -> Project:
     )
 
     return project
+
+
+@transaction.atomic
+def project_update(*, project: Project, title: str, description: str = "") -> Project:
+    project.title = title
+    project.description = description
+    project.full_clean()
+    project.save()
+
+    return project
+
+
+@transaction.atomic
+def project_delete(*, project: Project) -> None:
+    project.delete()

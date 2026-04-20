@@ -5,12 +5,9 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Button, IconButton, ProgressBar, Surface, Text, useTheme } from 'react-native-paper';
-import Animated, { 
-  useAnimatedStyle, 
-  useSharedValue, 
-  withSpring, 
-} from 'react-native-reanimated';
-import Toast from 'react-native-toast-message';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+
+import { toast } from '@/libs/notification/toast';
 
 interface ApkUploadInputProps {
   onFileSelect: (file: DocumentPicker.DocumentPickerAsset | null) => void;
@@ -55,10 +52,7 @@ export const ApkUploadInput: React.FC<ApkUploadInputProps> = ({
         });
       }
     } catch {
-      Toast.show({
-        type: 'error',
-        text1: t('components.apk_input.selection_failed'),
-      });
+      toast.error(t('components.apk_input.selection_failed'));
     }
   };
 
@@ -68,42 +62,40 @@ export const ApkUploadInput: React.FC<ApkUploadInputProps> = ({
     opacity: isInteractionDisabled ? 0.6 : 1,
   }));
 
-  const iconCircleStyle = React.useMemo(() => [
-    styles.iconCircle,
-    { backgroundColor: selectedFile ? theme.colors.primaryContainer : '#f5f5f5' }
-  ], [selectedFile, theme.colors.primaryContainer]);
+  const iconCircleStyle = React.useMemo(
+    () => [
+      styles.iconCircle,
+      { backgroundColor: selectedFile ? theme.colors.primaryContainer : '#f5f5f5' },
+    ],
+    [selectedFile, theme.colors.primaryContainer],
+  );
 
   return (
     <View style={styles.container}>
-      <Pressable 
-        onPress={() => { void pickFile(); }}
+      <Pressable
+        onPress={() => {
+          void pickFile();
+        }}
         disabled={isInteractionDisabled}
-        style={({ pressed }) => [
-          styles.pressable,
-          pressed && styles.pressed
-        ]}
+        style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
       >
-        <AnimatedSurface 
+        <AnimatedSurface
           style={[
-            styles.uploadArea, 
+            styles.uploadArea,
             animatedStyles,
-            selectedFile ? styles.selectedBorder : styles.unselectedBorder
-          ]} 
+            selectedFile ? styles.selectedBorder : styles.unselectedBorder,
+          ]}
           elevation={selectedFile ? 1 : 0}
         >
           <View style={styles.content}>
             <View style={iconCircleStyle}>
               {selectedFile ? (
-                <IconButton
-                  icon="check-circle"
-                  size={40}
-                  iconColor={theme.colors.primary}
-                />
+                <IconButton icon="check-circle" size={40} iconColor={theme.colors.primary} />
               ) : (
-                <MaterialCommunityIcons 
-                  name="android" 
-                  size={48} 
-                  color={isInteractionDisabled ? theme.colors.outlineVariant : theme.colors.outline} 
+                <MaterialCommunityIcons
+                  name="android"
+                  size={48}
+                  color={isInteractionDisabled ? theme.colors.outlineVariant : theme.colors.outline}
                 />
               )}
             </View>
@@ -111,23 +103,32 @@ export const ApkUploadInput: React.FC<ApkUploadInputProps> = ({
             <Text variant="titleMedium" style={styles.uploadText}>
               {selectedFile ? selectedFile.name : t('components.apk_input.drop_zone_empty')}
             </Text>
-            
+
             {!isUploading && (
               <Button
                 mode={selectedFile ? 'text' : 'contained'}
-                onPress={() => { void pickFile(); }}
+                onPress={() => {
+                  void pickFile();
+                }}
                 style={styles.pickButton}
                 disabled={isInteractionDisabled}
                 contentStyle={styles.buttonContent}
               >
-                {selectedFile ? t('components.apk_input.change_file') : t('components.apk_input.browse')}
+                {selectedFile
+                  ? t('components.apk_input.change_file')
+                  : t('components.apk_input.browse')}
               </Button>
             )}
 
             {selectedFile && !isUploading && (
               <View style={styles.badge}>
-                <Text variant="labelSmall" style={[styles.badgeText, { color: theme.colors.onSurfaceVariant }]}>
-                  {t('components.apk_input.meta_info', { size: Math.round((selectedFile.size ?? 0) / (1024 * 1024)) })}
+                <Text
+                  variant="labelSmall"
+                  style={[styles.badgeText, { color: theme.colors.onSurfaceVariant }]}
+                >
+                  {t('components.apk_input.meta_info', {
+                    size: Math.round((selectedFile.size ?? 0) / (1024 * 1024)),
+                  })}
                 </Text>
               </View>
             )}
@@ -137,16 +138,18 @@ export const ApkUploadInput: React.FC<ApkUploadInputProps> = ({
             <View style={styles.progressWrapper}>
               <View style={styles.progressHeader}>
                 <Text variant="labelMedium" style={styles.progressLabel}>
-                  {progress < 100 ? t('components.apk_input.uploading') : t('components.apk_input.processing')}
+                  {progress < 100
+                    ? t('components.apk_input.uploading')
+                    : t('components.apk_input.processing')}
                 </Text>
                 <Text variant="labelMedium" style={styles.progressValue}>
                   {Math.round(displayProgress)}%
                 </Text>
               </View>
-              <ProgressBar 
-                progress={displayProgress / 100} 
-                color={theme.colors.primary} 
-                style={styles.progressBar} 
+              <ProgressBar
+                progress={displayProgress / 100}
+                color={theme.colors.primary}
+                style={styles.progressBar}
               />
             </View>
           )}

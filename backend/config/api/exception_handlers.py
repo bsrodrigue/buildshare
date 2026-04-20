@@ -1,6 +1,14 @@
 from typing import Any
 
-from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.exceptions import (
+    ObjectDoesNotExist,
+)
+from django.core.exceptions import (
+    PermissionDenied as DjangoPermissionDenied,
+)
+from django.core.exceptions import (
+    ValidationError as DjangoValidationError,
+)
 from django.db import IntegrityError
 from rest_framework import exceptions, status
 from rest_framework.response import Response
@@ -62,13 +70,17 @@ def _handle_application_error(exc: ApplicationError) -> Response:
     """
     Handle project-specific ApplicationError.
     """
+    status_code = status.HTTP_400_BAD_REQUEST
+    if "_NOT_FOUND" in exc.code:
+        status_code = status.HTTP_404_NOT_FOUND
+
     return Response(
         {
             "code": exc.code,
             "message": exc.message,
             "fields": exc.extra.get("fields", {}),
         },
-        status=status.HTTP_400_BAD_REQUEST,
+        status=status_code,
     )
 
 
@@ -102,6 +114,14 @@ def custom_exception_handler(exc: Exception, context: Any) -> Response | None:
     # 2. Project-specific Application Errors
     if isinstance(exc, ApplicationError):
         return _handle_application_error(exc)
+
+    # Convert Django ObjectDoesNotExist to DRF NotFound
+    if isinstance(exc, ObjectDoesNotExist):
+        exc = exceptions.NotFound()
+
+    # Convert Django PermissionDenied to DRF PermissionDenied
+    if isinstance(exc, DjangoPermissionDenied):
+        exc = exceptions.PermissionDenied()
 
     # 3. Convert Django ValidationError to DRF
     if isinstance(exc, DjangoValidationError):

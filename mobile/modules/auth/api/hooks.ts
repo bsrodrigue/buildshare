@@ -1,8 +1,8 @@
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import Toast from 'react-native-toast-message';
 
 import { AppError } from '@/libs/api/types';
+import { toast } from '@/libs/notification/toast';
 import { SecureStorage } from '@/libs/secure-storage';
 import { SecureStorageKey } from '@/libs/secure-storage/keys';
 import { authService } from '@/modules/auth/api/services';
@@ -28,11 +28,7 @@ export const useLogin = () => {
       router.replace('/(protected)');
     },
     onError: (error: AppError) => {
-      Toast.show({
-        type: 'error',
-        text1: 'Erreur de connexion',
-        text2: error.message || 'Identifiants incorrects.',
-      });
+      toast.error('Erreur de connexion', error.message || 'Identifiants incorrects.');
     },
   });
 };
@@ -44,19 +40,14 @@ export const useRegister = () => {
   return useMutation<unknown, AppError, RegisterParams>({
     mutationFn: (params: RegisterParams) => authService.register(params),
     onSuccess: () => {
-      Toast.show({
-        type: 'success',
-        text1: 'Compte créé !',
-        text2: 'Vous pouvez maintenant vous connecter.',
-      });
+      toast.success('Compte créé !', 'Vous pouvez maintenant vous connecter.');
       router.replace('/(auth)/login');
     },
     onError: (error: AppError) => {
-      Toast.show({
-        type: 'error',
-        text1: "Erreur d'inscription",
-        text2: error.message || 'Une erreur est survenue lors de la création du compte.',
-      });
+      toast.error(
+        "Erreur d'inscription",
+        error.message || 'Une erreur est survenue lors de la création du compte.',
+      );
     },
   });
 };

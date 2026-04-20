@@ -32,17 +32,21 @@ export default function DashboardScreen() {
         titleStyle={[styles.cardTitle, { color: theme.colors.onSurface }]}
         subtitleStyle={styles.cardSubtitle}
         left={(props) => (
-          <View style={[styles.iconContainer, { backgroundColor: theme.colors.secondaryContainer }]}>
-            <IconButton 
-              {...props} 
-              icon="folder" 
-              iconColor={theme.colors.onSecondaryContainer} 
+          <View
+            style={[styles.iconContainer, { backgroundColor: theme.colors.secondaryContainer }]}
+          >
+            <IconButton
+              {...props}
+              icon="folder"
+              iconColor={theme.colors.onSecondaryContainer}
               size={24}
               style={styles.iconButton}
             />
           </View>
         )}
-        right={(props) => <IconButton {...props} icon="chevron-right" iconColor={theme.colors.onSurfaceVariant} />}
+        right={(props) => (
+          <IconButton {...props} icon="chevron-right" iconColor={theme.colors.onSurfaceVariant} />
+        )}
         style={styles.cardInternal}
       />
     </Card>
@@ -58,9 +62,17 @@ export default function DashboardScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.outline + '20' }]}>
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.outline + '20' },
+        ]}
+      >
         <View>
-          <Text variant="headlineMedium" style={[styles.welcome, { color: theme.colors.onSurface }]}>
+          <Text
+            variant="headlineMedium"
+            style={[styles.welcome, { color: theme.colors.onSurface }]}
+          >
             {t('screens.dashboard.welcome', { name: user?.first_name || '' })}
           </Text>
           <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>
@@ -68,20 +80,20 @@ export default function DashboardScreen() {
           </Text>
         </View>
         <View style={styles.headerRight}>
-          <IconButton 
-            icon="history" 
-            iconColor={theme.colors.onSurfaceVariant} 
+          <IconButton
+            icon="history"
+            iconColor={theme.colors.onSurfaceVariant}
             onPress={() => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               void router.push('/(protected)/activity' as any);
-            }} 
+            }}
           />
-          <IconButton 
-            icon="logout" 
-            iconColor={theme.colors.onSurfaceVariant} 
+          <IconButton
+            icon="logout"
+            iconColor={theme.colors.onSurfaceVariant}
             onPress={() => {
               void logout();
-            }} 
+            }}
           />
         </View>
       </View>
@@ -92,7 +104,12 @@ export default function DashboardScreen() {
         renderItem={renderProjectItem}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch(); }} />
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={() => {
+              void refetch();
+            }}
+          />
         }
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -107,10 +124,7 @@ export default function DashboardScreen() {
         label={t('screens.dashboard.fab_new_project')}
         variant="primary"
         mode="elevated"
-        style={[
-          styles.fab,
-          { bottom: insets.bottom + 16 },
-        ]}
+        style={[styles.fab, { bottom: insets.bottom + 16 }]}
         onPress={() => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           void router.push('/(protected)/projects/create' as any);

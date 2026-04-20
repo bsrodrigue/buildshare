@@ -27,14 +27,10 @@ interface ThemeProviderProps {
   forcedColorScheme?: ColorScheme;
 }
 
-export function ThemeProvider({
-  children,
-  forcedColorScheme,
-}: ThemeProviderProps) {
+export function ThemeProvider({ children, forcedColorScheme }: ThemeProviderProps) {
   const systemScheme = useColorScheme();
   const colorScheme: ColorScheme =
     forcedColorScheme ?? (systemScheme === 'light' ? 'light' : 'dark');
-
 
   logger.info(`System scheme: ${systemScheme}, Color scheme: ${colorScheme}`);
 
@@ -52,22 +48,22 @@ export function ThemeProvider({
           onPrimary: baseTheme.colors.onPrimary,
           primaryContainer: baseTheme.colors.primaryContainer,
           onPrimaryContainer: baseTheme.colors.onPrimaryContainer,
-          
+
           secondary: baseTheme.colors.accent,
           onSecondary: baseTheme.colors.onSecondary,
           secondaryContainer: baseTheme.colors.secondaryContainer,
           onSecondaryContainer: baseTheme.colors.onSecondaryContainer,
-          
+
           tertiary: baseTheme.colors.tertiaryContainer,
           onTertiary: baseTheme.colors.onTertiaryContainer,
           tertiaryContainer: baseTheme.colors.tertiaryContainer,
           onTertiaryContainer: baseTheme.colors.onTertiaryContainer,
-          
+
           surface: baseTheme.colors.surface,
           onSurface: baseTheme.colors.onSurface,
           surfaceVariant: baseTheme.colors.surfaceVariant,
           onSurfaceVariant: baseTheme.colors.onSurfaceVariant,
-          
+
           outline: baseTheme.colors.outline,
           error: baseTheme.colors.error,
         },

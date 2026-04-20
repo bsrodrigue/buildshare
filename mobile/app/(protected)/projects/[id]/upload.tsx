@@ -6,10 +6,10 @@ import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Card, IconButton, List, Text, TextInput } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Toast from 'react-native-toast-message';
 
 import { AppError } from '@/libs/api/types';
 import { analyzeAPK, APKAnalysisResult } from '@/libs/apk';
+import { toast } from '@/libs/notification/toast';
 import { useAPKUploadPipeline } from '@/modules/binaries/api/hooks';
 import { ApkUploadInput } from '@/modules/binaries/components/ApkUploadInput';
 
@@ -67,11 +67,7 @@ export default function UploadArtifactScreen() {
 
   const onSubmit = (data: { title: string; description: string }) => {
     if (!selectedFile) {
-      Toast.show({
-        type: 'error',
-        text1: t('screens.upload.file_missing'),
-        text2: t('screens.upload.file_missing_desc'),
-      });
+      toast.error(t('screens.upload.file_missing'), t('screens.upload.file_missing_desc'));
       return;
     }
 
@@ -90,20 +86,15 @@ export default function UploadArtifactScreen() {
       },
       {
         onSuccess: () => {
-          Toast.show({
-            type: 'success',
-            text1: t('screens.upload.upload_success'),
-            text2: t('screens.upload.upload_success_desc'),
-          });
+          toast.success(
+            t('screens.upload.upload_success'),
+            t('screens.upload.upload_success_desc'),
+          );
           router.replace('/(protected)/activity');
         },
         onError: (error: AppError) => {
           setUploadProgress(0);
-          Toast.show({
-            type: 'error',
-            text1: t('screens.upload.upload_error'),
-            text2: error.message,
-          });
+          toast.error(t('screens.upload.upload_error'), error.message);
         },
       },
     );

@@ -70,43 +70,49 @@ export default function ProjectDetailScreen() {
   };
 
   const renderAppItem = ({ item }: { item: Application }) => (
-    <Surface style={[styles.appCard, { backgroundColor: theme.colors.background }]}>
-      <List.Item
-        title={item.title}
-        description={`Package: ${item.app_id}\nVersion: ${item.latest_release?.version_id || 'N/A'}`}
-        titleStyle={[styles.appTitle, { color: theme.colors.text }]}
-        descriptionStyle={[styles.appSubtitle, { color: theme.colors.onSurfaceVariant }]}
-        onPress={() => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          void router.push(`/(protected)/apps/${item.id}?projectId=${item.project}` as any);
-        }}
-        left={(props) => (
-          <View
-            style={[styles.avatarContainer, { backgroundColor: theme.colors.secondaryContainer }]}
-          >
-            <Avatar.Icon
-              {...props}
-              icon="android"
-              size={40}
-              color={theme.colors.onSecondaryContainer}
-              style={styles.avatar}
-            />
-          </View>
-        )}
-        right={(props) => (
-          <View style={styles.rightContainer}>
-            <IconButton
-              {...props}
-              icon="chevron-right"
-              iconColor={theme.colors.onSurfaceVariant}
-              onPress={() => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                void router.push(`/(protected)/apps/${item.id}?projectId=${item.project}` as any);
-              }}
-            />
-          </View>
-        )}
-      />
+    <Surface style={[styles.appCard, theme.shadows.soft]} elevation={1}>
+      <View style={styles.cardPressableContainer}>
+        <List.Item
+          title={item.title}
+          description={item.app_id}
+          titleStyle={[styles.appTitle, { color: theme.colors.text }]}
+          descriptionStyle={[styles.appSubtitle, { color: theme.colors.onSurfaceVariant }]}
+          onPress={() => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            void router.push(`/(protected)/apps/${item.id}?projectId=${item.project}` as any);
+          }}
+          style={styles.cardItem}
+          titleNumberOfLines={1}
+          descriptionNumberOfLines={1}
+          left={() => (
+            <View
+              style={[styles.avatarContainer, { backgroundColor: theme.colors.secondaryContainer }]}
+            >
+              <Avatar.Icon
+                icon="android"
+                size={32}
+                color={theme.colors.onSecondaryContainer}
+                style={styles.avatar}
+              />
+            </View>
+          )}
+        />
+        <View style={styles.cardFooter}>
+          <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
+            v{item.latest_release?.version_id || 'N/A'}
+          </Text>
+          <IconButton
+            icon="chevron-right"
+            size={16}
+            iconColor={theme.colors.onSurfaceVariant}
+            onPress={() => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              void router.push(`/(protected)/apps/${item.id}?projectId=${item.project}` as any);
+            }}
+            style={styles.cardChevron}
+          />
+        </View>
+      </View>
     </Surface>
   );
 
@@ -240,9 +246,12 @@ export default function ProjectDetailScreen() {
 
       <FlatList
         data={applications}
+        key={`${projectId}-grid`}
+        numColumns={2}
         keyExtractor={(item: Application) => item.id.toString()}
         renderItem={renderAppItem}
         contentContainerStyle={styles.listContent}
+        columnWrapperStyle={styles.columnWrapper}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
@@ -263,7 +272,7 @@ export default function ProjectDetailScreen() {
         icon="plus"
         label={t('screens.project_detail.fab_new_app')}
         variant="primary"
-        mode="elevated"
+        mode="flat"
         style={[styles.fab, { bottom: insets.bottom + 16 }]}
         onPress={() => {
           void router.push({
@@ -355,31 +364,58 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   listContent: {
-    padding: 16,
+    padding: 12,
     paddingBottom: 100,
   },
+  columnWrapper: {
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+  },
   appCard: {
-    marginBottom: 12,
-    borderRadius: 28,
+    flex: 1,
+    margin: 6,
+    borderRadius: 24,
     overflow: 'hidden',
+    minHeight: 140,
+    backgroundColor: '#ffffff',
+  },
+  cardPressableContainer: {
+    flex: 1,
+    padding: 4,
+  },
+  cardItem: {
+    paddingRight: 0,
   },
   appTitle: {
     fontWeight: 'bold',
+    fontSize: 14,
   },
   appSubtitle: {
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: 10,
+    marginTop: 2,
   },
   avatarContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
+    marginLeft: 4,
   },
   avatar: {
     backgroundColor: 'transparent',
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: 12,
+    paddingRight: 4,
+    marginTop: 'auto',
+    paddingBottom: 4,
+  },
+  cardChevron: {
+    margin: 0,
   },
   rightContainer: {
     justifyContent: 'center',

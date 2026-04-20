@@ -330,7 +330,7 @@ export default function AppDetailScreen() {
           icon="plus"
           label={t('screens.release_list.fab_new_release')}
           variant="primary"
-          mode="elevated"
+          mode="flat"
           style={[styles.fab, { bottom: insets.bottom + 16 }]}
           onPress={() => {
             void router.push({

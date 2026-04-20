@@ -8,7 +8,6 @@ import { Button, Card, IconButton, List, Text, TextInput } from 'react-native-pa
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppError } from '@/libs/api/types';
-import { analyzeAPK, APKAnalysisResult } from '@/libs/apk';
 import { toast } from '@/libs/notification/toast';
 import { useAPKUploadPipeline } from '@/modules/binaries/api/hooks';
 import { ApkUploadInput } from '@/modules/binaries/components/ApkUploadInput';
@@ -26,10 +25,6 @@ export default function UploadArtifactScreen() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
 
-  const [isAnalysing, setIsAnalysing] = useState(false);
-  const [analysis, setAnalysis] = useState<APKAnalysisResult | null>(null);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
-
   const {
     control,
     handleSubmit,
@@ -41,28 +36,8 @@ export default function UploadArtifactScreen() {
     },
   });
 
-  const handleFileSelect = async (file: DocumentPicker.DocumentPickerAsset | null) => {
+  const handleFileSelect = (file: DocumentPicker.DocumentPickerAsset | null) => {
     setSelectedFile(file);
-    setAnalysis(null);
-    setAnalysisError(null);
-
-    if (file) {
-      setIsAnalysing(true);
-      try {
-        const result = await analyzeAPK(file.uri);
-        setAnalysis(result);
-
-        // Strict validation in Release Mode
-        if (isReleaseMode && appId && result.appId !== appId) {
-          setAnalysisError(t('screens.upload.apk_id_mismatch'));
-        }
-      } catch (err) {
-        console.error('APK Analysis failed:', err);
-        setAnalysisError(t('common.error'));
-      } finally {
-        setIsAnalysing(false);
-      }
-    }
   };
 
   const onSubmit = (data: { title: string; description: string }) => {
@@ -121,60 +96,10 @@ export default function UploadArtifactScreen() {
         <View style={styles.body}>
           <ApkUploadInput
             selectedFile={selectedFile}
-            onFileSelect={(file) => {
-              void handleFileSelect(file);
-            }}
+            onFileSelect={handleFileSelect}
             isUploading={isPending}
             progress={uploadProgress}
           />
-
-          {isAnalysing && (
-            <Card style={styles.analysisCard}>
-              <Card.Content style={styles.inlineLoader}>
-                <Text variant="bodySmall" style={styles.analysingText}>
-                  {t('screens.upload.apk_analysing')}
-                </Text>
-              </Card.Content>
-            </Card>
-          )}
-
-          {analysis && (
-            <Card
-              style={[styles.analysisCard, analysisError ? styles.errorCard : styles.successCard]}
-            >
-              <Card.Content>
-                <View style={styles.analysisHeader}>
-                  <IconButton
-                    icon={analysisError ? 'alert-circle' : 'check-circle'}
-                    iconColor={analysisError ? '#ba1a1a' : '#2e7d32'}
-                    size={20}
-                    style={styles.analysisIcon}
-                  />
-                  <Text
-                    variant="bodyMedium"
-                    style={[
-                      styles.analysisTitle,
-                      analysisError ? styles.errorText : styles.successText,
-                    ]}
-                  >
-                    {analysisError ||
-                      t('screens.upload.apk_detected_info', {
-                        appId: analysis.appId,
-                        versionCode: analysis.versionCode,
-                      })}
-                  </Text>
-                </View>
-                {analysisError && isReleaseMode && (
-                  <Text variant="bodySmall" style={styles.errorSubtext}>
-                    {t('screens.upload.apk_id_mismatch_desc', {
-                      detected: analysis.appId,
-                      expected: appId,
-                    })}
-                  </Text>
-                )}
-              </Card.Content>
-            </Card>
-          )}
 
           {!isReleaseMode && !showDetails && (
             <Button
@@ -242,7 +167,7 @@ export default function UploadArtifactScreen() {
               void handleSubmit(onSubmit)();
             }}
             loading={isPending}
-            disabled={isPending || !selectedFile || isAnalysing || !!analysisError}
+            disabled={isPending || !selectedFile}
             contentStyle={styles.submitButtonContent}
             style={styles.submitButton}
           >
@@ -315,52 +240,5 @@ const styles = StyleSheet.create({
   },
   submitButtonContent: {
     height: 48,
-  },
-  analysisCard: {
-    marginTop: 16,
-    borderRadius: 12,
-    backgroundColor: '#f8f9fa',
-    elevation: 0,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
-    marginBottom: 8,
-  },
-  successCard: {
-    backgroundColor: '#f1f8e9',
-    borderColor: '#c5e1a5',
-  },
-  errorCard: {
-    backgroundColor: '#fdf2f2',
-    borderColor: '#f9d2d2',
-  },
-  inlineLoader: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  analysingText: {
-    color: '#6c757d',
-  },
-  analysisHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  analysisIcon: {
-    margin: 0,
-    marginLeft: -8,
-  },
-  analysisTitle: {
-    fontWeight: '600',
-    flex: 1,
-  },
-  errorText: {
-    color: '#ba1a1a',
-  },
-  successText: {
-    color: '#2e7d32',
-  },
-  errorSubtext: {
-    color: '#ba1a1a',
-    marginTop: 4,
-    opacity: 0.8,
   },
 });

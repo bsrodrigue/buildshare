@@ -123,7 +123,7 @@ export default function DashboardScreen() {
         icon="plus"
         label={t('screens.dashboard.fab_new_project')}
         variant="primary"
-        mode="elevated"
+        mode="flat"
         style={[styles.fab, { bottom: insets.bottom + 16 }]}
         onPress={() => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any

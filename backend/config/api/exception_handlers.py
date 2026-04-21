@@ -70,7 +70,7 @@ def _handle_application_error(exc: ApplicationError) -> Response:
     """
     Handle project-specific ApplicationError.
     """
-    status_code = status.HTTP_400_BAD_REQUEST
+    status_code: int = status.HTTP_400_BAD_REQUEST
     if "_NOT_FOUND" in exc.code:
         status_code = status.HTTP_404_NOT_FOUND
 

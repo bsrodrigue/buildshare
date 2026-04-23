@@ -10,9 +10,6 @@ import { createLogger } from '@/libs/log';
  * Application-wide configuration and constants.
  * Use this service to manage global settings like app name, contact info, etc.
  */
-export const AppConfiguration = {
-  appName: 'BuildShare',
-} as const;
 
 // ---------------------------------------------------------------------------
 
@@ -29,6 +26,8 @@ const urlSchema = z.url();
  *  - The override is persisted in AsyncStorage across restarts.
  */
 export const AppConfig = {
+  appName: 'BuildShare',
+
   /**
    * Returns the effective API base URL.
    * Priority: persisted override > env.API_URL

@@ -11,7 +11,7 @@
   },
   "auth": {
     "login": {
-      "title": "App-share",
+      "title": "{{appName}}",
       "subtitle": "Sign in to manage your builds.",
       "email_label": "Email",
       "password_label": "Password",
@@ -20,7 +20,7 @@
     },
     "register": {
       "title": "Sign Up",
-      "subtitle": "Join App-share today.",
+      "subtitle": "Join {{appName}} today.",
       "first_name_label": "First Name",
       "last_name_label": "Last Name",
       "email_label": "Email",

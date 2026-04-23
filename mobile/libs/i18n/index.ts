@@ -1,6 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
+import { AppConfig } from '../app-config';
 import en from './locales/en.json';
 import fr from './locales/fr.json';
 
@@ -16,6 +17,9 @@ void i18n
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false, // react already safes from xss
+      defaultVariables: {
+        appName: AppConfig.appName,
+      },
     },
   });
 

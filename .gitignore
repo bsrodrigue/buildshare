@@ -42,3 +42,8 @@ yarn-error.log*
 # Other
 .DS_Store
 .history/
+db.sqlite3
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm

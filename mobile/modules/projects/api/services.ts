@@ -6,6 +6,7 @@ import {
   ProjectCreateParams,
   ProjectListResponse,
   ProjectListResponseSchema,
+  ProjectMember,
   ProjectSchema,
   ProjectUpdateParams,
 } from './schemas';
@@ -36,6 +37,13 @@ export const projectService = {
   },
 
   /**
+   * List project members
+   */
+  listMembers: async (id: number): Promise<ProjectMember[]> => {
+    return await http.get<ProjectMember[]>(`projects/${id}/members/`);
+  },
+
+  /**
    * Update a project
    */
   update: async (id: number, params: ProjectUpdateParams): Promise<Project> => {
@@ -48,5 +56,23 @@ export const projectService = {
    */
   delete: async (id: number): Promise<void> => {
     await http.delete(`projects/${id}/`);
+  },
+
+  /**
+   * Send an invitation to a project
+   */
+  sendInvitation: async (
+    projectId: number,
+    email: string,
+    role: string = 'MEMBER',
+  ): Promise<void> => {
+    await http.post(`projects/${projectId}/invitations/`, { email, role });
+  },
+
+  /**
+   * Revoke a user membership from a project
+   */
+  revokeMembership: async (projectId: number, userId: number): Promise<void> => {
+    await http.delete(`projects/${projectId}/members/${userId}/`);
   },
 };

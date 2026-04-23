@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -11,7 +12,12 @@ from django_stubs_ext.db.models import TypedModelMeta
 
 from core.models import BaseModel
 
-from .constraints import UNIQUE_PROJECT_ADMIN, UNIQUE_USER_PROJECT
+from .constraints import (
+    CHECK_PROJECT_INVITATION_ROLE_VALID,
+    CHECK_PROJECT_INVITATION_STATUS_VALID,
+    UNIQUE_PROJECT_ADMIN,
+    UNIQUE_USER_PROJECT,
+)
 
 
 class Project(BaseModel):
@@ -51,3 +57,53 @@ class UserProjectProfile(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.user.email} - {self.project.title} ({self.role})"
+
+
+class ProjectInvitationStatus(models.TextChoices):
+    PENDING = "PENDING", "En attente"
+    ACCEPTED = "ACCEPTED", "Acceptée"
+    REJECTED = "REJECTED", "Refusée"
+
+
+class ProjectInvitation(BaseModel):
+    id: models.UUIDField[uuid.UUID | str, uuid.UUID] = models.UUIDField(
+        primary_key=True, default=uuid.uuid4, editable=False
+    )
+
+    project: models.ForeignKey[Project | int, Project] = models.ForeignKey(
+        Project, related_name="invitations", on_delete=models.CASCADE
+    )
+    email: models.EmailField[str, str] = models.EmailField("Email de l'invité")
+    role: models.CharField[str, str] = models.CharField(
+        "Rôle",
+        max_length=20,
+        choices=UserProjectProfile.Role.choices,
+        default=UserProjectProfile.Role.MEMBER,
+    )
+    inviter: models.ForeignKey[User | int, User] = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="sent_invitations", on_delete=models.CASCADE
+    )
+    status: models.CharField[str, str] = models.CharField(
+        "Statut",
+        max_length=20,
+        choices=ProjectInvitationStatus.choices,
+        default=ProjectInvitationStatus.PENDING,
+    )
+
+    class Meta(TypedModelMeta):
+        verbose_name = "Invitation de projet"
+        verbose_name_plural = "Invitations de projet"
+        ordering = ["-created_at"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(status__in=ProjectInvitationStatus.values),
+                name=CHECK_PROJECT_INVITATION_STATUS_VALID,
+            ),
+            models.CheckConstraint(
+                condition=models.Q(role__in=UserProjectProfile.Role.values),
+                name=CHECK_PROJECT_INVITATION_ROLE_VALID,
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"Invitation to {self.email} for {self.project.title} ({self.status})"

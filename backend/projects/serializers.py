@@ -2,7 +2,7 @@ from typing import Any
 
 from rest_framework import serializers
 
-from .models import Project
+from .models import Project, ProjectInvitation, UserProjectProfile
 
 
 class ProjectOutputSerializer(serializers.ModelSerializer[Project]):
@@ -21,3 +21,29 @@ class ProjectOutputSerializer(serializers.ModelSerializer[Project]):
 class ProjectInputSerializer(serializers.Serializer[dict[str, Any]]):
     title = serializers.CharField(max_length=255)
     description = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class ProjectInvitationInputSerializer(serializers.Serializer[dict[str, Any]]):
+    email = serializers.EmailField()
+    role = serializers.ChoiceField(
+        choices=UserProjectProfile.Role.choices, default=UserProjectProfile.Role.MEMBER
+    )
+
+
+class ProjectMemberSerializer(serializers.ModelSerializer[UserProjectProfile]):
+    email = serializers.EmailField(source="user.email", read_only=True)
+    first_name = serializers.CharField(source="user.first_name", read_only=True)
+    last_name = serializers.CharField(source="user.last_name", read_only=True)
+    user_id = serializers.IntegerField(source="user.id", read_only=True)
+
+    class Meta:
+        model = UserProjectProfile
+        fields = ("user_id", "email", "first_name", "last_name", "role", "created_at")
+
+
+class ProjectInvitationOutputSerializer(serializers.ModelSerializer[ProjectInvitation]):
+    inviter = serializers.StringRelatedField[Any]()
+
+    class Meta:
+        model = ProjectInvitation
+        fields = ("id", "project", "email", "role", "inviter", "status", "created_at")

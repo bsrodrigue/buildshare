@@ -8,6 +8,7 @@ api_patterns = [
     path("auth/", include("users.urls")),
     path("projects/", include("projects.urls")),
     path("binaries/", include("binaries.urls")),
+    path("notifications/", include("notifications.urls")),
 ]
 
 urlpatterns = [

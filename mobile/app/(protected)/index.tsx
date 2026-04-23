@@ -85,6 +85,14 @@ export default function DashboardScreen() {
         </View>
         <View style={styles.headerRight}>
           <IconButton
+            icon="bell-outline"
+            iconColor={theme.colors.onSurfaceVariant}
+            onPress={() => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              void router.push('/(protected)/notifications' as any);
+            }}
+          />
+          <IconButton
             icon="history"
             iconColor={theme.colors.onSurfaceVariant}
             onPress={() => {

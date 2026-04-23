@@ -27,6 +27,17 @@ export const useProject = (id: number) => {
 };
 
 /**
+ * Hook to get project members.
+ */
+export const useProjectMembers = (id: number) => {
+  return useQuery({
+    queryKey: ['projects', id, 'members'],
+    queryFn: () => projectService.listMembers(id),
+    enabled: !!id,
+  });
+};
+
+/**
  * Hook to create a new project.
  */
 export const useCreateProject = () => {
@@ -65,6 +76,32 @@ export const useDeleteProject = () => {
     mutationFn: (id) => projectService.delete(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
+  });
+};
+
+/**
+ * Hook to send an invitation.
+ */
+export const useSendInvitation = () => {
+  return useMutation<void, AppError, { projectId: number; email: string; role?: string }>({
+    mutationFn: ({ projectId, email, role }) =>
+      projectService.sendInvitation(projectId, email, role),
+  });
+};
+
+/**
+ * Hook to revoke membership.
+ */
+export const useRevokeMembership = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, AppError, { projectId: number; userId: number }>({
+    mutationFn: ({ projectId, userId }) => projectService.revokeMembership(projectId, userId),
+    onSuccess: (_, { projectId }) => {
+      void queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+      // If the user revoked their own membership, they should be redirected,
+      // but that's handled in the UI layer.
     },
   });
 };

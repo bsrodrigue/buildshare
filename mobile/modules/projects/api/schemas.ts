@@ -14,6 +14,20 @@ export const ProjectSchema = z.object({
 export type Project = z.infer<typeof ProjectSchema>;
 
 /**
+ * Project Member
+ */
+export const ProjectMemberSchema = z.object({
+  user_id: z.number(),
+  email: z.string(),
+  first_name: z.string(),
+  last_name: z.string(),
+  role: z.string(),
+  created_at: z.string(),
+});
+
+export type ProjectMember = z.infer<typeof ProjectMemberSchema>;
+
+/**
  * Project Create
  */
 export const ProjectCreateParamsSchema = z.object({

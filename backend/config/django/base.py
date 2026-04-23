@@ -26,6 +26,7 @@ LOCAL_APPS = [
     "users.apps.UsersConfig",
     "projects.apps.ProjectsConfig",
     "binaries.apps.BinariesConfig",
+    "notifications.apps.NotificationsConfig",
 ]
 
 THIRD_PARTY_APPS = [

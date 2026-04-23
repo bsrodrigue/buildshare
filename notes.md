@@ -1,0 +1,3 @@
+- Integrate email sending
+- Integrate phone otp sending
+- What is the Django industry gold standard for handling server notifications? Signals?

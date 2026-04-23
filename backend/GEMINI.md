@@ -103,10 +103,11 @@ The backend is organized into modular Django apps (e.g., `binaries`, `projects`,
 
 **NEVER** consider a backend task finished without running:
 
-1. `uv run ruff check .`: Linting.
-2. `uv run mypy .`: Type safety.
-3. `python manage.py test`: Full test suite.
-4. `uv run ruff format .`: Ensure clean formatting.
+1. `python manage.py makemigrations` and `python manage.py migrate`: If you modified any `models.py`, ensure the database schema is in sync.
+2. `uv run ruff check .`: Linting.
+3. `uv run mypy .`: Type safety.
+4. `python manage.py test`: Full test suite.
+5. `uv run ruff format .`: Ensure clean formatting.
 
 ---
 

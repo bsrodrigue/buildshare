@@ -5,20 +5,30 @@ import { Alert, FlatList, RefreshControl, StyleSheet, View } from 'react-native'
 import {
   ActivityIndicator,
   Avatar,
+  Button,
   Chip,
+  Dialog,
   FAB,
   IconButton,
   List,
   Menu,
+  Portal,
   Surface,
   Text,
+  TextInput,
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { toast } from '@/libs/notification/toast';
+import { useAuthStore } from '@/modules/auth/store';
 import { useApplications } from '@/modules/binaries/api/hooks';
 import { Application } from '@/modules/binaries/api/schemas';
-import { useDeleteProject, useProject } from '@/modules/projects/api/hooks';
+import {
+  useDeleteProject,
+  useProject,
+  useRevokeMembership,
+  useSendInvitation,
+} from '@/modules/projects/api/hooks';
 import { useTheme } from '@/modules/shared/theme/ThemeProvider';
 
 export default function ProjectDetailScreen() {
@@ -36,12 +46,36 @@ export default function ProjectDetailScreen() {
   } = useApplications(projectId);
 
   const { data: project, isLoading: isProjectLoading } = useProject(projectId);
+  const { user } = useAuthStore();
 
   const deleteProject = useDeleteProject();
+  const revokeMembership = useRevokeMembership();
+  const sendInvitation = useSendInvitation();
+
   const [menuVisible, setMenuVisible] = React.useState(false);
+  const [inviteDialogVisible, setInviteDialogVisible] = React.useState(false);
+  const [inviteEmail, setInviteEmail] = React.useState('');
 
   const openMenu = () => setMenuVisible(true);
   const closeMenu = () => setMenuVisible(false);
+
+  const handleSendInvitation = () => {
+    if (!inviteEmail) return;
+
+    sendInvitation.mutate(
+      { projectId, email: inviteEmail },
+      {
+        onSuccess: () => {
+          setInviteDialogVisible(false);
+          setInviteEmail('');
+          toast.success('Invitation envoyée à ' + inviteEmail);
+        },
+        onError: (error) => {
+          toast.error("Erreur lors de l'envoi de l'invitation", error.message);
+        },
+      },
+    );
+  };
 
   const handleDelete = () => {
     closeMenu();
@@ -67,6 +101,32 @@ export default function ProjectDetailScreen() {
         },
       ],
     );
+  };
+  const handleLeave = () => {
+    closeMenu();
+    if (!user) return;
+
+    Alert.alert('Quitter le projet', 'Voulez-vous vraiment quitter ce projet ?', [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: 'Quitter',
+        style: 'destructive',
+        onPress: () => {
+          revokeMembership.mutate(
+            { projectId, userId: user.id },
+            {
+              onSuccess: () => {
+                toast.success('Vous avez quitté le projet');
+                router.replace('/(protected)');
+              },
+              onError: (error) => {
+                toast.error('Erreur', error.message);
+              },
+            },
+          );
+        },
+      },
+    ]);
   };
 
   const renderAppItem = ({ item }: { item: Application }) => (
@@ -172,21 +232,49 @@ export default function ProjectDetailScreen() {
                 />
               }
             >
+              {project?.role === 'ADMIN' && (
+                <>
+                  <Menu.Item
+                    onPress={() => {
+                      closeMenu();
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      void router.push(`/(protected)/projects/${projectId}/edit` as any);
+                    }}
+                    title={t('screens.edit_project.title')}
+                    leadingIcon="pencil"
+                  />
+                  <Menu.Item
+                    onPress={() => {
+                      closeMenu();
+                      setInviteEmail('');
+                      setInviteDialogVisible(true);
+                    }}
+                    title="Inviter un membre"
+                    leadingIcon="account-plus"
+                  />
+                </>
+              )}
+
               <Menu.Item
                 onPress={() => {
                   closeMenu();
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  void router.push(`/(protected)/projects/${projectId}/edit` as any);
+                  void router.push(`/(protected)/projects/${projectId}/members` as any);
                 }}
-                title={t('screens.edit_project.title')}
-                leadingIcon="pencil"
+                title="Gérer les membres"
+                leadingIcon="account-group"
               />
-              <Menu.Item
-                onPress={handleDelete}
-                title={t('common.delete')}
-                leadingIcon="delete"
-                titleStyle={{ color: theme.colors.error }}
-              />
+
+              <Menu.Item onPress={handleLeave} title="Quitter le projet" leadingIcon="logout" />
+
+              {project?.role === 'ADMIN' && (
+                <Menu.Item
+                  onPress={handleDelete}
+                  title={t('common.delete')}
+                  leadingIcon="delete"
+                  titleStyle={{ color: theme.colors.error }}
+                />
+              )}
             </Menu>
           </View>
         </View>
@@ -281,6 +369,32 @@ export default function ProjectDetailScreen() {
           });
         }}
       />
+
+      <Portal>
+        <Dialog visible={inviteDialogVisible} onDismiss={() => setInviteDialogVisible(false)}>
+          <Dialog.Title>Inviter un utilisateur</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              label="Email"
+              value={inviteEmail}
+              onChangeText={setInviteEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              mode="outlined"
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setInviteDialogVisible(false)}>{t('common.cancel')}</Button>
+            <Button
+              onPress={handleSendInvitation}
+              loading={sendInvitation.isPending}
+              disabled={!inviteEmail || sendInvitation.isPending}
+            >
+              Inviter
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }

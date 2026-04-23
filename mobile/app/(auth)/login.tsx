@@ -63,16 +63,13 @@ export default function LoginScreen() {
         ]}
         elevation={0}
       >
-        {/* Dev-only config gear */}
-        {__DEV__ && (
-          <IconButton
-            icon="cog-outline"
-            size={20}
-            iconColor={theme.colors.onPrimaryContainer}
-            style={styles.configBtn}
-            onPress={() => setConfigVisible(true)}
-          />
-        )}
+        <IconButton
+          icon="cog-outline"
+          size={20}
+          iconColor={theme.colors.onPrimaryContainer}
+          style={styles.configBtn}
+          onPress={() => setConfigVisible(true)}
+        />
 
         {/* Logo mark */}
         <View style={[styles.logoMark, { backgroundColor: theme.colors.primary }]}>

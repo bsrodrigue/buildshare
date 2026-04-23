@@ -4,13 +4,22 @@ import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, HelperText, Surface, Text, TextInput, useTheme } from 'react-native-paper';
+import {
+  Button,
+  HelperText,
+  IconButton,
+  Surface,
+  Text,
+  TextInput,
+  useTheme,
+} from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { setFormErrors } from '@/libs/api/forms';
 import { AppError } from '@/libs/api/types';
 import { useRegister } from '@/modules/auth/api/hooks';
 import { RegisterParams, RegisterParamsSchema } from '@/modules/auth/api/schemas';
+import { ApiConfigModal } from '@/modules/shared/components/ApiConfigModal';
 
 export default function RegisterScreen() {
   const theme = useTheme();
@@ -18,6 +27,7 @@ export default function RegisterScreen() {
   const { t } = useTranslation();
   const mutation = useRegister();
   const [showPassword, setShowPassword] = useState(false);
+  const [configVisible, setConfigVisible] = useState(false);
 
   const {
     control,
@@ -53,6 +63,14 @@ export default function RegisterScreen() {
         ]}
         elevation={0}
       >
+        <IconButton
+          icon="cog-outline"
+          size={20}
+          iconColor={theme.colors.onPrimaryContainer}
+          style={styles.configBtn}
+          onPress={() => setConfigVisible(true)}
+        />
+
         <View style={[styles.logoMark, { backgroundColor: theme.colors.primary }]}>
           <View style={[styles.logoInner, { backgroundColor: theme.colors.onPrimary }]} />
         </View>
@@ -201,6 +219,8 @@ export default function RegisterScreen() {
           {t('auth.register.login_link')}
         </Button>
       </ScrollView>
+
+      <ApiConfigModal visible={configVisible} onDismiss={() => setConfigVisible(false)} />
     </KeyboardAvoidingView>
   );
 }
@@ -215,6 +235,11 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
     overflow: 'hidden',
+  },
+  configBtn: {
+    alignSelf: 'flex-end',
+    marginRight: -8,
+    marginBottom: 4,
   },
   logoMark: {
     width: 52,

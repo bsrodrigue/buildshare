@@ -15,7 +15,8 @@ interface ApiConfigModalProps {
 }
 
 /**
- * Dev-only dialog that lets testers swap the API base URL at runtime.
+ * Dialog that lets users swap the API base URL at runtime.
+ * This is useful for self-hosting or pointing the app to a different backend instance.
  * The change is persisted in AsyncStorage and takes effect immediately.
  */
 export function ApiConfigModal({ visible, onDismiss }: ApiConfigModalProps) {
@@ -84,7 +85,8 @@ export function ApiConfigModal({ visible, onDismiss }: ApiConfigModalProps) {
 
         <Dialog.Content>
           <Text variant="bodySmall" style={[styles.hint, { color: theme.colors.onSurfaceVariant }]}>
-            Dev only — change the API base URL. Reverts to env default on reset.
+            Configure the API base URL. This change allows pointing the app to a self-hosted
+            backend. Reverts to default on reset.
           </Text>
 
           <View style={styles.inputGroup}>

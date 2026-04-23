@@ -25,7 +25,7 @@ export const NotificationDispatcher: React.FC<Props> = ({ notification }) => {
       return (
         <View style={styles.generic}>
           <Text variant="bodyMedium" style={styles.unsupported}>
-            Message non supporté ({{ type: notification.type }})
+            Message non supporté ({notification.type})
           </Text>
           <Text variant="bodySmall">{notification.body}</Text>
         </View>

@@ -13,4 +13,4 @@ export type ProjectInvitationPayload = z.infer<typeof ProjectInvitationPayloadSc
 /**
  * Generic System Alert Payload (placeholder)
  */
-export const SystemAlertPayloadSchema = z.record(z.any());
+export const SystemAlertPayloadSchema = z.record(z.string(), z.any());

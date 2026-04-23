@@ -1,5 +1,6 @@
 from django.db import transaction
 
+from core.exceptions import ApplicationError
 from notifications.models import NotificationType
 from notifications.services import notification_create
 from users.models import User
@@ -41,13 +42,13 @@ def invitation_send(
 ) -> ProjectInvitation:
     # Check if user already in project
     if UserProjectProfile.objects.filter(project=project, user__email=email).exists():
-        raise ValueError("L'utilisateur est déjà membre de ce projet.")
+        raise ApplicationError("L'utilisateur est déjà membre de ce projet.")
 
     # Check for pending invitation
     if ProjectInvitation.objects.filter(
         project=project, email=email, status=ProjectInvitationStatus.PENDING
     ).exists():
-        raise ValueError("Une invitation est déjà en attente pour cet email.")
+        raise ApplicationError("Une invitation est déjà en attente pour cet email.")
 
     invitation = ProjectInvitation(project=project, inviter=inviter, email=email, role=role)
     invitation.full_clean()
@@ -70,10 +71,10 @@ def invitation_send(
 @transaction.atomic
 def invitation_accept(*, invitation: ProjectInvitation, user: User) -> UserProjectProfile:
     if invitation.email != user.email:
-        raise ValueError("Cette invitation ne vous est pas destinée.")
+        raise ApplicationError("Cette invitation ne vous est pas destinée.")
 
     if invitation.status != ProjectInvitationStatus.PENDING:
-        raise ValueError("Cette invitation n'est plus valide.")
+        raise ApplicationError("Cette invitation n'est plus valide.")
 
     invitation.status = ProjectInvitationStatus.ACCEPTED
     invitation.save(update_fields=["status"])
@@ -93,10 +94,10 @@ def invitation_accept(*, invitation: ProjectInvitation, user: User) -> UserProje
 @transaction.atomic
 def invitation_reject(*, invitation: ProjectInvitation, user: User) -> None:
     if invitation.email != user.email:
-        raise ValueError("Cette invitation ne vous est pas destinée.")
+        raise ApplicationError("Cette invitation ne vous est pas destinée.")
 
     if invitation.status != ProjectInvitationStatus.PENDING:
-        raise ValueError("Cette invitation n'est plus valide.")
+        raise ApplicationError("Cette invitation n'est plus valide.")
 
     invitation.status = ProjectInvitationStatus.REJECTED
     invitation.save(update_fields=["status"])
@@ -109,7 +110,7 @@ def project_membership_revoke(*, project: Project, user: User, actor: User) -> N
     is_admin = project.user_profiles.filter(user=actor, role=UserProjectProfile.Role.ADMIN).exists()
 
     if not (is_self or is_admin):
-        raise ValueError("Vous n'avez pas les droits pour révoquer cette adhésion.")
+        raise ApplicationError("Vous n'avez pas les droits pour révoquer cette adhésion.")
 
     # Prevent project from having no admin if the last admin leaves
     if (
@@ -119,7 +120,7 @@ def project_membership_revoke(*, project: Project, user: User, actor: User) -> N
         # Check if there are other admins
         # (though constraint UNIQUE_PROJECT_ADMIN says there is only one)
         # So we prevent the only admin from leaving without handing over
-        raise ValueError(
+        raise ApplicationError(
             "L'administrateur ne peut pas quitter le projet sans nommer un remplaçant."
         )
 

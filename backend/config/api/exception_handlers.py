@@ -74,6 +74,7 @@ def _handle_application_error(exc: ApplicationError) -> Response:
         hasattr(exc.code, "name") and "NOT_FOUND" in exc.code.name
     ) or "_NOT_FOUND" in str(exc.code).upper()
 
+    status_code: int = status.HTTP_400_BAD_REQUEST
     if is_not_found:
         status_code = status.HTTP_404_NOT_FOUND
 

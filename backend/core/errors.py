@@ -10,6 +10,7 @@ class ErrorCode(StrEnum):
     # Generic Errors (gen)
     VALIDATION_ERROR = "gen_val_001"
     UNIQUE_CONSTRAINT_VIOLATED = "gen_val_002"
+    RESOURCE_NOT_FOUND = "gen_val_003"
 
     # Auth Errors (auth)
     AUTH_INVALID_CREDENTIALS = "auth_val_001"

@@ -5,6 +5,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from core.exceptions import ApplicationError
 from users.models import User
 
 from .models import Notification
@@ -31,7 +32,7 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet[Notification]):
     def bulk_mark_as_read(self, request: Any) -> Response:
         notification_ids = request.data.get("notification_ids", [])
         if not isinstance(notification_ids, list):
-            return Response({"error": "ids must be a list"}, status=status.HTTP_400_BAD_REQUEST)
+            raise ApplicationError("ids must be a list")
 
         count = notification_bulk_mark_as_read(user=request.user, notification_ids=notification_ids)
         return Response({"count": count}, status=status.HTTP_200_OK)

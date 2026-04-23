@@ -12,6 +12,7 @@ import useInitApp from '@/hooks/init';
 import { useAppFonts } from '@/hooks/useAppFonts';
 import { createLogger } from '@/libs/log';
 import { toastConfig } from '@/libs/notification/toast/ToastConfig';
+import { GlobalErrorBoundary } from '@/modules/shared/components/GlobalErrorBoundary';
 import { ThemeProvider, useTheme } from '@/modules/shared/theme/ThemeProvider';
 
 const logger = createLogger('RootLayout');
@@ -30,34 +31,36 @@ function RootLayoutContent() {
   }
 
   return (
-    <SafeAreaProvider
-      onLayout={() => {
-        void onLayoutRootView();
-      }}
-    >
-      <PaperProvider theme={paperTheme}>
-        <StatusBar style="auto" />
-        <KeyboardProvider>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-            }}
-          >
-            {/* Private Screens */}
-            <Stack.Protected guard={isAuthenticated}>
-              <Stack.Screen name="(protected)" />
-            </Stack.Protected>
+    <GlobalErrorBoundary>
+      <SafeAreaProvider
+        onLayout={() => {
+          void onLayoutRootView();
+        }}
+      >
+        <PaperProvider theme={paperTheme}>
+          <StatusBar style="auto" />
+          <KeyboardProvider>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+              }}
+            >
+              {/* Private Screens */}
+              <Stack.Protected guard={isAuthenticated}>
+                <Stack.Screen name="(protected)" />
+              </Stack.Protected>
 
-            {/* Public Screens */}
-            <Stack.Protected guard={!isAuthenticated}>
-              <Stack.Screen name="(auth)" />
-            </Stack.Protected>
-          </Stack>
-        </KeyboardProvider>
+              {/* Public Screens */}
+              <Stack.Protected guard={!isAuthenticated}>
+                <Stack.Screen name="(auth)" />
+              </Stack.Protected>
+            </Stack>
+          </KeyboardProvider>
 
-        <Toast config={toastConfig} />
-      </PaperProvider>
-    </SafeAreaProvider>
+          <Toast config={toastConfig} />
+        </PaperProvider>
+      </SafeAreaProvider>
+    </GlobalErrorBoundary>
   );
 }
 

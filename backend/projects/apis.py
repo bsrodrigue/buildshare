@@ -3,6 +3,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.errors import ErrorCode
+from core.exceptions import ApplicationError
 from users.models import User
 
 from .models import ProjectInvitation
@@ -79,10 +81,7 @@ class ProjectInvitationApi(APIView):
 
         # Ensure user is ADMIN
         if not project.user_profiles.filter(user=request.user, role="ADMIN").exists():
-            return Response(
-                {"error": "Seuls les administrateurs peuvent envoyer des invitations."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+            raise ApplicationError("Seuls les administrateurs peuvent envoyer des invitations.")
 
         serializer = ProjectInvitationInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -103,7 +102,7 @@ class ProjectInvitationActionApi(APIView):
         # UUID search
         invitation = ProjectInvitation.objects.filter(id=invitation_id).first()
         if not invitation:
-            return Response({"error": "Invitation non trouvée."}, status=status.HTTP_404_NOT_FOUND)
+            raise ApplicationError("Invitation non trouvée.", code=ErrorCode.RESOURCE_NOT_FOUND)
 
         if action == "accept":
             invitation_accept(invitation=invitation, user=request.user)
@@ -111,7 +110,8 @@ class ProjectInvitationActionApi(APIView):
         if action == "reject":
             invitation_reject(invitation=invitation, user=request.user)
             return Response({"status": "rejected"})
-        return Response({"error": "Action non valide."}, status=status.HTTP_400_BAD_REQUEST)
+
+        raise ApplicationError("Action non valide.")
 
 
 class ProjectMembershipApi(APIView):
@@ -121,12 +121,9 @@ class ProjectMembershipApi(APIView):
 
         target_user = User.objects.filter(id=user_id).first()
         if not target_user:
-            return Response({"error": "Utilisateur non trouvé."}, status=status.HTTP_404_NOT_FOUND)
+            raise ApplicationError("Utilisateur non trouvé.", code=ErrorCode.RESOURCE_NOT_FOUND)
 
-        try:
-            project_membership_revoke(project=project, user=target_user, actor=request.user)
-        except ValueError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        project_membership_revoke(project=project, user=target_user, actor=request.user)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

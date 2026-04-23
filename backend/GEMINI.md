@@ -66,6 +66,7 @@ The backend is organized into modular Django apps (e.g., `binaries`, `projects`,
 ### 4.1 "Zero 500s" for Predictable Failures
 
 - **Standardized Format**: ALL errors must return the project's standard structure: `{ "code": "...", "message": "...", "fields": { "field": [{"message": "...", "code": "..."}] } }`.
+- **ApplicationError**: Always use `ApplicationError` (from `core.exceptions`) when raising business logic or validation errors. This ensures the error is correctly caught and formatted by the global exception handler.
 - **Integrity Mapping**: Every `UniqueConstraint` or `CheckConstraint` added to a model MUST be registered in the `ConstraintRegistry` within the app's `ready()` method.
 - **Graceful Fallbacks**: The `custom_exception_handler` MUST catch all `IntegrityError` exceptions and return a formatted 400 Bad Request if a specific mapping is missing, never a 500.
 

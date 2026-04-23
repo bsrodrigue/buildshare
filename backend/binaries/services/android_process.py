@@ -5,6 +5,7 @@ from typing import Any
 from django.core.files import File
 from django.db import IntegrityError, transaction
 
+from core.exceptions import ApplicationError
 from libs.android import AndroidMetadata
 from projects.models import Project
 
@@ -49,7 +50,7 @@ class AndroidArtifactProcessingService:
 
             # Enforce App Signature consistency
             if not created and app.app_signature and signature and app.app_signature != signature:
-                raise ValueError(
+                raise ApplicationError(
                     f"La signature de l'APK ({signature}) ne correspond pas à la "
                     f"signature enregistrée pour cette application ({app.app_signature})."
                 )
@@ -70,13 +71,13 @@ class AndroidArtifactProcessingService:
 
             # Validity checks
             if Artifact.objects.filter(release=release, hash=file_hash).exists():
-                raise ValueError("Ce binaire a déjà été téléversé pour cette version.")
+                raise ApplicationError("Ce binaire a déjà été téléversé pour cette version.")
 
             if (
                 architecture != "unknown"
                 and Artifact.objects.filter(release=release, architecture=architecture).exists()
             ):
-                raise ValueError(
+                raise ApplicationError(
                     f"Une version pour l'architecture '{architecture}' "
                     "existe déjà pour cette release."
                 )
@@ -92,7 +93,7 @@ class AndroidArtifactProcessingService:
                     )
                 except IntegrityError as e:
                     logger.error(f"Integrity Error: {e}")
-                    raise ValueError(
+                    raise ApplicationError(
                         "Conflit de données : ce binaire ou cette architecture "
                         "a déjà été enregistré."
                     ) from e

@@ -1,6 +1,5 @@
 import json
 import os
-import re
 
 def format_size(size_bytes):
     if size_bytes < 1024:
@@ -114,7 +113,8 @@ def analyze_atlas(file_path):
         if count >= 15:
             break
         key = (mod['name'], mod['size'])
-        if key in seen_files: continue
+        if key in seen_files:
+            continue
         seen_files.add(key)
         print(f"{count+1:<5} {format_size(mod['size']):<12} {mod['name']}")
         count += 1

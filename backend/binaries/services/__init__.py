@@ -7,7 +7,7 @@ from core.exceptions import ApplicationError
 from projects.models import Project, UserProjectProfile
 from users.models import User
 
-from .models import Application, Artifact, Release
+from ..models import Application, Artifact, Release
 
 
 def _check_is_project_admin(*, user: User, project: Project) -> None:

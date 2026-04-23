@@ -30,6 +30,17 @@ The backend is organized into modular Django apps (e.g., `binaries`, `projects`,
 ### 2.1 The "Diamond Resistant" Mandate
 
 - **Strict Typing**: All function signatures MUST have type hints for arguments and return types.
+- **Model Typing**: Models MUST be typed using explicit generic annotations on field assignments to satisfy `django-stubs`. `if TYPE_CHECKING:` blocks should be reserved for dynamically generated methods and related managers.
+  Example:
+
+  ```python
+  name: models.CharField[str, str] = models.CharField(max_length=255)
+  project: models.ForeignKey[Project | int, Project] = models.ForeignKey(Project, ...)
+
+  if TYPE_CHECKING:
+      def get_status_display(self) -> str: ...
+  ```
+
 - **Enforcement**: Mypy is configured with `--disallow-untyped-defs` and `--disallow-any-generics`.
 - **Primitive Obsession**: Avoid passing raw dicts. Prefer Pydantic models or typed DataClasses if complex data structures are needed outside of Serializers.
 

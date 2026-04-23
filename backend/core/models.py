@@ -1,4 +1,11 @@
+from __future__ import annotations
+
 import uuid
+from datetime import datetime
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from users.models import User
 
 from django.conf import settings
 from django.db import models
@@ -26,44 +33,67 @@ class TaskJobType(models.TextChoices):
 
 
 class BaseModel(models.Model):
-    created_at = models.DateTimeField(db_index=True, default=timezone.now)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at: models.DateTimeField[datetime, datetime] = models.DateTimeField(
+        db_index=True, default=timezone.now
+    )
+    updated_at: models.DateTimeField[datetime, datetime] = models.DateTimeField(auto_now=True)
 
     class Meta(TypedModelMeta):
         abstract = True
 
 
 class TaskJob(BaseModel):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(
+    id: models.UUIDField[uuid.UUID | str, uuid.UUID] = models.UUIDField(
+        primary_key=True, default=uuid.uuid4, editable=False
+    )
+    user: models.ForeignKey[User | int, User] = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="jobs",
         verbose_name="Utilisateur",
     )
-    type = models.CharField("Type de tâche", max_length=50, choices=TaskJobType.choices)
-    status = models.CharField(
+    type: models.CharField[str, str] = models.CharField(
+        "Type de tâche", max_length=50, choices=TaskJobType.choices
+    )
+    status: models.CharField[str, str] = models.CharField(
         "Statut",
         max_length=50,
         choices=TaskJobStatus.choices,
         default=TaskJobStatus.PENDING,
     )
 
-    input_data = models.JSONField("Données d'entrée", default=dict, blank=True)
-    output_data = models.JSONField("Données de sortie", default=dict, blank=True)
+    input_data: models.JSONField[dict[str, Any], dict[str, Any]] = models.JSONField(
+        "Données d'entrée", default=dict, blank=True
+    )
+    output_data: models.JSONField[dict[str, Any], dict[str, Any]] = models.JSONField(
+        "Données de sortie", default=dict, blank=True
+    )
 
-    error_message = models.TextField("Message d'erreur", blank=True, default="")
+    error_message: models.TextField[str, str] = models.TextField(
+        "Message d'erreur", blank=True, default=""
+    )
 
-    idempotency_key = models.CharField(
+    idempotency_key: models.CharField[str | None, str | None] = models.CharField(
         "Clé d'idempotence",
         max_length=255,
         null=True,
         blank=True,
     )
 
-    started_at = models.DateTimeField("Démarré le", null=True, blank=True)
-    finished_at = models.DateTimeField("Terminé le", null=True, blank=True)
-    expires_at = models.DateTimeField("Expire le", null=True, blank=True)
+    started_at: models.DateTimeField[datetime | None, datetime | None] = models.DateTimeField(
+        "Démarré le", null=True, blank=True
+    )
+    finished_at: models.DateTimeField[datetime | None, datetime | None] = models.DateTimeField(
+        "Terminé le", null=True, blank=True
+    )
+    expires_at: models.DateTimeField[datetime | None, datetime | None] = models.DateTimeField(
+        "Expire le", null=True, blank=True
+    )
+
+    if TYPE_CHECKING:
+
+        def get_status_display(self) -> str: ...
+        def get_type_display(self) -> str: ...
 
     class Meta(TypedModelMeta):
         verbose_name = "Tâche de traitement"

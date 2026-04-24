@@ -30,8 +30,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     adaptiveIcon: {
       backgroundColor: '#E6F4FE',
       foregroundImage: './assets/images/logos/buildshare_logo.png',
-      backgroundImage: './assets/images/android-icon-background.png',
-      monochromeImage: './assets/images/android-icon-monochrome.png',
+      monochromeImage: './assets/images/logos/buildshare_logo.png',
     },
     edgeToEdgeEnabled: true,
     package: 'com.buildshare',

@@ -7,7 +7,8 @@
     "cancel": "Annuler",
     "save": "Enregistrer",
     "delete": "Supprimer",
-    "close": "Fermer"
+    "close": "Fermer",
+    "logout": "Déconnexion"
   },
   "auth": {
     "login": {

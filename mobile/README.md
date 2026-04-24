@@ -1,6 +1,10 @@
-# Songre
+<p align="center">
+  <img src="./assets/images/logos/buildshare_logo.png" width="200" alt="BuildShare Logo" />
+</p>
 
-Songre is a multi-role Expo / React Native application that combines shopping, delivery, jobs, pharmacy discovery, subscriptions, notifications, and influencer flows in a single mobile app.
+# BuildShare
+
+The BuildShare mobile client allows testers to browse projects, view release histories, and download artifacts directly to their Android devices.
 
 ## Overview
 

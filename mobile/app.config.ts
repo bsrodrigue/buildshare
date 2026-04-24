@@ -6,7 +6,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   slug: 'buildshare',
   version: '1.0.1',
   orientation: 'portrait',
-  icon: './assets/images/icon.png',
+  icon: './assets/images/logos/buildshare_logo.png',
   scheme: 'buildshare',
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
@@ -29,7 +29,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     adaptiveIcon: {
       backgroundColor: '#E6F4FE',
-      foregroundImage: './assets/images/android-icon-foreground.png',
+      foregroundImage: './assets/images/logos/buildshare_logo.png',
       backgroundImage: './assets/images/android-icon-background.png',
       monochromeImage: './assets/images/android-icon-monochrome.png',
     },
@@ -38,14 +38,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   web: {
     output: 'static',
-    favicon: './assets/images/favicon.png',
+    favicon: './assets/images/logos/buildshare_logo.png',
   },
   plugins: [
     'expo-router',
     [
       'expo-splash-screen',
       {
-        image: './assets/images/icons/icon.png',
+        image: './assets/images/logos/buildshare_logo.png',
         imageWidth: 200,
         resizeMode: 'contain',
         backgroundColor: '#1d1c22',

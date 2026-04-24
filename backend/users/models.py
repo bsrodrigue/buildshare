@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django_stubs_ext.db.models import TypedModelMeta
@@ -32,7 +33,7 @@ class User(AbstractUser, BaseModel):
     username = None  # type: ignore[assignment]
     email: models.EmailField[str, str] = models.EmailField("Adresse email", unique=True)
 
-    objects = UserManager()  # type: ignore[assignment, misc]
+    objects: UserManager = UserManager()  # type: ignore[assignment, misc]
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
@@ -43,3 +44,22 @@ class User(AbstractUser, BaseModel):
 
     def __str__(self) -> str:
         return str(self.email)
+
+
+class UserProfile(BaseModel):
+    user: models.OneToOneField[User | int, User] = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="profile",
+        verbose_name="Utilisateur",
+    )
+    bio: models.TextField[str, str] = models.TextField("Biographie", blank=True, default="")
+
+    objects: models.Manager[UserProfile] = models.Manager()
+
+    class Meta(TypedModelMeta):
+        verbose_name = "Profil Utilisateur"
+        verbose_name_plural = "Profils Utilisateurs"
+
+    def __str__(self) -> str:
+        return f"Profil de {self.user.email}"

@@ -82,6 +82,9 @@ export const darkColors = {
 
   // Feedback
   error: palette.errorDark,
+  onError: '#601410',
+  errorContainer: '#8C1D18',
+  onErrorContainer: '#F9DEDC',
   success: '#B2EEB1',
   disabled: 'rgba(230, 225, 229, 0.38)',
 
@@ -150,6 +153,9 @@ export const lightColors: ThemeColors = {
 
   // Feedback
   error: palette.error,
+  onError: palette.white,
+  errorContainer: '#F9DEDC',
+  onErrorContainer: '#410E0B',
   success: '#2E7D32',
   disabled: 'rgba(28, 27, 31, 0.38)',
 

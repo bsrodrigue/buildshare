@@ -65,3 +65,9 @@ ignore_errors = true
 
 [tool.django-stubs]
 django_settings_module = "config.django.base"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.django.base"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+django_find_project = true
+

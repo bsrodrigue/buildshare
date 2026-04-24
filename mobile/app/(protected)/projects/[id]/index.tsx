@@ -8,6 +8,7 @@ import {
   Button,
   Chip,
   Dialog,
+  Divider,
   FAB,
   IconButton,
   List,
@@ -265,7 +266,21 @@ export default function ProjectDetailScreen() {
                 leadingIcon="account-group"
               />
 
-              <Menu.Item onPress={handleLeave} title="Quitter le projet" leadingIcon="logout" />
+              <Menu.Item
+                onPress={handleLeave}
+                title="Quitter le projet"
+                leadingIcon="account-remove"
+              />
+              <Divider />
+              <Menu.Item
+                onPress={() => {
+                  closeMenu();
+                  void useAuthStore.getState().logout();
+                }}
+                title={t('common.logout')}
+                leadingIcon="logout"
+                titleStyle={{ color: theme.colors.error }}
+              />
 
               {project?.role === 'ADMIN' && (
                 <Menu.Item

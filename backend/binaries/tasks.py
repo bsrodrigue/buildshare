@@ -29,7 +29,6 @@ def process_apk_task(
         with transaction.atomic():
             flow.start()
 
-        storage_service = R2StorageService()
         r2_path = job.input_data.get("r2_path")
         project_id = job.input_data.get("project_id")
 
@@ -39,6 +38,7 @@ def process_apk_task(
         project = Project.objects.get(id=project_id)
 
         # Initialize Services
+        storage_service = R2StorageService()
         downloader = AndroidBinaryDownloader()
         binary_service = AndroidBinaryService()
         process_service = AndroidArtifactProcessingService()

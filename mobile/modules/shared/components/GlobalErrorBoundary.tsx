@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Button, Surface, Text } from 'react-native-paper';
 
 import { createLogger } from '@/libs/log';
+import { useAuthStore } from '@/modules/auth/store';
 
 const logger = createLogger('ErrorBoundary');
 
@@ -59,6 +60,17 @@ export class GlobalErrorBoundary extends Component<Props, State> {
             <Button mode="contained" onPress={this.handleReset} style={styles.button}>
               Réessayer
             </Button>
+            <Button
+              mode="outlined"
+              onPress={() => {
+                void useAuthStore.getState().logout();
+                this.handleReset();
+              }}
+              style={styles.logoutButton}
+              textColor="#D32F2F"
+            >
+              Déconnexion
+            </Button>
           </Surface>
         </View>
       );
@@ -102,5 +114,10 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 8,
     width: '100%',
+  },
+  logoutButton: {
+    marginTop: 12,
+    width: '100%',
+    borderColor: '#D32F2F',
   },
 });

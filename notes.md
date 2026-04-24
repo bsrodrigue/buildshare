@@ -1,3 +1,5 @@
 - Integrate email sending
 - Integrate phone otp sending
 - What is the Django industry gold standard for handling server notifications? Signals?
+- What is the lifecycle of a Django signal? Is it sync or async? Does it happen inside our outside the request-response lifecycle?
+- Mobile APK download should use R2 (Cloudflare)

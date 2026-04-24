@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./mobile/assets/images/logos/buildshare_logo.png" width="200" alt="BuildShare Logo" />
+</p>
+
 # BuildShare — Internal Android Build Distribution Platform for Engineering Teams
 
 A full-stack system that lets development teams upload APK binaries, organize them by project, and distribute versioned releases to testers through a dedicated mobile client.

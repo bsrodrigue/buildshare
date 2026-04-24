@@ -72,7 +72,7 @@ export default function DashboardScreen() {
           },
         ]}
       >
-        <View>
+        <View style={styles.headerTitleContainer}>
           <Text
             variant="headlineMedium"
             style={[styles.welcome, { color: theme.colors.onSurface }]}
@@ -102,7 +102,9 @@ export default function DashboardScreen() {
           />
           <IconButton
             icon="logout"
-            iconColor={theme.colors.onSurfaceVariant}
+            mode="contained"
+            containerColor={theme.colors.errorContainer}
+            iconColor={theme.colors.error}
             onPress={() => {
               void logout();
             }}
@@ -159,6 +161,9 @@ const styles = StyleSheet.create({
   },
   headerRight: {
     flexDirection: 'row',
+  },
+  headerTitleContainer: {
+    flex: 1,
   },
   welcome: {
     fontWeight: 'bold',

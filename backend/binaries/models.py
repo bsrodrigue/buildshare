@@ -81,7 +81,9 @@ class Artifact(BaseModel):
     release: models.ForeignKey[Release | int, Release] = models.ForeignKey(
         Release, related_name="artifacts", on_delete=models.CASCADE
     )
-    file: models.FileField = models.FileField("Fichier binaire", upload_to=artifact_upload_path)
+    file: models.FileField = models.FileField(
+        "Fichier binaire", upload_to=artifact_upload_path
+    )  # TODO: Replace with R2 presigned URL
     architecture: models.CharField[str, str] = models.CharField(
         "Architecture", max_length=50, blank=True
     )

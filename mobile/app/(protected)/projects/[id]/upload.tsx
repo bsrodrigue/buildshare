@@ -4,13 +4,22 @@ import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Card, IconButton, List, Text, TextInput } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  Button,
+  Card,
+  IconButton,
+  List,
+  Text,
+  TextInput,
+} from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppError } from '@/libs/api/types';
 import { toast } from '@/libs/notification/toast';
 import { useAPKUploadPipeline } from '@/modules/binaries/api/hooks';
 import { ApkUploadInput } from '@/modules/binaries/components/ApkUploadInput';
+import { useProject } from '@/modules/projects/api/hooks';
 
 export default function UploadArtifactScreen() {
   const { id, appId } = useLocalSearchParams();
@@ -19,7 +28,15 @@ export default function UploadArtifactScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
 
+  const { data: project, isLoading: isProjectLoading } = useProject(pid);
   const uploadPipeline = useAPKUploadPipeline();
+
+  React.useEffect(() => {
+    if (project && project.role !== 'ADMIN') {
+      toast.error('Seuls les administrateurs peuvent ajouter des fichiers.');
+      router.back();
+    }
+  }, [project]);
 
   const [selectedFile, setSelectedFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -76,6 +93,14 @@ export default function UploadArtifactScreen() {
   };
 
   const isPending = uploadPipeline.isPending;
+
+  if (isProjectLoading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -240,5 +265,10 @@ const styles = StyleSheet.create({
   },
   submitButtonContent: {
     height: 48,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

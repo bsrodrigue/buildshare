@@ -7,6 +7,7 @@ import { z } from 'zod';
 export const ApplicationSchema = z.object({
   id: z.number(),
   project: z.number(),
+  project_role: z.string().nullable().optional(),
   app_id: z.string(),
   title: z.string(),
   description: z.string(),

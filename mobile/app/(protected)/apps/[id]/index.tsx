@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, FlatList, Linking, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, Linking, RefreshControl, StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
   Chip,
@@ -9,6 +9,7 @@ import {
   IconButton,
   List,
   Menu,
+  Portal,
   Surface,
   Text,
 } from 'react-native-paper';
@@ -19,6 +20,7 @@ import { toast } from '@/libs/notification/toast';
 import { formatTimelineDate } from '@/libs/utils/date';
 import { useApplication, useDeleteApplication, useReleases } from '@/modules/binaries/api/hooks';
 import { Release, ReleaseArtifact } from '@/modules/binaries/api/schemas';
+import { ConfirmDialog } from '@/modules/shared/components/ConfirmDialog';
 import { useTheme } from '@/modules/shared/theme/ThemeProvider';
 
 export default function AppDetailScreen() {
@@ -39,40 +41,33 @@ export default function AppDetailScreen() {
 
   const deleteApplication = useDeleteApplication();
   const [menuVisible, setMenuVisible] = React.useState(false);
+  const [deleteVisible, setDeleteVisible] = React.useState(false);
 
   const openMenu = () => setMenuVisible(true);
   const closeMenu = () => setMenuVisible(false);
 
   const handleDelete = () => {
     closeMenu();
-    Alert.alert(
-      t('screens.release_list.delete_confirm_title'),
-      t('screens.release_list.delete_confirm_message'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: () => {
-            if (!resolvedProjectId) return;
-            deleteApplication.mutate(
-              { id: applicationId, projectId: resolvedProjectId },
-              {
-                onSuccess: () => {
-                  toast.success(t('screens.release_list.delete_success'));
-                  router.replace({
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    pathname: `/(protected)/projects/${resolvedProjectId}` as any,
-                  });
-                },
-                onError: (error) => {
-                  toast.error(t('screens.release_list.delete_error'), error.message);
-                },
-              },
-            );
-          },
+    setDeleteVisible(true);
+  };
+
+  const confirmDelete = () => {
+    setDeleteVisible(false);
+    if (!resolvedProjectId) return;
+    deleteApplication.mutate(
+      { id: applicationId, projectId: resolvedProjectId },
+      {
+        onSuccess: () => {
+          toast.success(t('screens.release_list.delete_success'));
+          router.replace({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            pathname: `/(protected)/projects/${resolvedProjectId}` as any,
+          });
         },
-      ],
+        onError: (error) => {
+          toast.error(t('screens.release_list.delete_error'), error.message);
+        },
+      },
     );
   };
 
@@ -285,24 +280,49 @@ export default function AppDetailScreen() {
               />
             }
           >
+            {application?.project_role === 'ADMIN' && (
+              <>
+                <Menu.Item
+                  onPress={() => {
+                    closeMenu();
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    void router.push(`/(protected)/apps/${applicationId}/edit` as any);
+                  }}
+                  title={t('screens.edit_application.title')}
+                  leadingIcon="pencil"
+                />
+                <Menu.Item
+                  onPress={handleDelete}
+                  title={t('common.delete')}
+                  leadingIcon="delete"
+                  titleStyle={{ color: theme.colors.error }}
+                />
+              </>
+            )}
             <Menu.Item
               onPress={() => {
                 closeMenu();
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                void router.push(`/(protected)/apps/${applicationId}/edit` as any);
+                void refetch();
               }}
-              title={t('screens.edit_application.title')}
-              leadingIcon="pencil"
-            />
-            <Menu.Item
-              onPress={handleDelete}
-              title={t('common.delete')}
-              leadingIcon="delete"
-              titleStyle={{ color: theme.colors.error }}
+              title={t('common.refresh')}
+              leadingIcon="refresh"
             />
           </Menu>
         </View>
       </View>
+
+      <Portal>
+        <ConfirmDialog
+          visible={deleteVisible}
+          onDismiss={() => setDeleteVisible(false)}
+          onConfirm={confirmDelete}
+          title={t('screens.release_list.delete_confirm_title')}
+          message={t('screens.release_list.delete_confirm_message')}
+          confirmText={t('common.delete')}
+          confirmColor={theme.colors.error}
+          loading={deleteApplication.isPending}
+        />
+      </Portal>
 
       <FlatList
         data={releases}
@@ -325,7 +345,7 @@ export default function AppDetailScreen() {
         }
       />
 
-      {resolvedProjectId && (
+      {resolvedProjectId && application?.project_role === 'ADMIN' && (
         <FAB
           icon="plus"
           label={t('screens.release_list.fab_new_release')}

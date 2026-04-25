@@ -37,6 +37,12 @@ export default function EditProjectScreen() {
 
   useEffect(() => {
     if (project) {
+      if (project.role !== 'ADMIN') {
+        toast.error("Vous n'avez pas les droits pour modifier ce projet.");
+        router.back();
+        return;
+      }
+
       reset({
         title: project.title,
         description: project.description || '',

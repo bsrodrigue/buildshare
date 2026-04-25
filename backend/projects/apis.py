@@ -7,6 +7,7 @@ from core.errors import ErrorCode
 from core.exceptions import ApplicationError
 from users.models import User
 
+from . import permissions as project_permissions
 from .models import ProjectInvitation, ProjectInvitationStatus
 from .selectors import project_get, project_list
 from .serializers import (
@@ -61,7 +62,7 @@ class ProjectDetailApi(APIView):
         serializer = ProjectInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        project = project_update(project=project, **serializer.validated_data)
+        project = project_update(project=project, user=request.user, **serializer.validated_data)
 
         return Response(ProjectOutputSerializer(project, context={"request": request}).data)
 
@@ -69,7 +70,7 @@ class ProjectDetailApi(APIView):
         assert isinstance(request.user, User)  # noqa: S101
         project = project_get(user=request.user, project_id=project_id)
 
-        project_delete(project=project)
+        project_delete(project=project, user=request.user)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -79,9 +80,8 @@ class ProjectInvitationApi(APIView):
         assert isinstance(request.user, User)  # noqa: S101
         project = project_get(user=request.user, project_id=project_id)
 
-        # Ensure user is ADMIN
-        if not project.user_profiles.filter(user=request.user, role="ADMIN").exists():
-            raise ApplicationError("Seuls les administrateurs peuvent envoyer des invitations.")
+        # Use utility for check
+        project_permissions.check_is_project_admin(user=request.user, project=project)
 
         serializer = ProjectInvitationInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

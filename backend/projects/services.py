@@ -6,6 +6,7 @@ from notifications.services import notification_create
 from users.models import User
 
 from .models import Project, ProjectInvitation, ProjectInvitationStatus, UserProjectProfile
+from .permissions import check_is_project_admin
 
 
 @transaction.atomic
@@ -22,7 +23,9 @@ def project_create(*, title: str, description: str = "", user: User) -> Project:
 
 
 @transaction.atomic
-def project_update(*, project: Project, title: str, description: str = "") -> Project:
+def project_update(*, project: Project, title: str, description: str = "", user: User) -> Project:
+    check_is_project_admin(user=user, project=project)
+
     project.title = title
     project.description = description
     project.full_clean()
@@ -32,7 +35,8 @@ def project_update(*, project: Project, title: str, description: str = "") -> Pr
 
 
 @transaction.atomic
-def project_delete(*, project: Project) -> None:
+def project_delete(*, project: Project, user: User) -> None:
+    check_is_project_admin(user=user, project=project)
     project.delete()
 
 

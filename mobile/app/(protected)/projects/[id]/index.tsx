@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
   Avatar,
@@ -30,6 +30,7 @@ import {
   useRevokeMembership,
   useSendInvitation,
 } from '@/modules/projects/api/hooks';
+import { ConfirmDialog } from '@/modules/shared/components/ConfirmDialog';
 import { useTheme } from '@/modules/shared/theme/ThemeProvider';
 
 export default function ProjectDetailScreen() {
@@ -54,6 +55,8 @@ export default function ProjectDetailScreen() {
   const sendInvitation = useSendInvitation();
 
   const [menuVisible, setMenuVisible] = React.useState(false);
+  const [deleteVisible, setDeleteVisible] = React.useState(false);
+  const [leaveVisible, setLeaveVisible] = React.useState(false);
   const [inviteDialogVisible, setInviteDialogVisible] = React.useState(false);
   const [inviteEmail, setInviteEmail] = React.useState('');
 
@@ -80,54 +83,43 @@ export default function ProjectDetailScreen() {
 
   const handleDelete = () => {
     closeMenu();
-    Alert.alert(
-      t('screens.project_detail.delete_confirm_title'),
-      t('screens.project_detail.delete_confirm_message'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: () => {
-            deleteProject.mutate(projectId, {
-              onSuccess: () => {
-                toast.success(t('screens.project_detail.delete_success'));
-                router.replace('/(protected)');
-              },
-              onError: (error) => {
-                toast.error(t('screens.project_detail.delete_error'), error.message);
-              },
-            });
-          },
-        },
-      ],
-    );
+    setDeleteVisible(true);
   };
+
+  const confirmDelete = () => {
+    setDeleteVisible(false);
+    deleteProject.mutate(projectId, {
+      onSuccess: () => {
+        toast.success(t('screens.project_detail.delete_success'));
+        router.replace('/(protected)');
+      },
+      onError: (error) => {
+        toast.error(t('screens.project_detail.delete_error'), error.message);
+      },
+    });
+  };
+
   const handleLeave = () => {
     closeMenu();
+    setLeaveVisible(true);
+  };
+
+  const confirmLeave = () => {
+    setLeaveVisible(false);
     if (!user) return;
 
-    Alert.alert('Quitter le projet', 'Voulez-vous vraiment quitter ce projet ?', [
-      { text: t('common.cancel'), style: 'cancel' },
+    revokeMembership.mutate(
+      { projectId, userId: user.id },
       {
-        text: 'Quitter',
-        style: 'destructive',
-        onPress: () => {
-          revokeMembership.mutate(
-            { projectId, userId: user.id },
-            {
-              onSuccess: () => {
-                toast.success('Vous avez quitté le projet');
-                router.replace('/(protected)');
-              },
-              onError: (error) => {
-                toast.error('Erreur', error.message);
-              },
-            },
-          );
+        onSuccess: () => {
+          toast.success('Vous avez quitté le projet');
+          router.replace('/(protected)');
+        },
+        onError: (error) => {
+          toast.error('Erreur', error.message);
         },
       },
-    ]);
+    );
   };
 
   const renderAppItem = ({ item }: { item: Application }) => (
@@ -371,21 +363,45 @@ export default function ProjectDetailScreen() {
         }
       />
 
-      <FAB
-        icon="plus"
-        label={t('screens.project_detail.fab_new_app')}
-        variant="primary"
-        mode="flat"
-        style={[styles.fab, { bottom: insets.bottom + 16 }]}
-        onPress={() => {
-          void router.push({
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            pathname: `/(protected)/projects/${projectId}/upload` as any,
-          });
-        }}
-      />
+      {project?.role === 'ADMIN' && (
+        <FAB
+          icon="plus"
+          label={t('screens.project_detail.fab_new_app')}
+          variant="primary"
+          mode="flat"
+          style={[styles.fab, { bottom: insets.bottom + 16 }]}
+          onPress={() => {
+            void router.push({
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              pathname: `/(protected)/projects/${projectId}/upload` as any,
+            });
+          }}
+        />
+      )}
 
       <Portal>
+        <ConfirmDialog
+          visible={deleteVisible}
+          onDismiss={() => setDeleteVisible(false)}
+          onConfirm={confirmDelete}
+          title={t('screens.project_detail.delete_confirm_title')}
+          message={t('screens.project_detail.delete_confirm_message')}
+          confirmText={t('common.delete')}
+          confirmColor={theme.colors.error}
+          loading={deleteProject.isPending}
+        />
+
+        <ConfirmDialog
+          visible={leaveVisible}
+          onDismiss={() => setLeaveVisible(false)}
+          onConfirm={confirmLeave}
+          title="Quitter le projet"
+          message="Voulez-vous vraiment quitter ce projet ? Vous ne pourrez plus y accéder à moins d'être invité à nouveau."
+          confirmText="Quitter"
+          confirmColor={theme.colors.error}
+          loading={revokeMembership.isPending}
+        />
+
         <Dialog visible={inviteDialogVisible} onDismiss={() => setInviteDialogVisible(false)}>
           <Dialog.Title>Inviter un utilisateur</Dialog.Title>
           <Dialog.Content>

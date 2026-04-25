@@ -13,7 +13,8 @@
     "logout_confirm_message": "Voulez-vous vraiment vous déconnecter ?",
     "confirm": "Confirmer",
     "accept": "Accepter",
-    "reject": "Refuser"
+    "reject": "Refuser",
+    "refresh": "Actualiser"
   },
   "auth": {
     "login": {

@@ -42,7 +42,9 @@ class ApplicationApi(APIView):
 
         project = get_object_or_404(Project, id=project_id, user_profiles__user=request.user)
         apps = application_list(project=project)
-        return Response(ApplicationOutputSerializer(apps, many=True).data)
+        return Response(
+            ApplicationOutputSerializer(apps, many=True, context={"request": request}).data
+        )
 
     def post(self, request: Request) -> Response:
         assert isinstance(request.user, User)  # noqa: S101
@@ -52,14 +54,17 @@ class ApplicationApi(APIView):
         project = get_object_or_404(Project, id=serializer.validated_data.pop("project_id"))
         app = application_create(project=project, user=request.user, **serializer.validated_data)
 
-        return Response(ApplicationOutputSerializer(app).data, status=status.HTTP_201_CREATED)
+        return Response(
+            ApplicationOutputSerializer(app, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class ApplicationDetailApi(APIView):
     def get(self, request: Request, application_id: int) -> Response:
         assert isinstance(request.user, User)  # noqa: S101
         app = application_get(user=request.user, application_id=application_id)
-        return Response(ApplicationOutputSerializer(app).data)
+        return Response(ApplicationOutputSerializer(app, context={"request": request}).data)
 
     def put(self, request: Request, application_id: int) -> Response:
         assert isinstance(request.user, User)  # noqa: S101
@@ -77,7 +82,7 @@ class ApplicationDetailApi(APIView):
             description=serializer.validated_data.get("description", app.description),
         )
 
-        return Response(ApplicationOutputSerializer(app).data)
+        return Response(ApplicationOutputSerializer(app, context={"request": request}).data)
 
     def delete(self, request: Request, application_id: int) -> Response:
         assert isinstance(request.user, User)  # noqa: S101
@@ -131,8 +136,9 @@ class UploadIntentApi(APIView):
         project_id = serializer.validated_data["project_id"]
         idempotency_key = serializer.validated_data.get("idempotency_key")
 
-        # Validate that the user has access to this project
-        get_object_or_404(Project, id=project_id, user_profiles__user=request.user)
+        # Validate that the user is an ADMIN of the project
+        project = get_object_or_404(Project, id=project_id)
+        _check_is_project_admin(user=request.user, project=project)
 
         # Idempotency check: reuse existing job if same key is provided
         job = None
@@ -175,6 +181,12 @@ class ProcessAPKApi(APIView):
             user=request.user,
             type=TaskJobType.BINARY_PROCESSING,
         )
+
+        # Double check permission on the project associated with the job
+        project_id = job.input_data.get("project_id")
+        if project_id:
+            project = get_object_or_404(Project, id=project_id)
+            _check_is_project_admin(user=request.user, project=project)
 
         process_apk_task.delay(
             job_id=str(job.id),

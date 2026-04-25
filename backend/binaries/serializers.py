@@ -9,11 +9,26 @@ from .models import Application, Artifact, Release
 
 class ApplicationOutputSerializer(serializers.ModelSerializer[Application]):
     project = serializers.IntegerField(source="project.id")
+    project_role = serializers.SerializerMethodField()
     latest_release = serializers.SerializerMethodField()
 
     class Meta:
         model = Application
-        fields = ("id", "project", "app_id", "title", "description", "created_at", "latest_release")
+        fields = (
+            "id",
+            "project",
+            "project_role",
+            "app_id",
+            "title",
+            "description",
+            "created_at",
+            "latest_release",
+        )
+
+    def get_project_role(self, obj: Application) -> str | None:
+        user = self.context["request"].user
+        profile = obj.project.user_profiles.filter(user=user).first()
+        return profile.role if profile else None
 
     def get_latest_release(self, obj: Application) -> Any | None:
         latest = obj.releases.order_by("-version_code").first()

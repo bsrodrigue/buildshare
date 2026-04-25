@@ -40,6 +40,12 @@ export default function EditAppScreen() {
 
   useEffect(() => {
     if (application) {
+      if (application.project_role !== 'ADMIN') {
+        toast.error("Vous n'avez pas les droits pour modifier cette application.");
+        router.back();
+        return;
+      }
+
       reset({
         title: application.title,
         description: application.description || '',

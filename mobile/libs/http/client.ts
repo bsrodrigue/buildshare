@@ -185,7 +185,13 @@ export class HTTPClient {
         return {} as T;
       }
 
-      const responseData = await response.json<T>();
+      const rawBody = await response.text();
+      if (!rawBody || rawBody.trim() === '') {
+        logger.debug(`SUCCESS (Empty Body) ${method.toUpperCase()} ${url}`);
+        return {} as T;
+      }
+
+      const responseData = JSON.parse(rawBody) as T;
       logger.debug(`SUCCESS ${method.toUpperCase()} ${url}`);
       return responseData;
     } catch (error) {

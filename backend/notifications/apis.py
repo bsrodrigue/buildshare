@@ -26,7 +26,7 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet[Notification]):
     def mark_as_read(self, request: Any, pk: Any = None) -> Response:  # noqa: ARG002
         notification = self.get_object()
         notification_mark_as_read(notification=notification)
-        return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=["post"])
     def bulk_mark_as_read(self, request: Any) -> Response:

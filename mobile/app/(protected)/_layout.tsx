@@ -23,6 +23,7 @@ export default function ProtectedRootLayout() {
       }}
     >
       <Stack.Screen name="index" />
+      <Stack.Screen name="invitations" />
       <Stack.Screen name="projects/[id]/index" />
       <Stack.Screen name="projects/[id]/members" />
       <Stack.Screen name="projects/create" options={{ presentation: 'modal' }} />

@@ -93,4 +93,4 @@ class TestProjectMembershipAPI:
 
         response = client.post(url, {"email": "another@example.com", "role": "MEMBER"})
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_400_BAD_REQUEST

@@ -5,6 +5,7 @@ from .apis import (
     ProjectDetailApi,
     ProjectInvitationActionApi,
     ProjectInvitationApi,
+    ProjectInvitationListApi,
     ProjectMemberListApi,
     ProjectMembershipApi,
 )
@@ -22,6 +23,11 @@ urlpatterns = [
         "<int:project_id>/members/<int:user_id>/",
         ProjectMembershipApi.as_view(),
         name="project-membership-revoke",
+    ),
+    path(
+        "invitations/me/",
+        ProjectInvitationListApi.as_view(),
+        name="project-invitation-list-me",
     ),
     path(
         "invitations/<uuid:invitation_id>/<str:action>/",

@@ -8,14 +8,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/modules/auth/store';
 import { useProjects } from '@/modules/projects/api/hooks';
 import { Project } from '@/modules/projects/api/schemas';
+import { SideMenu } from '@/modules/shared/components/SideMenu';
 import { useTheme } from '@/modules/shared/theme/ThemeProvider';
 
 export default function DashboardScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const { data: projects, isLoading, isRefetching, refetch } = useProjects();
+  const [menuVisible, setMenuVisible] = React.useState(false);
 
   const renderProjectItem = ({ item }: { item: Project }) => (
     <Card
@@ -62,52 +64,42 @@ export default function DashboardScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <SideMenu visible={menuVisible} onClose={() => setMenuVisible(false)} />
+
       <View
         style={[
           styles.header,
           {
             backgroundColor: theme.colors.surface,
+            paddingTop: insets.top + 8,
             borderBottomColor: theme.colors.outline + '20',
-            paddingTop: insets.top + 16,
           },
         ]}
       >
+        <IconButton
+          icon="menu"
+          iconColor={theme.colors.onSurface}
+          size={28}
+          onPress={() => setMenuVisible(true)}
+          style={styles.menuButton}
+        />
         <View style={styles.headerTitleContainer}>
-          <Text
-            variant="headlineMedium"
-            style={[styles.welcome, { color: theme.colors.onSurface }]}
-          >
+          <Text variant="headlineSmall" style={[styles.welcome, { color: theme.colors.onSurface }]}>
             {t('screens.dashboard.welcome', { name: user?.first_name || '' })}
           </Text>
-          <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+          <Text
+            variant="bodySmall"
+            style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}
+          >
             {t('screens.dashboard.subtitle')}
           </Text>
         </View>
         <View style={styles.headerRight}>
           <IconButton
             icon="bell-outline"
-            iconColor={theme.colors.onSurfaceVariant}
-            onPress={() => {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              void router.push('/(protected)/notifications' as any);
-            }}
-          />
-          <IconButton
-            icon="history"
-            iconColor={theme.colors.onSurfaceVariant}
-            onPress={() => {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              void router.push('/(protected)/activity' as any);
-            }}
-          />
-          <IconButton
-            icon="logout"
-            mode="contained"
-            containerColor={theme.colors.errorContainer}
-            iconColor={theme.colors.error}
-            onPress={() => {
-              void logout();
-            }}
+            iconColor={theme.colors.onSurface}
+            size={24}
+            onPress={() => router.push('/notifications')}
           />
         </View>
       </View>
@@ -153,11 +145,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    padding: 24,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
+    paddingHorizontal: 24,
+    paddingBottom: 12,
+  },
+  menuButton: {
+    marginLeft: -8,
   },
   headerRight: {
     flexDirection: 'row',

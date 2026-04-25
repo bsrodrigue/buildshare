@@ -7,7 +7,13 @@
     "cancel": "Cancel",
     "save": "Save",
     "delete": "Delete",
-    "close": "Close"
+    "close": "Close",
+    "logout": "Logout",
+    "logout_confirm_title": "Logout",
+    "logout_confirm_message": "Are you sure you want to sign out?",
+    "confirm": "Confirm",
+    "accept": "Accept",
+    "reject": "Reject"
   },
   "auth": {
     "login": {
@@ -112,6 +118,16 @@
       "submit": "Save Changes",
       "success": "Application updated!",
       "error": "Failed to update application."
+    },
+    "invitations": {
+      "title": "Invitations",
+      "empty": "No pending invitations",
+      "accept_success": "Invitation accepted",
+      "accept_success_desc": "You have joined the project successfully.",
+      "reject_success": "Invitation rejected"
+    },
+    "notifications": {
+      "title": "Notifications"
     }
   },
   "components": {

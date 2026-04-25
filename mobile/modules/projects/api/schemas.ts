@@ -48,3 +48,19 @@ export type ProjectUpdateParams = ProjectCreateParams;
  */
 export const ProjectListResponseSchema = z.array(ProjectSchema);
 export type ProjectListResponse = z.infer<typeof ProjectListResponseSchema>;
+
+/**
+ * Project Invitation
+ */
+export const ProjectInvitationSchema = z.object({
+  // eslint-disable-next-line deprecation/deprecation
+  id: z.string().uuid(),
+  project: z.number(),
+  email: z.string(),
+  role: z.string(),
+  inviter: z.string(),
+  status: z.string(),
+  created_at: z.string(),
+});
+
+export type ProjectInvitation = z.infer<typeof ProjectInvitationSchema>;

@@ -4,6 +4,7 @@ import { validateModel } from '@/libs/api/validation';
 import {
   Project,
   ProjectCreateParams,
+  ProjectInvitation,
   ProjectListResponse,
   ProjectListResponseSchema,
   ProjectMember,
@@ -74,5 +75,23 @@ export const projectService = {
    */
   revokeMembership: async (projectId: number, userId: number): Promise<void> => {
     await http.delete(`projects/${projectId}/members/${userId}/`);
+  },
+  /**
+   * List pending invitations for the current user
+   */
+  listMyInvitations: async (): Promise<ProjectInvitation[]> => {
+    return await http.get<ProjectInvitation[]>('projects/invitations/me/');
+  },
+  /**
+   * Accept an invitation
+   */
+  acceptInvitation: async (id: string): Promise<void> => {
+    await http.post(`projects/invitations/${id}/accept/`);
+  },
+  /**
+   * Reject an invitation
+   */
+  rejectInvitation: async (id: string): Promise<void> => {
+    await http.post(`projects/invitations/${id}/reject/`);
   },
 };

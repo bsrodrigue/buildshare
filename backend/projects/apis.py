@@ -7,7 +7,7 @@ from core.errors import ErrorCode
 from core.exceptions import ApplicationError
 from users.models import User
 
-from .models import ProjectInvitation
+from .models import ProjectInvitation, ProjectInvitationStatus
 from .selectors import project_get, project_list
 from .serializers import (
     ProjectInputSerializer,
@@ -94,6 +94,16 @@ class ProjectInvitationApi(APIView):
             ProjectInvitationOutputSerializer(invitation, context={"request": request}).data,
             status=status.HTTP_201_CREATED,
         )
+
+
+class ProjectInvitationListApi(APIView):
+    def get(self, request: Request) -> Response:
+        assert isinstance(request.user, User)  # noqa: S101
+        invitations = ProjectInvitation.objects.filter(
+            email=request.user.email, status=ProjectInvitationStatus.PENDING
+        ).select_related("project", "inviter")
+        serializer = ProjectInvitationOutputSerializer(invitations, many=True)
+        return Response(serializer.data)
 
 
 class ProjectInvitationActionApi(APIView):

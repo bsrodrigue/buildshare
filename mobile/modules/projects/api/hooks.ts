@@ -105,3 +105,42 @@ export const useRevokeMembership = () => {
     },
   });
 };
+
+/**
+ * Hook to list my invitations.
+ */
+export const useMyInvitations = () => {
+  return useQuery({
+    queryKey: ['invitations', 'me'],
+    queryFn: projectService.listMyInvitations,
+  });
+};
+
+/**
+ * Hook to accept an invitation.
+ */
+export const useAcceptInvitation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, AppError, string>({
+    mutationFn: (id) => projectService.acceptInvitation(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['invitations', 'me'] });
+      void queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
+  });
+};
+
+/**
+ * Hook to reject an invitation.
+ */
+export const useRejectInvitation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, AppError, string>({
+    mutationFn: (id) => projectService.rejectInvitation(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['invitations', 'me'] });
+    },
+  });
+};

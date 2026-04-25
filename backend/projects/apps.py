@@ -5,6 +5,7 @@ class ProjectsConfig(AppConfig):
     name = "projects"
 
     def ready(self) -> None:
+        import projects.signals  # noqa: F401, PLC0415
         from core.api.constraint_registry import ConstraintRegistry  # noqa: PLC0415
         from core.errors import ErrorCode  # noqa: PLC0415
 

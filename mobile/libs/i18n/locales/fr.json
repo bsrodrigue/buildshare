@@ -8,7 +8,12 @@
     "save": "Enregistrer",
     "delete": "Supprimer",
     "close": "Fermer",
-    "logout": "Déconnexion"
+    "logout": "Déconnexion",
+    "logout_confirm_title": "Déconnexion",
+    "logout_confirm_message": "Voulez-vous vraiment vous déconnecter ?",
+    "confirm": "Confirmer",
+    "accept": "Accepter",
+    "reject": "Refuser"
   },
   "auth": {
     "login": {
@@ -113,6 +118,16 @@
       "submit": "Enregistrer les modifications",
       "success": "Application mise à jour !",
       "error": "Échec de la mise à jour de l'application."
+    },
+    "invitations": {
+      "title": "Invitations",
+      "empty": "Aucune invitation en attente",
+      "accept_success": "Invitation acceptée",
+      "accept_success_desc": "Vous avez rejoint le projet avec succès.",
+      "reject_success": "Invitation refusée"
+    },
+    "notifications": {
+      "title": "Notifications"
     }
   },
   "components": {

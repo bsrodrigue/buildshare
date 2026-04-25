@@ -1,5 +1,6 @@
 import pytest
 
+from core.exceptions import ApplicationError
 from notifications.models import Notification, NotificationType
 from projects.models import ProjectInvitationStatus, UserProjectProfile
 from projects.services import (
@@ -47,7 +48,7 @@ class TestProjectMembershipFlow:
     def test_invitation_send_duplicate_fails(self, project, admin_user, target_user):
         invitation_send(project=project, inviter=admin_user, email=target_user.email)
 
-        with pytest.raises(ValueError, match="Une invitation est déjà en attente"):
+        with pytest.raises(ApplicationError, match="Une invitation est déjà en attente"):
             invitation_send(project=project, inviter=admin_user, email=target_user.email)
 
     def test_invitation_accept_success(self, project, admin_user, target_user):
@@ -72,7 +73,9 @@ class TestProjectMembershipFlow:
 
     def test_membership_revoke_self(self, project, admin_user):
         # Admin can't leave if only one admin (as per service logic)
-        with pytest.raises(ValueError, match="L'administrateur ne peut pas quitter le projet"):
+        with pytest.raises(
+            ApplicationError, match="L'administrateur ne peut pas quitter le projet"
+        ):
             project_membership_revoke(project=project, user=admin_user, actor=admin_user)
 
         # Add another user and make them admin (though app constraint UNIQUE_PROJECT_ADMIN might exist)
@@ -93,5 +96,5 @@ class TestProjectMembershipFlow:
     def test_membership_revoke_unauthorized(self, project, admin_user, target_user):
         another_user = User.objects.create_user(email="other@example.com", password="password")
 
-        with pytest.raises(ValueError, match="Vous n'avez pas les droits"):
+        with pytest.raises(ApplicationError, match="Vous n'avez pas les droits"):
             project_membership_revoke(project=project, user=admin_user, actor=another_user)

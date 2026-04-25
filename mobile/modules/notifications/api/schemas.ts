@@ -4,7 +4,8 @@ import * as z from 'zod';
  * Schema for Project Invitation Payload
  */
 export const ProjectInvitationPayloadSchema = z.object({
-  invitation_id: z.uuid(),
+  // eslint-disable-next-line deprecation/deprecation
+  invitation_id: z.string().uuid(),
   project_title: z.string(),
 });
 

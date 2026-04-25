@@ -56,27 +56,55 @@ export class DateTimeService {
     const d = this.ensureDate(date);
     const now = new Date();
     const diffInSeconds = Math.floor((d.getTime() - now.getTime()) / 1000);
+    const absDiff = Math.abs(diffInSeconds);
 
-    const rtf = new Intl.RelativeTimeFormat(this.locale, { numeric: 'auto' });
-
-    const intervals: { unit: Intl.RelativeTimeFormatUnit; seconds: number }[] = [
-      { unit: 'year', seconds: 31536000 },
-      { unit: 'month', seconds: 2592000 },
-      { unit: 'week', seconds: 604800 },
-      { unit: 'day', seconds: 86400 },
-      { unit: 'hour', seconds: 3600 },
-      { unit: 'minute', seconds: 60 },
-      { unit: 'second', seconds: 1 },
+    const intervals: { unit: Intl.RelativeTimeFormatUnit; seconds: number; label: string }[] = [
+      { unit: 'year', seconds: 31536000, label: 'yr' },
+      { unit: 'month', seconds: 2592000, label: 'mo' },
+      { unit: 'week', seconds: 604800, label: 'wk' },
+      { unit: 'day', seconds: 86400, label: 'd' },
+      { unit: 'hour', seconds: 3600, label: 'h' },
+      { unit: 'minute', seconds: 60, label: 'min' },
+      { unit: 'second', seconds: 1, label: 'sec' },
     ];
 
-    for (const { unit, seconds } of intervals) {
-      const value = Math.floor(Math.abs(diffInSeconds) / seconds);
-      if (value >= 1) {
-        return rtf.format(diffInSeconds > 0 ? value : -value, unit);
+    // Try to use native Intl if available
+    if (typeof Intl !== 'undefined' && 'RelativeTimeFormat' in Intl) {
+      try {
+        const RtfConstructor = (
+          Intl as unknown as {
+            RelativeTimeFormat: new (
+              locale: string,
+              options?: { numeric?: 'auto' | 'always' },
+            ) => {
+              format: (value: number, unit: string) => string;
+            };
+          }
+        ).RelativeTimeFormat;
+
+        const rtf = new RtfConstructor(this.locale, { numeric: 'auto' });
+        for (const { unit, seconds } of intervals) {
+          const value = Math.floor(absDiff / seconds);
+          if (value >= 1) {
+            return rtf.format(diffInSeconds > 0 ? value : -value, unit);
+          }
+        }
+        return rtf.format(0, 'second');
+      } catch {
+        // Fallback below
       }
     }
 
-    return rtf.format(0, 'second'); // "now"
+    // Manual Fallback for systems without full Intl support
+    const isPast = diffInSeconds < 0;
+    for (const { seconds, label } of intervals) {
+      const value = Math.floor(absDiff / seconds);
+      if (value >= 1) {
+        return isPast ? `${value} ${label} ago` : `in ${value} ${label}`;
+      }
+    }
+
+    return 'just now';
   }
 
   /**

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
 import { Button, Dialog, HelperText, Portal, Text, TextInput, useTheme } from 'react-native-paper';
 
@@ -21,41 +22,37 @@ interface ApiConfigModalProps {
  */
 export function ApiConfigModal({ visible, onDismiss }: ApiConfigModalProps) {
   const theme = useTheme();
-  const [url, setUrl] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      url: '',
+    },
+  });
 
   // Pre-fill with the currently active URL whenever the dialog opens.
   useEffect(() => {
     if (!visible) return;
     void AppConfig.getApiUrl().then((currentUrl) => {
-      setUrl(currentUrl);
-      setError(null);
+      reset({ url: currentUrl });
     });
-  }, [visible]);
+  }, [visible, reset]);
 
-  const validate = (value: string): boolean => {
-    try {
-      new URL(value);
-      setError(null);
-      return true;
-    } catch {
-      setError('Please enter a valid URL (e.g. http://192.168.1.10:8000)');
-      return false;
-    }
-  };
-
-  const handleSave = async () => {
-    if (!validate(url)) return;
+  const handleSave = async (data: { url: string }) => {
     setIsSaving(true);
     try {
-      await AppConfig.setApiUrl(url);
-      toast.success('API URL updated', url);
-      logger.info(`API URL changed to: ${url}`);
+      await AppConfig.setApiUrl(data.url);
+      toast.success('API URL updated', data.url);
+      logger.info(`API URL changed to: ${data.url}`);
       onDismiss();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to save URL';
-      setError(message);
+      // In a real app, you might want to map this to the 'url' field properly
+      toast.error('Failed to save URL', err instanceof Error ? err.message : '');
     } finally {
       setIsSaving(false);
     }
@@ -90,23 +87,38 @@ export function ApiConfigModal({ visible, onDismiss }: ApiConfigModalProps) {
           </Text>
 
           <View style={styles.inputGroup}>
-            <TextInput
-              mode="outlined"
-              label="Base URL"
-              value={url}
-              onChangeText={(v) => {
-                setUrl(v);
-                if (error) validate(v);
+            <Controller
+              control={control}
+              name="url"
+              rules={{
+                required: 'URL is required',
+                validate: (v) => {
+                  try {
+                    new URL(v);
+                    return true;
+                  } catch {
+                    return 'Please enter a valid URL (e.g. http://192.168.1.10:8000)';
+                  }
+                },
               }}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-              error={!!error}
-              style={styles.input}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  mode="outlined"
+                  label="Base URL"
+                  value={value}
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                  error={!!errors.url}
+                  style={styles.input}
+                />
+              )}
             />
-            {!!error && (
+            {!!errors.url && (
               <HelperText type="error" visible>
-                {error}
+                {errors.url.message}
               </HelperText>
             )}
           </View>
@@ -132,7 +144,7 @@ export function ApiConfigModal({ visible, onDismiss }: ApiConfigModalProps) {
           <Button
             mode="contained"
             onPress={() => {
-              void handleSave();
+              void handleSubmit(handleSave)();
             }}
             loading={isSaving}
             disabled={isSaving}

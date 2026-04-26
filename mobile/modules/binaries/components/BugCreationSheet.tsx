@@ -118,7 +118,7 @@ export function BugCreationSheet({
                 {
                   color: theme.colors.onSurface,
                   backgroundColor: theme.colors.surfaceVariant,
-                  borderColor: theme.colors.outlineVariant,
+                  borderColor: theme.colors.outline,
                 },
               ]}
             />

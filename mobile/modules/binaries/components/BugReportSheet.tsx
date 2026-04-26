@@ -51,8 +51,8 @@ export function BugReportSheet({ bug, projectRole, onDismiss }: BugReportSheetPr
     };
   });
 
-  const { data: messages, isLoading, refetch: refetchMessages } = useBugMessages(bug?.id ?? 0);
-  const { data: bugData, refetch: refetchBug } = useBug(bug?.id ?? 0);
+  const { data: messages, isLoading, refetch: refetchMessages } = useBugMessages(bug?.id ?? '0');
+  const { data: bugData, refetch: refetchBug } = useBug(bug?.id ?? '0');
   const createMessage = useCreateBugMessage();
   const transitionMutation = useBugTransition();
 

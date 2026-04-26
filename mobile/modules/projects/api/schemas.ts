@@ -56,6 +56,7 @@ export const ProjectInvitationSchema = z.object({
   // eslint-disable-next-line deprecation/deprecation
   id: z.string().uuid(),
   project: z.number(),
+  project_title: z.string(),
   email: z.string(),
   role: z.string(),
   inviter: z.string(),

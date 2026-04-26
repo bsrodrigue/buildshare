@@ -14,7 +14,11 @@
     "confirm": "Confirm",
     "accept": "Accept",
     "reject": "Reject",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "roles": {
+      "ADMIN": "Administrator",
+      "MEMBER": "Member"
+    }
   },
   "auth": {
     "login": {
@@ -65,7 +69,31 @@
       "delete_confirm_title": "Delete Application",
       "delete_confirm_message": "Are you sure you want to delete this application and all its releases? This action is irreversible.",
       "delete_success": "Application deleted successfully",
-      "delete_error": "Failed to delete application"
+      "delete_error": "Failed to delete application",
+      "bugs_button": "REPORT A BUG",
+      "bugs_count": "{{count}} BUG ({{open}} OPEN)",
+      "bugs_count_plural": "{{count}} BUGS ({{open}} OPEN)"
+    },
+    "bugs": {
+      "title": "Bugs",
+      "empty": "No bugs reported for this release.",
+      "report_button": "Report a Bug",
+      "creation_title": "Report a Bug",
+      "creation_description_label": "Description",
+      "creation_description_placeholder": "Describe the steps to reproduce the bug...",
+      "submit_report": "Submit Report",
+      "success_report": "Bug reported!",
+      "detail_title": "Bug #{{id}}",
+      "discussion_title": "Discussion",
+      "publish_action": "Publish",
+      "resolve_action": "Mark as Resolved",
+      "reopen_action": "Reopen",
+      "comment_placeholder": "Add a comment...",
+      "reported_at": "Reported on {{date}}",
+      "message_count": "{{count}} message",
+      "message_count_plural": "{{count}} messages",
+      "error_load": "Failed to load bugs.",
+      "error_send": "Failed to send."
     },
     "upload": {
       "title_new_release": "New Release",
@@ -125,7 +153,8 @@
       "empty": "No pending invitations",
       "accept_success": "Invitation accepted",
       "accept_success_desc": "You have joined the project successfully.",
-      "reject_success": "Invitation rejected"
+      "reject_success": "Invitation rejected",
+      "role_proposed": "Proposed role: {{role}}"
     },
     "notifications": {
       "title": "Notifications"
@@ -143,6 +172,13 @@
     }
   },
   "jobs": {
+    "labels": {
+      "job_id": "Job ID",
+      "type": "Type",
+      "created_at": "Created",
+      "application": "Application",
+      "error": "Error"
+    },
     "types": {
       "BINARY_PROCESSING": "Binary Processing"
     },

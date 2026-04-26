@@ -5,6 +5,7 @@ from django.core.files.base import ContentFile
 
 from binaries.models import Application, Artifact, Release
 from binaries.tasks import process_apk_task
+from core.exceptions import ApplicationError
 from core.models import TaskJob, TaskJobStatus, TaskJobType
 from projects.models import Project, UserProjectProfile
 from users.models import User
@@ -38,7 +39,7 @@ class TestProcessAPKTask:
     @patch("binaries.tasks.R2StorageService")
     @patch("binaries.tasks.AndroidBinaryService")
     @patch("binaries.tasks.open", create=True)
-    @patch("binaries.tasks.File")
+    @patch("binaries.services.android_process.File")
     @patch("os.remove")
     def test_process_apk_task_success(  # noqa: PLR0913
         self,
@@ -59,9 +60,11 @@ class TestProcessAPKTask:
         mock_metadata.version_code = 100
         mock_metadata.version_name = "1.0.0"
         mock_metadata.app_label = "Test App"
-        mock_metadata.signature_hash = "fake-signature"
         mock_metadata.architecture = "arm64-v8a"
+        mock_metadata.file_hash = "fake-hash"
+        mock_metadata.file_size = 1024 * 1024  # 1 MB
         mock_service.parse_metadata.return_value = mock_metadata
+        mock_metadata.signature_hash = "fake-signature"
 
         # Mock the built-in open
         mock_open.return_value.__enter__.return_value = MagicMock()
@@ -119,10 +122,13 @@ class TestProcessAPKTask:
         mock_metadata.app_label = "Test App"
         mock_metadata.signature_hash = "malicious-signature"
         mock_metadata.architecture = "arm64-v8a"
+        mock_metadata.file_hash = "fake-hash"
+        mock_metadata.file_size = 1024 * 1024
         mock_service.parse_metadata.return_value = mock_metadata
 
-        # Execute task (it should fail)
-        process_apk_task(str(job.id))
+        # Execute task (it should fail and re-raise)
+        with pytest.raises(ApplicationError):
+            process_apk_task(str(job.id))
 
         # Verify job status
         job.refresh_from_db()

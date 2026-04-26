@@ -1,10 +1,15 @@
 from django.contrib import admin
 
-from .models import Application, Artifact, Release
+from .models import Application, Artifact, BugMessage, BugReport, Release
 
 
 class ArtifactInline(admin.TabularInline[Artifact, Release]):
     model = Artifact
+    extra = 1
+
+
+class BugMessageInline(admin.TabularInline[BugMessage, BugReport]):
+    model = BugMessage
     extra = 1
 
 
@@ -31,3 +36,12 @@ class ArtifactAdmin(admin.ModelAdmin[Artifact]):
     list_filter = ("architecture", "release__application")
     search_fields = ("release__application__title", "hash")
     autocomplete_fields = ["release"]
+
+
+@admin.register(BugReport)
+class BugReportAdmin(admin.ModelAdmin[BugReport]):
+    list_display = ("id", "release", "reporter", "status", "created_at")
+    list_filter = ("status", "release__application")
+    search_fields = ("description", "reporter__email")
+    inlines = [BugMessageInline]
+    autocomplete_fields = ["release", "reporter"]

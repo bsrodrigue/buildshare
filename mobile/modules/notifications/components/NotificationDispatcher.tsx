@@ -15,6 +15,10 @@ export const NotificationDispatcher: React.FC<Props> = ({ notification }) => {
       return <ProjectInvitationHandler notification={notification} />;
 
     case NotificationType.SYSTEM_ALERT:
+    case NotificationType.APPLICATION_CREATED:
+    case NotificationType.APPLICATION_DELETED:
+    case NotificationType.NEW_RELEASE:
+    case NotificationType.NEW_MESSAGE:
       return (
         <View style={styles.generic}>
           <Text variant="bodyMedium">{notification.body}</Text>

@@ -19,6 +19,11 @@ from .constraints import CHECK_NOTIFICATION_TYPE_VALID
 class NotificationType(models.TextChoices):
     PROJECT_INVITATION = "PROJECT_INVITATION", "Invitation à un projet"
     SYSTEM_ALERT = "SYSTEM_ALERT", "Alerte système"
+    APPLICATION_CREATED = "APPLICATION_CREATED", "Application créée"
+    APPLICATION_DELETED = "APPLICATION_DELETED", "Application supprimée"
+    NEW_RELEASE = "NEW_RELEASE", "Nouvelle release"
+    NEW_MESSAGE = "NEW_MESSAGE", "Nouveau message"
+    NEW_BUG = "NEW_BUG", "Nouveau bug"
 
 
 class Notification(BaseModel):

@@ -61,3 +61,7 @@ export function useInvitationAction() {
     },
   });
 }
+export function useUnreadNotificationsCount() {
+  const { data: notifications } = useNotifications();
+  return notifications?.filter((n) => !n.read_at).length || 0;
+}

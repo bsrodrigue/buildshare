@@ -90,6 +90,7 @@ class AndroidArtifactProcessingService:
                         file=File(f, name=f"{package_name}-{version_name}.apk"),
                         hash=file_hash,
                         architecture=architecture,
+                        size=metadata.file_size,
                     )
                 except IntegrityError as e:
                     logger.error(f"Integrity Error: {e}")

@@ -1,25 +1,32 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, Linking, RefreshControl, StyleSheet, View } from 'react-native';
 import {
-  ActivityIndicator,
-  Chip,
-  FAB,
-  IconButton,
-  List,
-  Menu,
-  Portal,
-  Surface,
-  Text,
-} from 'react-native-paper';
+  FlatList,
+  Linking,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { ActivityIndicator, FAB, IconButton, Menu, Portal, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { env } from '@/libs/env';
 import { toast } from '@/libs/notification/toast';
-import { formatTimelineDate } from '@/libs/utils/date';
-import { useApplication, useDeleteApplication, useReleases } from '@/modules/binaries/api/hooks';
-import { Release, ReleaseArtifact } from '@/modules/binaries/api/schemas';
+import {
+  useApplication,
+  useDeleteApplication,
+  useProjectTags,
+  useReleases,
+} from '@/modules/binaries/api/hooks';
+import { BugReport, Release, ReleaseArtifact } from '@/modules/binaries/api/schemas';
+import { BugCreationSheet } from '@/modules/binaries/components/BugCreationSheet';
+import { BugListSheet } from '@/modules/binaries/components/BugListSheet';
+import { BugReportSheet } from '@/modules/binaries/components/BugReportSheet';
+import { ReleaseCard } from '@/modules/binaries/components/ReleaseCard';
+import { ReleaseTagsSheet } from '@/modules/binaries/components/ReleaseTagsSheet';
 import { ConfirmDialog } from '@/modules/shared/components/ConfirmDialog';
 import { useTheme } from '@/modules/shared/theme/ThemeProvider';
 
@@ -29,7 +36,7 @@ export default function AppDetailScreen() {
   const resolvedProjectId = projectId ? parseInt(projectId as string, 10) : undefined;
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
 
   const {
     data: releases,
@@ -42,6 +49,27 @@ export default function AppDetailScreen() {
   const deleteApplication = useDeleteApplication();
   const [menuVisible, setMenuVisible] = React.useState(false);
   const [deleteVisible, setDeleteVisible] = React.useState(false);
+  const [selectedReleaseForBugs, setSelectedReleaseForBugs] = React.useState<Release | null>(null);
+  const [isBugCreationVisible, setIsBugCreationVisible] = React.useState(false);
+  const [selectedBug, setSelectedBug] = React.useState<BugReport | null>(null);
+  const [selectedReleaseForTags, setSelectedReleaseForTags] = React.useState<Release | null>(null);
+  const { data: projectTags } = useProjectTags(resolvedProjectId || 0);
+  const [selectedTagId, setSelectedTagId] = React.useState<number | null>(null);
+
+  const activeReleaseForTags = React.useMemo(() => {
+    if (!selectedReleaseForTags) return null;
+    return releases?.find((r) => r.id === selectedReleaseForTags.id) || selectedReleaseForTags;
+  }, [releases, selectedReleaseForTags]);
+
+  const activeReleaseForBugs = React.useMemo(() => {
+    if (!selectedReleaseForBugs) return null;
+    return releases?.find((r) => r.id === selectedReleaseForBugs.id) || selectedReleaseForBugs;
+  }, [releases, selectedReleaseForBugs]);
+
+  const filteredReleases = React.useMemo(() => {
+    if (!selectedTagId) return releases;
+    return releases?.filter((release) => release.tags?.some((tag) => tag.id === selectedTagId));
+  }, [releases, selectedTagId]);
 
   const openMenu = () => setMenuVisible(true);
   const closeMenu = () => setMenuVisible(false);
@@ -83,149 +111,16 @@ export default function AppDetailScreen() {
     }
   };
 
-  const renderReleaseItem = ({ item, index }: { item: Release; index: number }) => {
-    const cardColors = [
-      {
-        bg: theme.colors.primaryContainer,
-        onBg: theme.colors.onPrimaryContainer,
-        icon: 'rocket-launch',
-      },
-      {
-        bg: theme.colors.secondaryContainer,
-        onBg: theme.colors.onSecondaryContainer,
-        icon: 'auto-fix',
-      },
-      {
-        bg: theme.colors.tertiaryContainer,
-        onBg: theme.colors.onTertiaryContainer,
-        icon: 'bottle-tonic-plus',
-      },
-      { bg: theme.colors.surfaceVariant, onBg: theme.colors.onSurfaceVariant, icon: 'cube-send' },
-    ];
-    const cardTheme = cardColors[index % cardColors.length];
-
-    return (
-      <View style={styles.timelineItem}>
-        {/* Timeline Left: Minimal Gutter */}
-        <View style={styles.timelineLeftColumn}>
-          <View
-            style={[
-              styles.timelineLine,
-              { backgroundColor: theme.colors.outline },
-              index === 0 && styles.timelineLineFirst,
-              index === (releases?.length || 0) - 1 && styles.timelineLineLast,
-            ]}
-          />
-          <View
-            style={[
-              styles.timelineDot,
-              { borderColor: theme.colors.primary, backgroundColor: theme.colors.surface },
-            ]}
-          />
-        </View>
-
-        <View style={styles.timelineRight}>
-          <Surface
-            style={[styles.releaseCard, { backgroundColor: cardTheme.bg }, theme.shadows.soft]}
-            elevation={1}
-          >
-            <View style={styles.releaseHeader}>
-              <View style={styles.headerLeft}>
-                <View
-                  style={[
-                    styles.headerIconCircle,
-                    { backgroundColor: theme.colors.surface + '40' },
-                  ]}
-                >
-                  <IconButton
-                    icon={cardTheme.icon}
-                    size={20}
-                    iconColor={cardTheme.onBg}
-                    style={styles.headerIcon}
-                  />
-                </View>
-                <View style={styles.headerTitleContainer}>
-                  <Text variant="titleMedium" style={[styles.versionId, { color: cardTheme.onBg }]}>
-                    {item.version_id}
-                  </Text>
-                  <Text
-                    variant="labelSmall"
-                    style={[styles.buildId, { color: cardTheme.onBg }, styles.opacity70]}
-                  >
-                    {formatTimelineDate(item.created_at, i18n.language)} •{' '}
-                    {t('screens.release_list.build_info', {
-                      code: item.version_code,
-                      date: '',
-                    }).replace(' • ', '')}
-                  </Text>
-                </View>
-              </View>
-              <Chip
-                compact
-                style={[styles.statusChip, { backgroundColor: theme.colors.surface + '60' }]}
-                textStyle={[styles.statusChipText, { color: cardTheme.onBg }]}
-              >
-                {t('screens.release_list.stable_chip')}
-              </Chip>
-            </View>
-
-            {item.release_notes && (
-              <Text variant="bodyMedium" style={[styles.notes, { color: cardTheme.onBg }]}>
-                {item.release_notes}
-              </Text>
-            )}
-
-            <View style={[styles.divider, { backgroundColor: cardTheme.onBg + '20' }]} />
-
-            <Text
-              variant="labelLarge"
-              style={[styles.artifactTitle, { color: cardTheme.onBg }, styles.opacity80]}
-            >
-              {t('screens.release_list.artifact_title')}
-            </Text>
-
-            {item.artifacts?.map((artifact: ReleaseArtifact) => (
-              <List.Item
-                key={artifact.id}
-                title={artifact.architecture || 'Universal'}
-                description={`${artifact.file_size_display || 'N/A'} • ${String(artifact.id).substring(0, 8)}`}
-                titleStyle={[styles.artifactText, { color: cardTheme.onBg }]}
-                descriptionStyle={[
-                  styles.artifactSubText,
-                  { color: cardTheme.onBg },
-                  styles.opacity60,
-                ]}
-                left={(props) => (
-                  <View
-                    style={[
-                      styles.artifactIconContainer,
-                      { backgroundColor: theme.colors.surface + '40' },
-                    ]}
-                  >
-                    <List.Icon {...props} icon="android" color="#3DDC84" style={styles.listIcon} />
-                  </View>
-                )}
-                right={(props) => (
-                  <IconButton
-                    {...props}
-                    icon="download"
-                    mode="contained"
-                    containerColor={theme.colors.surface + '80'}
-                    iconColor={cardTheme.onBg}
-                    size={20}
-                    onPress={() => {
-                      handleDownload(artifact);
-                    }}
-                  />
-                )}
-                style={styles.artifactItem}
-              />
-            ))}
-          </Surface>
-        </View>
-      </View>
-    );
-  };
+  const renderReleaseItem = ({ item, index }: { item: Release; index: number }) => (
+    <ReleaseCard
+      release={item}
+      index={index}
+      onDownload={handleDownload}
+      onOpenBugs={setSelectedReleaseForBugs}
+      isAdmin={application?.project_role === 'ADMIN'}
+      onEditTags={setSelectedReleaseForTags}
+    />
+  );
 
   if (isReleasesLoading || isAppLoading) {
     return (
@@ -318,14 +213,108 @@ export default function AppDetailScreen() {
           onConfirm={confirmDelete}
           title={t('screens.release_list.delete_confirm_title')}
           message={t('screens.release_list.delete_confirm_message')}
-          confirmText={t('common.delete')}
+          confirmLabel={t('common.delete')}
           confirmColor={theme.colors.error}
           loading={deleteApplication.isPending}
         />
+        <BugListSheet
+          release={activeReleaseForBugs}
+          onDismiss={() => setSelectedReleaseForBugs(null)}
+          onSelectBug={(bug) => setSelectedBug(bug)}
+          onCreateBug={() => setIsBugCreationVisible(true)}
+        />
+        <BugCreationSheet
+          release={activeReleaseForBugs}
+          visible={isBugCreationVisible}
+          onDismiss={() => setIsBugCreationVisible(false)}
+          onSuccess={() => {
+            setIsBugCreationVisible(false);
+            toast.success(t('screens.bugs.success_report'));
+            void refetch();
+          }}
+        />
+        <BugReportSheet
+          bug={selectedBug}
+          projectRole={application?.project_role}
+          onDismiss={() => setSelectedBug(null)}
+        />
+        {application && (
+          <ReleaseTagsSheet
+            release={activeReleaseForTags}
+            projectId={application.project}
+            onDismiss={() => setSelectedReleaseForTags(null)}
+          />
+        )}
       </Portal>
 
+      <View
+        style={[
+          styles.filterContainer,
+          { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.outline + '10' },
+        ]}
+      >
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScroll}
+        >
+          <Pressable
+            onPress={() => setSelectedTagId(null)}
+            style={[
+              styles.filterChip,
+              !selectedTagId && styles.filterChipSelected,
+              !selectedTagId && { backgroundColor: theme.colors.primary },
+            ]}
+          >
+            <Text
+              variant="labelMedium"
+              style={[
+                styles.filterChipText,
+                { color: !selectedTagId ? theme.colors.onPrimary : theme.colors.onSurfaceVariant },
+              ]}
+            >
+              Tous
+            </Text>
+          </Pressable>
+
+          {projectTags?.map((tag) => {
+            const isSelected = selectedTagId === tag.id;
+            return (
+              <Pressable
+                key={tag.id}
+                onPress={() => setSelectedTagId(isSelected ? null : tag.id)}
+                style={[
+                  styles.filterChip,
+                  isSelected && styles.filterChipSelected,
+                  // eslint-disable-next-line react-native/no-inline-styles
+                  isSelected && { backgroundColor: tag.color, borderColor: 'transparent' },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.filterDot,
+                    // eslint-disable-next-line react-native/no-inline-styles
+                    { backgroundColor: isSelected ? 'white' : tag.color },
+                  ]}
+                />
+                <Text
+                  variant="labelMedium"
+                  style={[
+                    styles.filterChipText,
+                    // eslint-disable-next-line react-native/no-inline-styles
+                    { color: isSelected ? 'white' : theme.colors.onSurfaceVariant },
+                  ]}
+                >
+                  {tag.name}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+
       <FlatList
-        data={releases}
+        data={filteredReleases}
         keyExtractor={(item: Release) => item.id.toString()}
         renderItem={renderReleaseItem}
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 96 }]}
@@ -340,7 +329,11 @@ export default function AppDetailScreen() {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text variant="bodyLarge">{t('screens.release_list.empty_title')}</Text>
+            <Text variant="bodyLarge">
+              {selectedTagId
+                ? t('screens.release_list.no_match_tag', 'Aucune version ne correspond à ce tag')
+                : t('screens.release_list.empty_title')}
+            </Text>
           </View>
         }
       />
@@ -518,9 +511,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     opacity: 0.5,
   },
+  filterContainer: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  filterScroll: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+    backgroundColor: 'rgba(0,0,0,0.02)',
+  },
+  filterDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 8,
+  },
+  filterChipText: {
+    fontWeight: '700',
+    fontSize: 12,
+  },
   fab: {
     position: 'absolute',
     margin: 16,
     right: 0,
+  },
+  messageButton: {
+    alignSelf: 'center',
+    margin: 0,
+    marginTop: 4,
+  },
+  filterChipSelected: {
+    borderColor: 'transparent',
   },
 });

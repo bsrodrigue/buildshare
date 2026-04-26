@@ -151,9 +151,28 @@ export default function ProjectDetailScreen() {
           )}
         />
         <View style={styles.cardFooter}>
-          <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
-            v{item.latest_release?.version_id || 'N/A'}
-          </Text>
+          <View style={styles.tagsRow}>
+            <Text
+              variant="labelSmall"
+              style={[styles.versionLabel, { color: theme.colors.onSurfaceVariant }]}
+            >
+              v{item.latest_release?.version_id || 'N/A'}
+            </Text>
+            {/* Show up to 2 tags to keep it clean */}
+            {item.latest_release?.tags?.slice(0, 2).map((tag) => (
+              <View
+                key={tag.id}
+                style={[
+                  styles.gridTagBadge,
+                  { backgroundColor: tag.color + '15', borderColor: tag.color + '30' },
+                ]}
+              >
+                <Text style={[styles.gridTagText, { color: tag.color }]}>
+                  {tag.name.toUpperCase()}
+                </Text>
+              </View>
+            ))}
+          </View>
           <IconButton
             icon="chevron-right"
             size={16}
@@ -386,7 +405,7 @@ export default function ProjectDetailScreen() {
           onConfirm={confirmDelete}
           title={t('screens.project_detail.delete_confirm_title')}
           message={t('screens.project_detail.delete_confirm_message')}
-          confirmText={t('common.delete')}
+          confirmLabel={t('common.delete')}
           confirmColor={theme.colors.error}
           loading={deleteProject.isPending}
         />
@@ -397,7 +416,7 @@ export default function ProjectDetailScreen() {
           onConfirm={confirmLeave}
           title="Quitter le projet"
           message="Voulez-vous vraiment quitter ce projet ? Vous ne pourrez plus y accéder à moins d'être invité à nouveau."
-          confirmText="Quitter"
+          confirmLabel="Quitter"
           confirmColor={theme.colors.error}
           loading={revokeMembership.isPending}
         />
@@ -578,5 +597,25 @@ const styles = StyleSheet.create({
     position: 'absolute',
     margin: 16,
     right: 0,
+  },
+  gridTagBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    borderWidth: 0.5,
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  versionLabel: {
+    marginRight: 4,
+  },
+  gridTagText: {
+    fontSize: 8,
+    fontWeight: '800',
   },
 });

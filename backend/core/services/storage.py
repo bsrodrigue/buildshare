@@ -36,6 +36,18 @@ class R2StorageService:
         )
         return str(url)
 
+    def get_download_url(self, key: str, expires: int = 3600) -> str:
+        """
+        Generates a presigned GET URL for downloading a file from R2.
+        """
+        client = self.get_client()
+        url = client.generate_presigned_url(
+            ClientMethod="get_object",
+            Params={"Bucket": self.bucket_name, "Key": key},
+            ExpiresIn=expires,
+        )
+        return str(url)
+
     def download_file(self, key: str, local_path: str) -> None:
         """
         Downloads a file from R2 to the local filesystem.

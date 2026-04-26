@@ -43,7 +43,17 @@ class ProjectMemberSerializer(serializers.ModelSerializer[UserProjectProfile]):
 
 class ProjectInvitationOutputSerializer(serializers.ModelSerializer[ProjectInvitation]):
     inviter = serializers.StringRelatedField[Any]()
+    project_title = serializers.CharField(source="project.title", read_only=True)
 
     class Meta:
         model = ProjectInvitation
-        fields = ("id", "project", "email", "role", "inviter", "status", "created_at")
+        fields = (
+            "id",
+            "project",
+            "project_title",
+            "email",
+            "role",
+            "inviter",
+            "status",
+            "created_at",
+        )

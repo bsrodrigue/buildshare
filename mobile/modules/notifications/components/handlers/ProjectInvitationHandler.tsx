@@ -15,11 +15,13 @@ export const ProjectInvitationHandler: React.FC<Props> = ({ notification }) => {
       <Text variant="bodyMedium" style={styles.body}>
         {notification.body}
       </Text>
-      <View style={styles.actions}>
-        <Button mode="contained" onPress={() => router.push('/invitations')} style={styles.btn}>
-          Voir l&apos;invitation
-        </Button>
-      </View>
+      {notification.is_actionable && (
+        <View style={styles.actions}>
+          <Button mode="contained" onPress={() => router.push('/invitations')} style={styles.btn}>
+            Voir l&apos;invitation
+          </Button>
+        </View>
+      )}
     </View>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Animated, Easing, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Divider, Surface, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -107,6 +108,7 @@ const DURATION_OUT = 220;
  */
 export function JobDetailSheet({ job, onDismiss }: JobDetailSheetProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(600)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -218,23 +220,28 @@ export function JobDetailSheet({ job, onDismiss }: JobDetailSheetProps) {
             <View style={[styles.statusBadge, { backgroundColor: statusColor + '18' }]}>
               <Text style={[styles.statusIcon, { color: statusColor }]}>{statusIcon}</Text>
               <Text variant="labelLarge" style={[styles.statusLabel, { color: statusColor }]}>
-                {job.status_display || job.status}
+                {t(`jobs.status.${job.status}`, { defaultValue: job.status_display || job.status })}
               </Text>
             </View>
           </View>
 
           {/* Title */}
           <Text variant="titleLarge" style={[styles.title, { color: theme.colors.onSurface }]}>
-            {job.app_title ?? job.type}
+            {job.app_title ?? t(`jobs.types.${job.type}`, { defaultValue: job.type })}
           </Text>
 
           <Divider style={styles.divider} />
 
           {/* Detail rows */}
-          <DetailRow label="Job ID" value={job.id} />
-          <DetailRow label="Type" value={job.type} />
-          <DetailRow label="Created" value={createdAt} />
-          {!!job.app_title && <DetailRow label="Application" value={job.app_title} />}
+          <DetailRow label={t('jobs.labels.job_id')} value={job.id} />
+          <DetailRow
+            label={t('jobs.labels.type')}
+            value={t(`jobs.types.${job.type}`, { defaultValue: job.type })}
+          />
+          <DetailRow label={t('jobs.labels.created_at')} value={createdAt} />
+          {!!job.app_title && (
+            <DetailRow label={t('jobs.labels.application')} value={job.app_title} />
+          )}
 
           {/* Error box */}
           {!!job.error_message && (
@@ -245,7 +252,7 @@ export function JobDetailSheet({ job, onDismiss }: JobDetailSheetProps) {
                   variant="labelMedium"
                   style={[styles.errorLabel, { color: theme.colors.onErrorContainer }]}
                 >
-                  Error
+                  {t('jobs.labels.error')}
                 </Text>
                 <Text
                   variant="bodySmall"

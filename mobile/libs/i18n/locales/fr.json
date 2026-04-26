@@ -14,7 +14,11 @@
     "confirm": "Confirmer",
     "accept": "Accepter",
     "reject": "Refuser",
-    "refresh": "Actualiser"
+    "refresh": "Actualiser",
+    "roles": {
+      "ADMIN": "Administrateur",
+      "MEMBER": "Membre"
+    }
   },
   "auth": {
     "login": {
@@ -58,14 +62,38 @@
     "release_list": {
       "title": "Releases",
       "empty_title": "Aucune release.",
-      "artifact_title": "Binary Artifacts",
+      "artifact_title": "Artéfacts Binaires",
       "stable_chip": "Stable",
       "build_info": "Build {{code}} • {{date}}",
       "fab_new_release": "Nouvelle Release",
       "delete_confirm_title": "Supprimer l'application",
       "delete_confirm_message": "Voulez-vous vraiment supprimer cette application et toutes ses releases ? Cette action est irréversible.",
       "delete_success": "Application supprimée avec succès",
-      "delete_error": "Échec de la suppression de l'application"
+      "delete_error": "Échec de la suppression de l'application",
+      "bugs_button": "SIGNALER UN BUG",
+      "bugs_count": "{{count}} BUG ({{open}} OUVERT)",
+      "bugs_count_plural": "{{count}} BUGS ({{open}} OUVERTS)"
+    },
+    "bugs": {
+      "title": "Bugs",
+      "empty": "Aucun bug rapporté pour cette release.",
+      "report_button": "Rapporter un Bug",
+      "creation_title": "Rapporter un Bug",
+      "creation_description_label": "Description",
+      "creation_description_placeholder": "Décrivez les étapes pour reproduire le bug...",
+      "submit_report": "Envoyer le rapport",
+      "success_report": "Bug rapporté !",
+      "detail_title": "Bug #{{id}}",
+      "discussion_title": "Discussion",
+      "publish_action": "Publier",
+      "resolve_action": "Marquer comme Résolu",
+      "reopen_action": "Réouvrir",
+      "comment_placeholder": "Ajouter un commentaire...",
+      "reported_at": "Rapporté le {{date}}",
+      "message_count": "{{count}} message",
+      "message_count_plural": "{{count}} messages",
+      "error_load": "Impossible de charger les bugs.",
+      "error_send": "Échec de l'envoi."
     },
     "upload": {
       "title_new_release": "Nouvelle Release",
@@ -125,7 +153,8 @@
       "empty": "Aucune invitation en attente",
       "accept_success": "Invitation acceptée",
       "accept_success_desc": "Vous avez rejoint le projet avec succès.",
-      "reject_success": "Invitation refusée"
+      "reject_success": "Invitation refusée",
+      "role_proposed": "Rôle proposé : {{role}}"
     },
     "notifications": {
       "title": "Notifications"
@@ -143,6 +172,13 @@
     }
   },
   "jobs": {
+    "labels": {
+      "job_id": "ID du Job",
+      "type": "Type",
+      "created_at": "Créé le",
+      "application": "Application",
+      "error": "Erreur"
+    },
     "types": {
       "BINARY_PROCESSING": "Traitement de binaire"
     },

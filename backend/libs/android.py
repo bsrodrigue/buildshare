@@ -26,6 +26,7 @@ class AndroidMetadata:
     signature_hash: str | None
     architecture: str
     file_hash: str
+    file_size: int
 
 
 class AndroidBinaryService:
@@ -109,6 +110,9 @@ class AndroidBinaryService:
         # Calculate file hash
         file_hash = self.calculate_hash(path)
 
+        # File size
+        file_size = path.stat().st_size
+
         return AndroidMetadata(
             package_name=package_name,
             version_code=version_code,
@@ -117,6 +121,7 @@ class AndroidBinaryService:
             signature_hash=signature_hash,
             architecture=architecture,
             file_hash=file_hash,
+            file_size=file_size,
         )
 
 

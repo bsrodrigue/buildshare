@@ -1,8 +1,11 @@
 import '@/libs/i18n';
 
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -32,34 +35,38 @@ function RootLayoutContent() {
 
   return (
     <GlobalErrorBoundary>
-      <SafeAreaProvider
-        onLayout={() => {
-          void onLayoutRootView();
-        }}
-      >
-        <PaperProvider theme={paperTheme}>
-          <StatusBar style="auto" />
-          <KeyboardProvider>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-              }}
-            >
-              {/* Private Screens */}
-              <Stack.Protected guard={isAuthenticated}>
-                <Stack.Screen name="(protected)" />
-              </Stack.Protected>
+      <GestureHandlerRootView style={styles.container}>
+        <SafeAreaProvider
+          onLayout={() => {
+            void onLayoutRootView();
+          }}
+        >
+          <BottomSheetModalProvider>
+            <PaperProvider theme={paperTheme}>
+              <StatusBar style="auto" />
+              <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                  }}
+                >
+                  {/* Private Screens */}
+                  <Stack.Protected guard={isAuthenticated}>
+                    <Stack.Screen name="(protected)" />
+                  </Stack.Protected>
 
-              {/* Public Screens */}
-              <Stack.Protected guard={!isAuthenticated}>
-                <Stack.Screen name="(auth)" />
-              </Stack.Protected>
-            </Stack>
-          </KeyboardProvider>
+                  {/* Public Screens */}
+                  <Stack.Protected guard={!isAuthenticated}>
+                    <Stack.Screen name="(auth)" />
+                  </Stack.Protected>
+                </Stack>
+              </KeyboardProvider>
 
-          <Toast config={toastConfig} />
-        </PaperProvider>
-      </SafeAreaProvider>
+              <Toast config={toastConfig} />
+            </PaperProvider>
+          </BottomSheetModalProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
     </GlobalErrorBoundary>
   );
 }
@@ -73,3 +80,9 @@ export default function RootLayout() {
     </QueryClientProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

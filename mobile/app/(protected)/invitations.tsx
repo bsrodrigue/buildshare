@@ -70,7 +70,7 @@ export default function InvitationsScreen() {
           </View>
           <View style={styles.cardHeaderText}>
             <Text variant="titleMedium" style={styles.boldText}>
-              Projet #{item.project}
+              {item.project_title}
             </Text>
             <Text variant="bodySmall" style={styles.dimText}>
               Invité par {item.inviter}
@@ -80,7 +80,9 @@ export default function InvitationsScreen() {
 
         <View style={styles.details}>
           <Text variant="bodyMedium">
-            Rôle proposé: <Text style={styles.boldText}>{item.role}</Text>
+            {t('screens.invitations.role_proposed', {
+              role: t(`common.roles.${item.role}`, item.role),
+            })}
           </Text>
           <Text variant="bodySmall" style={styles.receivedAtText}>
             Reçue le {new Date(item.created_at).toLocaleDateString()}

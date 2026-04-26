@@ -31,7 +31,39 @@ def notification_mark_as_read(*, notification: Notification) -> Notification:
 
 @transaction.atomic
 def notification_bulk_mark_as_read(*, user: User, notification_ids: list[str]) -> int:
-    # No nested import
     return Notification.objects.filter(
         user=user, id__in=notification_ids, read_at__isnull=True
     ).update(read_at=timezone.now())
+
+
+def notify_project_members(  # noqa: PLR0913
+    *,
+    project_id: int,
+    type: str,
+    title: str,
+    body: str = "",
+    payload: dict[str, Any] | None = None,
+    exclude_user: User | None = None,
+) -> None:
+    from projects.models import UserProjectProfile  # noqa: PLC0415
+
+    # Get all project members
+    members = UserProjectProfile.objects.filter(project_id=project_id).select_related("user")
+
+    notifications = []
+    for member in members:
+        if exclude_user and member.user_id == exclude_user.id:
+            continue
+
+        notifications.append(
+            Notification(
+                user=member.user,
+                type=type,
+                title=title,
+                body=body,
+                payload=payload or {},
+            )
+        )
+
+    if notifications:
+        Notification.objects.bulk_create(notifications)

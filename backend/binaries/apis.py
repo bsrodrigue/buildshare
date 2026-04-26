@@ -1,3 +1,4 @@
+from django.http import FileResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from rest_framework import exceptions, status
 from rest_framework.request import Request
@@ -9,15 +10,20 @@ from core.services.storage import R2StorageService
 from projects.models import Project
 from users.models import User
 
-from .models import Application, Release
-from .selectors import application_get, application_list
+from .models import Application, Artifact, BugReport, Release, ReleaseTag
+from .selectors import application_get, application_list, bug_list, bug_message_list
 from .serializers import (
     ApplicationInputSerializer,
     ApplicationOutputSerializer,
     ArtifactInputSerializer,
     ArtifactOutputSerializer,
+    BugMessageInputSerializer,
+    BugMessageOutputSerializer,
+    BugReportInputSerializer,
+    BugReportOutputSerializer,
     ProcessAPKInputSerializer,
     ReleaseOutputSerializer,
+    ReleaseTagSerializer,
     TaskJobOutputSerializer,
     UploadIntentInputSerializer,
     UploadIntentOutputSerializer,
@@ -28,7 +34,11 @@ from .services import (
     application_delete,
     application_update,
     artifact_create,
+    bug_create,
+    bug_message_create,
+    bug_transition,
     release_create,
+    release_tag_create,
 )
 from .tasks import process_apk_task
 
@@ -210,6 +220,30 @@ class TaskJobApi(APIView):
         return Response(TaskJobOutputSerializer(jobs, many=True).data)
 
 
+class ReleaseDetailApi(APIView):
+    def get(self, request: Request, release_id: int) -> Response:
+        assert isinstance(request.user, User)  # noqa: S101
+        release = get_object_or_404(
+            Release, id=release_id, application__project__user_profiles__user=request.user
+        )
+        return Response(ReleaseOutputSerializer(release, context={"request": request}).data)
+
+    def patch(self, request: Request, release_id: int) -> Response:
+        assert isinstance(request.user, User)  # noqa: S101
+        release = get_object_or_404(
+            Release, id=release_id, application__project__user_profiles__user=request.user
+        )
+        _check_is_project_admin(user=request.user, project=release.application.project)
+
+        tag_ids = request.data.get("tag_ids")
+        if tag_ids is not None:
+            # Validate tags belong to the project
+            tags = ReleaseTag.objects.filter(id__in=tag_ids, project=release.application.project)
+            release.tags.set(tags)
+
+        return Response(ReleaseOutputSerializer(release, context={"request": request}).data)
+
+
 class ReleaseApi(APIView):
     def get(self, request: Request) -> Response:
         assert isinstance(request.user, User)  # noqa: S101
@@ -224,8 +258,136 @@ class ReleaseApi(APIView):
 
         releases = (
             Release.objects.filter(application=application)
-            .prefetch_related("artifacts")
+            .prefetch_related("artifacts", "tags")
             .order_by("-version_code")
         )
 
         return Response(ReleaseOutputSerializer(releases, many=True).data)
+
+
+class ReleaseTagApi(APIView):
+    def get(self, request: Request, project_id: int) -> Response:
+        assert isinstance(request.user, User)  # noqa: S101
+        project = get_object_or_404(Project, id=project_id, user_profiles__user=request.user)
+        tags = project.release_tags.all()
+        return Response(ReleaseTagSerializer(tags, many=True).data)
+
+    def post(self, request: Request, project_id: int) -> Response:
+        assert isinstance(request.user, User)  # noqa: S101
+        project = get_object_or_404(Project, id=project_id)
+        _check_is_project_admin(user=request.user, project=project)
+
+        serializer = ReleaseTagSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        tag = release_tag_create(project=project, **serializer.validated_data)
+        return Response(ReleaseTagSerializer(tag).data, status=status.HTTP_201_CREATED)
+
+
+class ReleaseTagDetailApi(APIView):
+    def delete(self, request: Request, tag_id: int) -> Response:
+        assert isinstance(request.user, User)  # noqa: S101
+        tag = get_object_or_404(ReleaseTag, id=tag_id)
+        _check_is_project_admin(user=request.user, project=tag.project)
+        tag.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class BugReportApi(APIView):
+    def get(self, request: Request, release_id: int) -> Response:
+        assert isinstance(request.user, User)  # noqa: S101
+        release = get_object_or_404(
+            Release, id=release_id, application__project__user_profiles__user=request.user
+        )
+        bugs = bug_list(release=release)
+        return Response(BugReportOutputSerializer(bugs, many=True).data)
+
+    def post(self, request: Request, release_id: int) -> Response:
+        assert isinstance(request.user, User)  # noqa: S101
+        release = get_object_or_404(
+            Release, id=release_id, application__project__user_profiles__user=request.user
+        )
+
+        serializer = BugReportInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        bug = bug_create(user=request.user, release=release, **serializer.validated_data)
+
+        return Response(BugReportOutputSerializer(bug).data, status=status.HTTP_201_CREATED)
+
+
+class BugReportDetailApi(APIView):
+    def get(self, request: Request, bug_id: int) -> Response:
+        assert isinstance(request.user, User)  # noqa: S101
+        bug = get_object_or_404(
+            BugReport, id=bug_id, release__application__project__user_profiles__user=request.user
+        )
+        return Response(BugReportOutputSerializer(bug).data)
+
+    def patch(self, request: Request, bug_id: int) -> Response:
+        assert isinstance(request.user, User)  # noqa: S101
+        bug = get_object_or_404(
+            BugReport, id=bug_id, release__application__project__user_profiles__user=request.user
+        )
+
+        serializer = BugReportInputSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        if "description" in serializer.validated_data:
+            bug.description = serializer.validated_data["description"]
+
+        bug.full_clean()
+        bug.save()
+
+        return Response(BugReportOutputSerializer(bug).data)
+
+
+class BugReportTransitionApi(APIView):
+    def post(self, request: Request, bug_id: int, transition: str) -> Response:
+        assert isinstance(request.user, User)  # noqa: S101
+        bug = get_object_or_404(
+            BugReport, id=bug_id, release__application__project__user_profiles__user=request.user
+        )
+
+        bug = bug_transition(bug=bug, transition_name=transition, user=request.user)
+
+        return Response(BugReportOutputSerializer(bug).data)
+
+
+class BugMessageApi(APIView):
+    def get(self, request: Request, bug_id: int) -> Response:
+        assert isinstance(request.user, User)  # noqa: S101
+        bug = get_object_or_404(
+            BugReport, id=bug_id, release__application__project__user_profiles__user=request.user
+        )
+        messages = bug_message_list(bug=bug)
+        return Response(BugMessageOutputSerializer(messages, many=True).data)
+
+    def post(self, request: Request, bug_id: int) -> Response:
+        assert isinstance(request.user, User)  # noqa: S101
+        bug = get_object_or_404(
+            BugReport, id=bug_id, release__application__project__user_profiles__user=request.user
+        )
+
+        serializer = BugMessageInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        message = bug_message_create(user=request.user, bug=bug, **serializer.validated_data)
+
+        return Response(BugMessageOutputSerializer(message).data, status=status.HTTP_201_CREATED)
+
+
+class ArtifactDownloadApi(APIView):
+    def get(self, request: Request, artifact_id: int) -> FileResponse | HttpResponseRedirect:
+        assert isinstance(request.user, User)  # noqa: S101
+        artifact = get_object_or_404(Artifact, id=artifact_id)
+
+        # Validate that the user has access to the project
+        from projects.permissions import check_is_project_member  # noqa: PLC0415
+
+        check_is_project_member(user=request.user, project=artifact.release.application.project)
+
+        # For now, we serve locally using FileResponse
+        # In the future, we could redirect to a presigned R2 URL
+
+        return FileResponse(artifact.file.open("rb"), as_attachment=True)

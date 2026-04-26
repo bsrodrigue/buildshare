@@ -2,10 +2,11 @@ import { router } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Card, FAB, IconButton, Text } from 'react-native-paper';
+import { ActivityIndicator, Badge, Card, FAB, IconButton, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuthStore } from '@/modules/auth/store';
+import { useUnreadNotificationsCount } from '@/modules/notifications/api/hooks';
 import { useProjects } from '@/modules/projects/api/hooks';
 import { Project } from '@/modules/projects/api/schemas';
 import { SideMenu } from '@/modules/shared/components/SideMenu';
@@ -17,6 +18,7 @@ export default function DashboardScreen() {
   const { t } = useTranslation();
   const { user } = useAuthStore();
   const { data: projects, isLoading, isRefetching, refetch } = useProjects();
+  const unreadCount = useUnreadNotificationsCount();
   const [menuVisible, setMenuVisible] = React.useState(false);
 
   const renderProjectItem = ({ item }: { item: Project }) => (
@@ -95,12 +97,25 @@ export default function DashboardScreen() {
           </Text>
         </View>
         <View style={styles.headerRight}>
-          <IconButton
-            icon="bell-outline"
-            iconColor={theme.colors.onSurface}
-            size={24}
-            onPress={() => router.push('/notifications')}
-          />
+          <View>
+            <IconButton
+              icon="bell-outline"
+              iconColor={theme.colors.onSurface}
+              size={24}
+              onPress={() => router.push('/notifications')}
+            />
+            {unreadCount > 0 && (
+              <Badge
+                size={18}
+                style={[
+                  styles.badge,
+                  { backgroundColor: theme.colors.error, color: theme.colors.onError },
+                ]}
+              >
+                {unreadCount}
+              </Badge>
+            )}
+          </View>
         </View>
       </View>
 
@@ -210,5 +225,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     margin: 16,
     right: 0,
+  },
+  badge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
   },
 });

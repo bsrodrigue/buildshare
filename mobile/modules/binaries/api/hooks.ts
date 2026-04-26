@@ -7,7 +7,12 @@ import {
   Application,
   ApplicationCreateParams,
   ApplicationUpdateParams,
+  BugMessage,
+  BugMessageInput,
+  BugReport,
+  BugReportInput,
   Release,
+  ReleaseTag,
   TaskJob,
 } from './schemas';
 import { binaryService } from './services';
@@ -156,5 +161,189 @@ export const useReleases = (applicationId: number) => {
     queryKey: ['releases', applicationId],
     queryFn: () => binaryService.listReleases(applicationId),
     enabled: !!applicationId,
+  });
+};
+
+/**
+ * Hook to fetch bugs for a release.
+ */
+export const useBugs = (releaseId: number) => {
+  return useQuery<BugReport[], AppError, BugReport[]>({
+    queryKey: ['bugs', releaseId],
+    queryFn: () => binaryService.listBugs(releaseId),
+    enabled: !!releaseId,
+  });
+};
+
+/**
+ * Hook to create a new bug for a release.
+ */
+export const useCreateBug = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<BugReport, AppError, { releaseId: number; params: BugReportInput }>({
+    mutationFn: ({ releaseId, params }) => binaryService.createBug(releaseId, params),
+    onSuccess: (_, variables) => {
+      void queryClient.invalidateQueries({
+        queryKey: ['bugs', variables.releaseId],
+      });
+      toast.success('Bug rapporté !');
+    },
+  });
+};
+
+/**
+ * Hook to fetch a single bug detail.
+ */
+export const useBug = (bugId: string) => {
+  return useQuery<BugReport, AppError>({
+    queryKey: ['bug', bugId],
+    queryFn: () => binaryService.getBug(bugId),
+    enabled: !!bugId,
+  });
+};
+
+/**
+ * Hook to update a bug.
+ */
+export const useUpdateBug = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<BugReport, AppError, { id: string; params: BugReportInput }>({
+    mutationFn: ({ id, params }) => binaryService.updateBug(id, params),
+    onSuccess: (data) => {
+      void queryClient.invalidateQueries({ queryKey: ['bugs', data.release] });
+      void queryClient.invalidateQueries({ queryKey: ['bug', data.id] });
+      toast.success('Bug mis à jour !');
+    },
+  });
+};
+
+/**
+ * Hook to trigger a bug transition.
+ */
+export const useBugTransition = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<BugReport, AppError, { bugId: string; transition: string }>({
+    mutationFn: ({ bugId, transition }) => binaryService.transitionBug(bugId, transition),
+    onSuccess: (data) => {
+      void queryClient.invalidateQueries({ queryKey: ['bugs', data.release] });
+      void queryClient.invalidateQueries({ queryKey: ['bug', data.id] });
+      toast.success('Statut du bug mis à jour !');
+    },
+  });
+};
+
+/**
+ * Hook to fetch messages for a bug.
+ */
+export const useBugMessages = (bugId: string) => {
+  return useQuery<BugMessage[], AppError, BugMessage[]>({
+    queryKey: ['bug-messages', bugId],
+    queryFn: () => binaryService.listBugMessages(bugId),
+    enabled: !!bugId,
+  });
+};
+
+/**
+ * Hook to create a new message for a bug.
+ */
+export const useCreateBugMessage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<BugMessage, AppError, { bugId: string; params: BugMessageInput }>({
+    mutationFn: ({ bugId, params }) => binaryService.createBugMessage(bugId, params),
+    onSuccess: (_, variables) => {
+      void queryClient.invalidateQueries({
+        queryKey: ['bug-messages', variables.bugId],
+      });
+      // Also invalidate the bug to update message count if needed (though we don't have it in the schema yet, oh wait we do)
+      void queryClient.invalidateQueries({ queryKey: ['bug', variables.bugId] });
+    },
+  });
+};
+
+/**
+ * Hook to fetch project release tags.
+ */
+export const useProjectTags = (projectId: number) => {
+  return useQuery<ReleaseTag[], AppError>({
+    queryKey: ['project-tags', projectId],
+    queryFn: () => binaryService.listProjectTags(projectId),
+    enabled: !!projectId,
+  });
+};
+
+/**
+ * Hook to create a new project tag.
+ */
+export const useCreateProjectTag = (projectId: number) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<ReleaseTag, AppError, { name: string; color: string }>({
+    mutationFn: (params) => binaryService.createProjectTag(projectId, params),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['project-tags', projectId] });
+    },
+  });
+};
+
+/**
+ * Hook to update a release's tags.
+ */
+export const useUpdateReleaseTags = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    Release,
+    AppError,
+    { releaseId: number; tagIds: number[]; applicationId: number; projectId: number },
+    { previousReleases?: Release[] }
+  >({
+    mutationFn: ({ releaseId, tagIds }) => binaryService.updateReleaseTags(releaseId, tagIds),
+    onMutate: async (variables) => {
+      // Cancel any outgoing refetches
+      // (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: ['releases', variables.applicationId] });
+
+      // Snapshot the previous value
+      const previousReleases = queryClient.getQueryData<Release[]>([
+        'releases',
+        variables.applicationId,
+      ]);
+
+      // Optimistically update to the new value
+      if (previousReleases) {
+        const projectTags = queryClient.getQueryData<ReleaseTag[]>([
+          'project-tags',
+          variables.projectId,
+        ]);
+
+        queryClient.setQueryData<Release[]>(['releases', variables.applicationId], (old) => {
+          return old?.map((r) => {
+            if (r.id === variables.releaseId) {
+              const newTags = projectTags?.filter((t) => variables.tagIds.includes(t.id)) || [];
+              return { ...r, tags: newTags };
+            }
+            return r;
+          });
+        });
+      }
+
+      // Return a context object with the snapshotted value
+      return { previousReleases };
+    },
+    onError: (err, variables, context) => {
+      // Rollback
+      if (context?.previousReleases) {
+        queryClient.setQueryData(['releases', variables.applicationId], context.previousReleases);
+      }
+    },
+    onSettled: (data, error, variables) => {
+      // Always refetch after error or success to keep server as source of truth
+      void queryClient.invalidateQueries({ queryKey: ['releases', variables.applicationId] });
+      void queryClient.invalidateQueries({ queryKey: ['application', variables.applicationId] });
+    },
   });
 };

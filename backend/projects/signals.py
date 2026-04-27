@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -9,11 +11,14 @@ from .models import ProjectInvitation, ProjectInvitationStatus
 
 
 @receiver(post_save, sender=User)
-def handle_pending_invitations(sender, instance, created, **kwargs):  # noqa: ARG001
+def handle_pending_invitations(
+    sender: type[User], instance: User, created: bool, **kwargs: Any
+) -> None:
     """
     When a new user registers, check if they have any pending project invitations.
     If so, create notifications for them so they can discover and accept them.
     """
+    del sender, kwargs
     if created:
         # Check for pending invitations sent to this email before the user registered
         invitations = ProjectInvitation.objects.filter(

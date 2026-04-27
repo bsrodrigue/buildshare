@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from django.db.models.fields.related_descriptors import RelatedManager
@@ -77,7 +77,7 @@ class Release(BaseModel):
     )
     version_id: models.CharField[str, str] = models.CharField("Nom de version (ID)", max_length=50)
     release_notes: models.TextField[str, str] = models.TextField("Notes de version", blank=True)
-    tags: models.ManyToManyField[ReleaseTag] = models.ManyToManyField(
+    tags: models.ManyToManyField[ReleaseTag, models.Model] = models.ManyToManyField(
         ReleaseTag, related_name="releases", blank=True
     )
 
@@ -114,7 +114,7 @@ class Artifact(BaseModel):
         "Architecture", max_length=50, blank=True
     )
     hash: models.CharField[str, str] = models.CharField("Hash (SHA256)", max_length=64)
-    size: models.PositiveBigIntegerField = models.PositiveBigIntegerField(
+    size: models.PositiveBigIntegerField[int | None, int | None] = models.PositiveBigIntegerField(
         "Taille (octets)", null=True, blank=True
     )
 
@@ -142,7 +142,7 @@ class Artifact(BaseModel):
             size /= 1024
         return f"{size:.2f} PB"
 
-    def save(self, *args, **kwargs) -> None:
+    def save(self, *args: Any, **kwargs: Any) -> None:
         if not self.size and self.file:
             self.size = self.file.size
         super().save(*args, **kwargs)

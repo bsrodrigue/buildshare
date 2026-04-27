@@ -3,7 +3,7 @@ from django.contrib import admin
 from .models import User, UserProfile
 
 
-class UserProfileInline(admin.StackedInline):
+class UserProfileInline(admin.StackedInline[UserProfile, User]):
     model = UserProfile
     can_delete = False
     verbose_name_plural = "Profil"

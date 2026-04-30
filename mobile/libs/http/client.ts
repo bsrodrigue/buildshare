@@ -3,16 +3,43 @@ import ky, { HTTPError, Options } from 'ky';
 import { ErrorCode } from '@/libs/api/error-codes';
 import { ApiErrorSchema, AppError, BackendApiError, NetworkError } from '@/libs/api/types';
 
+import { TokenService } from '../api/token-service';
 import { JSONService } from '../json';
 import { Logger } from '../log';
 import { toast } from '../notification/toast';
 import { PlatformService } from '../platform';
-import { SecureStorage } from '../secure-storage';
-import { SecureStorageKey } from '../secure-storage/keys';
 
 const logger = new Logger('HTTPClient');
 
 export class HTTPClient {
+  private instance: typeof ky;
+
+  constructor(baseURL: string, config?: Options) {
+    this.instance = ky.create({
+      prefix: baseURL,
+      timeout: 15000,
+      ...config,
+
+      // Hooks Configurations
+      hooks: {
+        beforeRequest: [
+          ({ request }) => {
+            const token = TokenService.getAccessToken();
+            if (token) request.headers.set('Authorization', `Bearer ${token}`);
+
+            // Inject Platform & Version headers
+            const platformHeaders = PlatformService.getHeaders();
+            Object.entries(platformHeaders).forEach(([key, value]) => {
+              request.headers.set(key, value);
+            });
+
+            logger.debug(`${request.method.toUpperCase()} ${request.url}`);
+          },
+        ],
+      },
+    });
+  }
+
   /**
    * Transforms a raw Response into a structured BackendApiError or Error.
    * This is used when throwHttpErrors: false is set.
@@ -71,32 +98,6 @@ export class HTTPClient {
     }
 
     return new Error('An unexpected error occurred');
-  }
-
-  private instance: typeof ky;
-
-  constructor(baseURL: string, config?: Options) {
-    this.instance = ky.create({
-      prefix: baseURL,
-      timeout: 15000,
-      ...config,
-      hooks: {
-        beforeRequest: [
-          async ({ request }) => {
-            const token = await SecureStorage.getItem(SecureStorageKey.BEARER_TOKEN);
-            if (token) request.headers.set('Authorization', `Bearer ${token}`);
-
-            // Inject Platform & Version headers
-            const platformHeaders = PlatformService.getHeaders();
-            Object.entries(platformHeaders).forEach(([key, value]) => {
-              request.headers.set(key, value);
-            });
-
-            logger.debug(`${request.method.toUpperCase()} ${request.url}`);
-          },
-        ],
-      },
-    });
   }
 
   private async handleResponseError(error: AppError) {

@@ -2,11 +2,10 @@ import { useEffect, useRef } from 'react';
 
 import { APIService } from '@/libs/api/client';
 import { ErrorCode } from '@/libs/api/error-codes';
+import { TokenService } from '@/libs/api/token-service';
 import { BackendApiError } from '@/libs/api/types';
 import { AppConfig } from '@/libs/app-config';
 import { createLogger } from '@/libs/log';
-import { SecureStorage } from '@/libs/secure-storage';
-import { SecureStorageKey } from '@/libs/secure-storage/keys';
 import { authService } from '@/modules/auth/api/services';
 import { useAuthStore } from '@/modules/auth/store';
 
@@ -26,9 +25,9 @@ export default function useInitApp() {
       const apiUrl = await AppConfig.getApiUrl();
       APIService.initializeDefaultClient(apiUrl);
 
-      const token = await SecureStorage.getItem(SecureStorageKey.BEARER_TOKEN);
+      await TokenService.loadTokens();
 
-      if (!token) {
+      if (!TokenService.hasToken()) {
         logger.debug('No bearer token found, skipping authenticated bootstrap');
         void logout();
         setIsVerifyingAuth(false);
@@ -50,7 +49,7 @@ export default function useInitApp() {
 
         if (isAuthError) {
           logger.debug('Stored token is invalid or expired, wiping session');
-          await SecureStorage.removeItem(SecureStorageKey.BEARER_TOKEN);
+          await TokenService.clearTokens();
           void logout();
         } else {
           const message = error instanceof Error ? error.message : 'Unknown error';

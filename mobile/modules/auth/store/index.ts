@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 
+import { TokenService } from '@/libs/api/token-service';
 import { Logger } from '@/libs/log';
-import { SecureStorage } from '@/libs/secure-storage';
-import { SecureStorageKey } from '@/libs/secure-storage/keys';
 import { User } from '@/modules/auth/api/schemas';
 
 const logger = new Logger('AuthStore');
@@ -33,8 +32,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
 
   logout: async () => {
     logger.debug('Logging out');
-    await SecureStorage.removeItem(SecureStorageKey.BEARER_TOKEN);
-    await SecureStorage.removeItem(SecureStorageKey.REFRESH_TOKEN);
+    await TokenService.clearTokens();
     set({ user: null, isAuthenticated: false });
   },
 

@@ -13,6 +13,8 @@ import {
   RegisterParams,
   RegisterResponse,
   RegisterResponseSchema,
+  ResendOtpParams,
+  VerifyOtpParams,
 } from './schemas';
 
 export const authService = {
@@ -46,5 +48,19 @@ export const authService = {
   refresh: async (params: RefreshParams): Promise<RefreshResponse> => {
     const response = await http.post<RefreshResponse>('auth/token/refresh/', params);
     return validateModel(RefreshResponseSchema, response, 'Auth Refresh');
+  },
+
+  /**
+   * Verify email with OTP
+   */
+  verifyOtp: async (params: VerifyOtpParams): Promise<{ message: string }> => {
+    return http.post<{ message: string }>('auth/verify-otp/', params);
+  },
+
+  /**
+   * Resend verification OTP
+   */
+  resendOtp: async (params: ResendOtpParams): Promise<{ message: string }> => {
+    return http.post<{ message: string }>('auth/resend-otp/', params);
   },
 };

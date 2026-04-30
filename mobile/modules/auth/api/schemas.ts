@@ -10,6 +10,7 @@ export const UserSchema = z.object({
   first_name: z.string(),
   last_name: z.string(),
   is_staff: z.boolean().optional(),
+  is_verified: z.boolean(),
   created_at: z.string(),
 });
 
@@ -69,3 +70,22 @@ export const RefreshResponseSchema = z.object({
 });
 
 export type RefreshResponse = z.infer<typeof RefreshResponseSchema>;
+
+/**
+ * Verify OTP
+ */
+export const VerifyOtpParamsSchema = z.object({
+  email: z.email(),
+  code: z.string().min(1, 'Le code est requis'),
+});
+
+export type VerifyOtpParams = z.infer<typeof VerifyOtpParamsSchema>;
+
+/**
+ * Resend OTP
+ */
+export const ResendOtpParamsSchema = z.object({
+  email: z.email(),
+});
+
+export type ResendOtpParams = z.infer<typeof ResendOtpParamsSchema>;

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
+from django.utils import timezone
 from django_stubs_ext.db.models import TypedModelMeta
 
 from core.models import BaseModel
@@ -32,6 +34,7 @@ class UserManager(BaseUserManager["User"]):
 class User(AbstractUser, BaseModel):
     username = None  # type: ignore[assignment]
     email: models.EmailField[str, str] = models.EmailField("Adresse email", unique=True)
+    is_verified: models.BooleanField[bool, bool] = models.BooleanField("Vérifié", default=False)
 
     objects: UserManager = UserManager()  # type: ignore[assignment, misc]
 
@@ -55,7 +58,7 @@ class UserProfile(BaseModel):
     )
     bio: models.TextField[str, str] = models.TextField("Biographie", blank=True, default="")
 
-    objects: models.Manager[UserProfile] = models.Manager()
+    objects: models.Manager[UserProfile] = models.Manager()  # type: ignore[assignment]
 
     class Meta(TypedModelMeta):
         verbose_name = "Profil Utilisateur"
@@ -63,3 +66,28 @@ class UserProfile(BaseModel):
 
     def __str__(self) -> str:
         return f"Profil de {self.user.email}"
+
+
+class OneTimePassword(BaseModel):
+    user: models.ForeignKey[User | int, User] = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="otps",
+        verbose_name="Utilisateur",
+    )
+    code: models.CharField[str, str] = models.CharField("Code", max_length=10)
+    is_used: models.BooleanField[bool, bool] = models.BooleanField("Utilisé", default=False)
+    expires_at: models.DateTimeField[datetime, datetime] = models.DateTimeField("Expire le")
+
+    objects: models.Manager[OneTimePassword] = models.Manager()  # type: ignore[assignment]
+
+    class Meta(TypedModelMeta):
+        verbose_name = "Code OTP"
+        verbose_name_plural = "Codes OTP"
+        ordering = ["-created_at"]
+
+    def is_expired(self) -> bool:
+        return timezone.now() > self.expires_at
+
+    def __str__(self) -> str:
+        return f"OTP {self.code} pour {self.user.email}"

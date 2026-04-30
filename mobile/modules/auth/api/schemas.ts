@@ -19,7 +19,7 @@ export type User = z.infer<typeof UserSchema>;
  * Login
  */
 export const LoginParamsSchema = z.object({
-  email: z.string().email('Adresse email invalide'),
+  email: z.email('Adresse email invalide'),
   password: z.string().min(1, 'Le mot de passe est requis'),
 });
 
@@ -54,3 +54,18 @@ export type RegisterResponse = z.infer<typeof RegisterResponseSchema>;
 export const MeResponseSchema = UserSchema;
 
 export type MeResponse = z.infer<typeof MeResponseSchema>;
+
+/**
+ * Refresh Token
+ */
+export const RefreshParamsSchema = z.object({
+  refresh: z.string(),
+});
+
+export type RefreshParams = z.infer<typeof RefreshParamsSchema>;
+
+export const RefreshResponseSchema = z.object({
+  access: z.string(),
+});
+
+export type RefreshResponse = z.infer<typeof RefreshResponseSchema>;

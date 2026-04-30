@@ -7,6 +7,9 @@ import {
   LoginResponseSchema,
   MeResponse,
   MeResponseSchema,
+  RefreshParams,
+  RefreshResponse,
+  RefreshResponseSchema,
   RegisterParams,
   RegisterResponse,
   RegisterResponseSchema,
@@ -35,5 +38,13 @@ export const authService = {
   me: async (): Promise<MeResponse> => {
     const response = await http.get<MeResponse>('auth/me/');
     return validateModel(MeResponseSchema, response, 'Fetch Me');
+  },
+
+  /**
+   * Refresh the access token
+   */
+  refresh: async (params: RefreshParams): Promise<RefreshResponse> => {
+    const response = await http.post<RefreshResponse>('auth/token/refresh/', params);
+    return validateModel(RefreshResponseSchema, response, 'Auth Refresh');
   },
 };

@@ -13,6 +13,7 @@ const logger = new Logger('HTTPClient');
 
 export class HTTPClient {
   private instance: typeof ky;
+  private static refreshPromise: Promise<string | null> | null = null;
 
   constructor(baseURL: string, config?: Options) {
     this.instance = ky.create({
@@ -109,6 +110,7 @@ export class HTTPClient {
       logger.error(`Backend Error [${error.code}]: ${error.message}${fieldsLog}`);
 
       // 401: Unauthorized (Clear session and redirect)
+      // Note: AUTH_TOKEN_EXPIRED is handled in execute() for automatic refresh
       if (
         error.code === ErrorCode.AUTH_TOKEN_EXPIRED ||
         error.code === ErrorCode.AUTH_INVALID_CREDENTIALS ||
@@ -129,6 +131,42 @@ export class HTTPClient {
     } else {
       logger.error(`API Error: ${error.message}`);
     }
+  }
+
+  private async refreshToken(): Promise<string | null> {
+    if (HTTPClient.refreshPromise) {
+      return HTTPClient.refreshPromise;
+    }
+
+    HTTPClient.refreshPromise = (async () => {
+      try {
+        const refreshToken = TokenService.getRefreshToken();
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
+
+        logger.debug('Attempting to refresh token...');
+
+        // Call the refresh endpoint directly to avoid interceptors/recursion
+        const response = await this.instance
+          .post('auth/token/refresh/', {
+            json: { refresh: refreshToken },
+            // Important: don't use the standard execute flow to avoid 401 loops
+          })
+          .json<{ access: string }>();
+
+        await TokenService.setAccessToken(response.access);
+        logger.debug('Token refreshed successfully');
+        return response.access;
+      } catch (error) {
+        logger.error('Token refresh failed', (error as Error).message);
+        return null;
+      } finally {
+        HTTPClient.refreshPromise = null;
+      }
+    })();
+
+    return HTTPClient.refreshPromise;
   }
 
   // --- Public API Methods ---
@@ -174,9 +212,23 @@ export class HTTPClient {
       const response = await this.instance(url, { ...options, throwHttpErrors: false });
 
       if (!response.ok) {
-        logger.error(`FAILURE ${response.status} ${method.toUpperCase()} ${url}`);
-
         const error = await HTTPClient.parseResponseError(response);
+
+        // Handle automatic token refresh
+        if (
+          error instanceof BackendApiError &&
+          error.code === ErrorCode.AUTH_TOKEN_EXPIRED &&
+          !url.includes('auth/token/refresh/')
+        ) {
+          const newToken = await this.refreshToken();
+          if (newToken) {
+            // Retry the request with the new token
+            // The beforeRequest hook will pick up the new token from TokenService
+            return this.execute<T>(method, url, data, config);
+          }
+        }
+
+        logger.error(`FAILURE ${response.status} ${method.toUpperCase()} ${url}`);
         await this.handleResponseError(error);
         throw error;
       }

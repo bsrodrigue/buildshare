@@ -6,7 +6,7 @@ Open-source, self-hosted alternative to TestFlight for Android app distribution.
 
 ## Core Principles
 
-- **Zero-config first run**: `docker compose up` gives a working instance (PostgreSQL, Redis, Celery, FastAPI).
+- **Zero-config first run**: `docker compose up` gives a working instance (PostgreSQL, RabbitMQ, Celery, FastAPI).
 - **Minimal external deps**: S3-compatible storage required; R2 is one option, not a requirement.
 - **No phone-home, no telemetry**.
 - **Clean self-host docs**: env vars, reverse proxy, backups.
@@ -63,7 +63,7 @@ STORAGE_LOCAL_PATH=./data/storage
 | ORM              | SQLAlchemy 2.0 sync              | Pragmatic simplicity for current scale |
 | Validation       | Pydantic v2                      | Part of FastAPI, no extra dep          |
 | Auth             | JWT (python-jose)                | Stateless, light, auditable            |
-| Background tasks | Celery + Redis                   | Only for APK processing                |
+| Background tasks | Celery + RabbitMQ                | Reliable delivery at scale             |
 | DB               | PostgreSQL (prod) / SQLite (dev) | Standard choice, well-supported        |
 
 ## URL Structure

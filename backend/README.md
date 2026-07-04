@@ -9,7 +9,7 @@ Backend de la plateforme **BuildShare**, une solution de distribution d'applicat
 - **ORM** : SQLAlchemy 2.0
 - **Auth** : JWT (python-jose)
 - **Validation** : Pydantic v2
-- **Tâches asynchrones** : Celery + Redis
+- **Tâches asynchrones** : Celery + RabbitMQ
 - **Stockage** : Cloudflare R2 (boto3)
 - **Base de données** : SQLite (Dev) / PostgreSQL (Prod)
 - **Gestionnaire de paquets** : `uv`
@@ -44,7 +44,7 @@ app/
 ### Prérequis
 
 - [uv](https://github.com/astral-sh/uv)
-- Redis (pour Celery)
+- RabbitMQ (pour Celery)
 
 ### Installation
 
@@ -87,9 +87,10 @@ Une fois le serveur lancé :
 
 Copier `.env` depuis la racine du projet :
 
-| Variable         | Description                       |
-| ---------------- | --------------------------------- |
-| `DATABASE_URL`   | URL de connexion (défaut: sqlite) |
-| `JWT_SECRET_KEY` | Clé de signature JWT              |
-| `REDIS_URL`      | URL Redis pour Celery             |
-| `R2_*`           | Credentials Cloudflare R2         |
+| Variable                | Description                       |
+| ----------------------- | --------------------------------- |
+| `DATABASE_URL`          | URL de connexion (défaut: sqlite) |
+| `JWT_SECRET_KEY`        | Clé de signature JWT              |
+| `CELERY_BROKER_URL`     | URL RabbitMQ pour Celery          |
+| `CELERY_RESULT_BACKEND` | Backend de résultats Celery       |
+| `R2_*`                  | Credentials Cloudflare R2         |

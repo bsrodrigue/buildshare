@@ -10,8 +10,11 @@ os.environ.setdefault("FASTAPI_SETTINGS_MODULE", "app.config")
 
 celery_app = Celery("buildshare")
 
-celery_app.conf.broker_url = settings.celery_broker_url
-celery_app.conf.result_backend = settings.celery_result_backend
+celery_app.conf.broker_url = settings.CELERY_BROKER_URL
+celery_app.conf.result_backend = settings.CELERY_RESULT_BACKEND
+celery_app.conf.broker_connection_retry_on_startup = (
+    settings.CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP
+)
 celery_app.conf.accept_content = ["json"]
 celery_app.conf.task_serializer = "json"
 celery_app.conf.result_serializer = "json"

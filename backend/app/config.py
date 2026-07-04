@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import ClassVar
 
-from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -30,9 +29,6 @@ class Settings(BaseSettings):
     JWT_ISSUER: str = "appshare"
     JWT_ALGORITHM: str = "HS256"
 
-    # Redis / Celery
-    REDIS_URL: str = "redis://localhost:6379/0"
-
     # Storage
     STORAGE_BACKEND: str = "s3"
     STORAGE_LOCAL_PATH: str = "./data/storage"
@@ -45,13 +41,10 @@ class Settings(BaseSettings):
     R2_ENDPOINT_URL: str = ""
     R2_PUBLIC_DOMAIN: str = ""
 
-    @computed_field
-    def celery_broker_url(self) -> str:
-        return self.REDIS_URL
-
-    @computed_field
-    def celery_result_backend(self) -> str:
-        return self.REDIS_URL
+    # Celery / RabbitMQ
+    CELERY_BROKER_URL: str = "pyamqp://guest:guest@localhost:5672//"
+    CELERY_RESULT_BACKEND: str = "db+sqlite:///celery_results.sqlite3"
+    CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP: bool = True
 
 
 settings = Settings()

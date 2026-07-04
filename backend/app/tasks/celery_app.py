@@ -20,4 +20,13 @@ celery_app.conf.task_serializer = "json"
 celery_app.conf.result_serializer = "json"
 celery_app.conf.timezone = "UTC"
 
+# Reliability — ack only after task completes, re-queue on worker loss
+celery_app.conf.task_acks_late = True
+celery_app.conf.task_reject_on_worker_lost = True
+
+# Retries — exponential backoff, up to 3 attempts
+celery_app.conf.task_max_retries = 3
+celery_app.conf.task_default_retry_delay = 60
+celery_app.conf.task_retry_jitter = True
+
 celery_app.autodiscover_tasks(["app.tasks"])

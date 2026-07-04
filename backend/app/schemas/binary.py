@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class UserRef(BaseModel):
@@ -12,8 +12,7 @@ class UserRef(BaseModel):
     first_name: str
     last_name: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ApplicationOut(BaseModel):
@@ -26,8 +25,7 @@ class ApplicationOut(BaseModel):
     created_at: datetime
     latest_release: dict | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ApplicationInput(BaseModel):
@@ -47,8 +45,7 @@ class ReleaseTagOut(BaseModel):
     name: str
     color: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ReleaseTagInput(BaseModel):
@@ -66,8 +63,7 @@ class ArtifactOut(BaseModel):
     download_url: str = ""
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ReleaseOut(BaseModel):
@@ -82,8 +78,7 @@ class ReleaseOut(BaseModel):
     application: int | None = None
     tags: list[ReleaseTagOut] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ArtifactInput(BaseModel):
@@ -101,7 +96,7 @@ class UploadIntentInput(BaseModel):
 
 class UploadIntentOut(BaseModel):
     job_id: UUID
-    upload_url: str
+    upload_url: str | None = None
 
 
 class ProcessAPKInput(BaseModel):
@@ -123,8 +118,7 @@ class TaskJobOut(BaseModel):
     finished_at: datetime | None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BugReportOut(BaseModel):
@@ -137,8 +131,7 @@ class BugReportOut(BaseModel):
     messages_count: int = 0
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BugReportInput(BaseModel):
@@ -155,8 +148,7 @@ class BugMessageOut(BaseModel):
     text: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BugMessageInput(BaseModel):

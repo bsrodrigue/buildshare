@@ -106,7 +106,7 @@ def verify_otp(data: VerifyOtpInput, db: Session = Depends(get_db)):
         select(OneTimePassword).where(
             OneTimePassword.user_id == user.id,
             OneTimePassword.code == data.code,
-            not OneTimePassword.is_used,
+            OneTimePassword.is_used == False,  # noqa: E712
             OneTimePassword.expires_at > datetime.now(UTC),
         )
     ).scalar_one_or_none()

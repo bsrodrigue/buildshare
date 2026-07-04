@@ -12,7 +12,7 @@ from androguard.core.apk import APK as AndroguardAPK  # noqa: N811
 from pyaxmlparser import APK as PyAXMLAPK  # noqa: N811
 
 if TYPE_CHECKING:
-    from core.services.storage import R2StorageService
+    from app.services.storage import StorageBackend
 
 logger = logging.getLogger(__name__)
 
@@ -128,9 +128,8 @@ class AndroidBinaryService:
 class AndroidBinaryDownloader:
     """Service to download Android binaries from remote storage."""
 
-    def download(self, storage: R2StorageService, r2_path: str) -> Path:
-        """Download APK from storage to a temporary file."""
+    def download(self, storage: StorageBackend, key: str) -> Path:
         with tempfile.NamedTemporaryFile(suffix=".apk", delete=False) as tmp_file:
-            logger.info(f"Downloading {r2_path} to {tmp_file.name}")
-            storage.download_file(r2_path, tmp_file.name)
+            logger.info(f"Downloading {key} to {tmp_file.name}")
+            storage.download_file(key, tmp_file.name)
             return Path(tmp_file.name)

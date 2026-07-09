@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     # Server
     DEBUG: bool = True
     ALLOWED_HOSTS: list[str] = ["*"]
+    CORS_ORIGINS: list[str] = ["*"]
 
     # Database
     DATABASE_URL: str = f"sqlite:///{BASE_DIR}/db.sqlite3"

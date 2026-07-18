@@ -1,79 +1,68 @@
 # BuildShare Backend - Coding Practices & Guidelines
 
-This document serves as the "Source of Truth" for backend coding standards using Django, DRF, and Viewflow.
+This document serves as the "Source of Truth" for backend coding standards using **FastAPI**, **SQLAlchemy 2.0**, and **Pydantic v2**.
 
 ## 1. Project Architecture
 
-### 1.1 Modular App Structure
+### 1.1 Modular Structure
 
-The backend is organized into modular Django apps (e.g., `binaries`, `projects`, `users`). Each app should follow this consistent structure:
+The backend is organized into domain modules under `app/`. Each domain follows:
 
-- `models.py`: Data structure and DB-level constraints.
-- `selectors.py`: **READ-ONLY** queries. Logic for fetching and filtering data.
-- `services/`: **WRITE-ONLY** logic. Business actions (creating, updating, complex processing).
-- `flows.py`: State machine logic using `viewflow.fsm`.
-- `apis.py`: DRF ViewSets and APIViews.
-- `serializers.py`: Data validation and transformation.
-- `tasks.py`: Background Celery tasks.
-- `tests_flow.py`: High-level business logic flow tests.
+- `app/models/<domain>.py`: SQLAlchemy model definitions (zero business logic).
+- `app/schemas/<domain>.py`: Pydantic v2 schemas for request/response validation.
+- `app/services/<domain>.py`: **WRITE-ONLY** business logic (creating, updating, complex processing).
+- `app/api/<domain>.py`: FastAPI APIRouter with endpoint definitions.
+- `app/libs/flows.py`: FSM state machine logic (TaskJobFlow, BugReportFlow).
 
 ### 1.2 Separation of Concerns
 
-- **Stateless Selectors**: Avoid putting complex query logic in Views or Models. Use `selectors.py`.
-- **Stateless Services**: Business logic should be encapsulated in functions that represent "actions".
-- **FSM for State**: All state transitions (e.g., File Processing Status) MUST be managed via `flows.py`.
+- **API Layer**: Only handles HTTP concerns (parsing request, status codes, response formatting). Delegates all logic to services.
+- **Services**: Stateless functions that perform business actions. No HTTP knowledge.
+- **Models**: Pure data mapping. No business logic, no HTTP.
+- **Schemas**: Input validation and output serialization. Use Pydantic v2 `BaseModel`.
 
 ---
 
 ## 2. Type Safety & Quality
 
-### 2.1 The "Diamond Resistant" Mandate
-
 - **Strict Typing**: All function signatures MUST have type hints for arguments and return types.
-- **Model Typing**: Models MUST be typed using explicit generic annotations on field assignments to satisfy `django-stubs`. `if TYPE_CHECKING:` blocks should be reserved for dynamically generated methods and related managers.
-  Example:
-
-  ```python
-  name: models.CharField[str, str] = models.CharField(max_length=255)
-  project: models.ForeignKey[Project | int, Project] = models.ForeignKey(Project, ...)
-
-  if TYPE_CHECKING:
-      def get_status_display(self) -> str: ...
-  ```
-
-- **Enforcement**: Mypy is configured with `--disallow-untyped-defs` and `--disallow-any-generics`.
-- **Primitive Obsession**: Avoid passing raw dicts. Prefer Pydantic models or typed DataClasses if complex data structures are needed outside of Serializers.
-
-### 2.2 Serialization Contract
-
-- **Input Validation**: Use Serializers to validate incoming request data.
-- **Output Consistency**: Always use Serializers to format outgoing data. Ensure field names match the frontend expectations documented in `mobile/GEMINI.md`.
+- **Mypy**: Configured with `--disallow-untyped-defs`. Run via `uv run mypy .`.
+- **Ruff**: All linting and formatting. Line length strictly **100**. Run via `uv run ruff check .` / `uv run ruff format .`.
 
 ---
 
 ## 3. Database Integrity
 
-### 3.1 Constraints-First Design
+### 3.1 Constraints
 
-- **CheckConstraints**: Use them for business logic invariants (e.g., `finished_at >= started_at`).
-- **UniqueConstraints**: Use them for idempotency (e.g., `user + type + idempotency_key`).
-- **Standardized Naming**: All constraints must follow the PascalCase naming convention and be defined in `core/constraints/` (e.g., `UNIQUE_TASK_JOB_USER_TASK_IDEMPOTENCY`).
+- UniqueConstraints and CheckConstraints are defined in SQLAlchemy models but **NOT enforced at the DB level** (SQLite compatibility). Enforcement happens in service layer via explicit checks.
+- Idempotency is handled via `UniqueConstraint` on `(user_id, task_type, idempotency_key)` in the `task_jobs` table.
 
 ---
 
-## 4. Error Handling & Reliability
+## 4. Error Handling
 
-### 4.1 "Zero 500s" for Predictable Failures
+### 4.1 Standardized Error Format
 
-- **Standardized Format**: ALL errors must return the project's standard structure: `{ "code": "...", "message": "...", "fields": { "field": [{"message": "...", "code": "..."}] } }`.
-- **ApplicationError**: Always use `ApplicationError` (from `core.exceptions`) when raising business logic or validation errors. This ensures the error is correctly caught and formatted by the global exception handler.
-- **Integrity Mapping**: Every `UniqueConstraint` or `CheckConstraint` added to a model MUST be registered in the `ConstraintRegistry` within the app's `ready()` method.
-- **Graceful Fallbacks**: The `custom_exception_handler` MUST catch all `IntegrityError` exceptions and return a formatted 400 Bad Request if a specific mapping is missing, never a 500.
+ALL errors must return the project's standard structure:
 
-### 4.2 Background Task Reliability
+```json
+{
+  "code": "ERROR_CODE",
+  "message": "Message en français",
+  "fields": {}
+}
+```
 
-- **Consumable Failures**: Background workers MUST NOT store raw tracebacks in the `error_message` field. Use the `get_error_message` utility to provide mapped, user-friendly strings.
-- **Fail-Fast**: Validate expectations early in the task and transition to `FAILURE` with a specific error code.
+### 4.2 Raising Errors
+
+Always use `AppError` from `app.libs.errors` with an `ErrorCode` enum:
+
+```python
+raise AppError(ErrorCode.PROJECT_NOT_FOUND)
+```
+
+The global exception handler in `main.py` catches `AppError` and formats it correctly.
 
 ---
 
@@ -81,40 +70,39 @@ The backend is organized into modular Django apps (e.g., `binaries`, `projects`,
 
 ### 5.1 Robust Tasks
 
-- **Idempotency**: All tasks should check if they've already been processed (e.g., by checking the `TaskJob` status).
-- **Failure Recovery**: Always use `flow.fail(error_message=str(e))` in a global `try...except` block to ensure the database reflects the failure.
+- **Idempotency**: Tasks check `TaskJob` status before processing.
+- **Failure Recovery**: Always use `try...except` and call `flow.fail(error_message=str(e))`.
 - **No Silent Crashes**: Tasks must propagate errors to the `TaskJob` model.
+
+### 5.2 Celery Configuration
+
+Celery app is defined in `app/tasks/celery_app.py` — standalone, no Django dependency. Tasks use their own SQLAlchemy engine for DB access.
 
 ---
 
-## 5. Development Standards
+## 6. Dependencies & Injection
 
-### 5.1 Linting & Formatting
+- Use FastAPI `Depends()` for DB sessions, current user, and other shared dependencies.
+- Define shared dependencies in `app/dependencies.py`.
+- DB session: `Session = Depends(get_db)` — auto-commits on success, rolls back on error.
 
-- **Ruff**: Use Ruff for all linting and formatting. Line length is strictly limited to **100**.
-- **Import Sorting**: Imports must be organized: Standard Library → Third-party → Core → Local App.
+---
 
-### 5.2 Logging
-
-- Use the standard Python `logging` module.
-- Prefetch loggers with `logger = logging.getLogger(__name__)`.
-- **Avoid print()**: Use `logger.info`, `logger.error`, etc.
-
-### 5.3 Post-Coding Verification
+## 7. Post-Coding Verification
 
 **NEVER** consider a backend task finished without running:
 
-1. `python manage.py makemigrations` and `python manage.py migrate`: If you modified any `models.py`, ensure the database schema is in sync.
-2. `uv run ruff check .`: Linting.
-3. `uv run mypy .`: Type safety.
-4. `python manage.py test`: Full test suite.
-5. `uv run ruff format .`: Ensure clean formatting.
+1. `uv run ruff check .` — Linting.
+2. `uv run mypy .` — Type safety.
+3. `uv run ruff format .` — Clean formatting.
+4. Start the server (`uv run uvicorn app.main:app --reload`) and verify the endpoint works.
 
 ---
 
-## 6. Diamond Quality Enforcement (Husky)
+## 8. Key Conventions
 
-The project uses a unified Husky setup. Changes to the backend will trigger:
-
-- **Pre-commit**: Ruff linting and formatting check.
-- **Pre-push**: Full Mypy typecheck and Django unit tests.
+- **Table names**: Match original Django names (e.g., `users_user`, `projects_project`).
+- **URL patterns**: Trailing slashes on all endpoints (e.g., `/api/auth/register/`).
+- **Error codes**: Defined in `AppError` enum in `app/libs/errors.py`.
+- **Filenames**: Use snake_case for Python files, PascalCase for models/schemas classes.
+- **No migrations**: Dev uses `create_all()` on startup; production uses Alembic (in `app/alembic/`).

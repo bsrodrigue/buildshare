@@ -42,6 +42,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: [
     'expo-router',
     [
+      'expo-camera',
+      {
+        cameraPermission: "L'application a besoin d'accéder à la caméra pour scanner les QR codes de configuration.",
+      },
+    ],
+    [
       'expo-splash-screen',
       {
         image: './assets/images/logos/buildshare_logo.png',

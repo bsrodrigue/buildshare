@@ -7,8 +7,8 @@
     "mobile-lint": "npm --prefix mobile run lint",
     "mobile-typecheck": "npm --prefix mobile run typecheck",
     "backend-lint": "cd backend && uv run ruff check .",
-    "backend-typecheck": "cd backend && ./.venv/bin/python -m mypy .",
-    "backend-test": "cd backend && ./.venv/bin/python manage.py test",
+    "backend-typecheck": "cd backend && uv run mypy .",
+    "backend-test": "cd backend && uv run pytest",
     "validate-all": "npm run mobile-typecheck && npm run mobile-lint && npm run backend-typecheck && npm run backend-lint && npm run backend-test"
   },
   "devDependencies": {

@@ -5,6 +5,8 @@
     "success": "Succès",
     "loading": "Chargement...",
     "cancel": "Annuler",
+    "yes": "Oui",
+    "no": "Non",
     "save": "Enregistrer",
     "delete": "Supprimer",
     "close": "Fermer",
@@ -113,7 +115,28 @@
       "submit_app": "Lancer le déploiement",
       "info_header": "Information",
       "async_info_title": "Traitement asynchrone",
-      "async_info_desc": "Le serveur extraira automatiquement les métadonnées de l'APK (ID, Version)."
+      "async_info_desc": "Le serveur extraira automatiquement les métadonnées de l'APK (ID, Version).",
+      "analysis": {
+        "title": "Analyse APK",
+        "metadata_label": "MÉTA-DONNÉES",
+        "metadata_architecture": "Architecture",
+        "metadata_hash": "Hash",
+        "metadata_debuggable": "Débogable",
+        "metadata_size": "Taille",
+        "conflict_signature_title": "Conflit de signature",
+        "conflict_signature_desc": "Cette signature APK ne correspond pas à l'application existante.",
+        "action_create_sibling_label": "Créer une application sœur",
+        "action_create_sibling_desc": "Conserver les deux signatures comme variantes distinctes",
+        "tag_input_label": "Tag (ex: debug, staging, release)",
+        "action_override_label": "Remplacer la signature",
+        "action_override_desc": "Mettre à jour la signature de l'application existante",
+        "conflict_duplicate_title": "Artefact en double",
+        "conflict_duplicate_desc": "Un artefact identique existe déjà pour cette version.",
+        "no_conflict_title": "Aucun conflit détecté",
+        "no_conflict_desc": "L'APK peut être traité directement.",
+        "confirm_with_conflicts": "Confirmer et traiter",
+        "confirm_clean": "Lancer le traitement"
+      }
     },
     "activity": {
       "title": "Activité Récente",

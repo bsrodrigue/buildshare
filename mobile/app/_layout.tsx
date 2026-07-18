@@ -44,7 +44,7 @@ function RootLayoutContent() {
           <BottomSheetModalProvider>
             <PaperProvider theme={paperTheme}>
               <StatusBar style="auto" />
-              <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
+              <KeyboardProvider>
                 <Stack
                   screenOptions={{
                     headerShown: false,

@@ -1,10 +1,9 @@
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 
+import { TokenService } from '@/libs/api/token-service';
 import { AppError } from '@/libs/api/types';
 import { toast } from '@/libs/notification/toast';
-import { SecureStorage } from '@/libs/secure-storage';
-import { SecureStorageKey } from '@/libs/secure-storage/keys';
 import { authService } from '@/modules/auth/api/services';
 import { useAuthStore } from '@/modules/auth/store';
 
@@ -19,8 +18,7 @@ export const useLogin = () => {
   return useMutation<unknown, AppError, LoginParams>({
     mutationFn: (params: LoginParams) => authService.login(params),
     onSuccess: async (data: unknown) => {
-      await SecureStorage.setItem(SecureStorageKey.BEARER_TOKEN, (data as LoginResponse).access);
-      await SecureStorage.setItem(SecureStorageKey.REFRESH_TOKEN, (data as LoginResponse).refresh);
+      await TokenService.setTokens((data as LoginResponse).access, (data as LoginResponse).refresh);
 
       const user = await authService.me();
       setUser(user);

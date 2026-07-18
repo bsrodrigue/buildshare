@@ -3,16 +3,50 @@ import ky, { HTTPError, Options } from 'ky';
 import { ErrorCode } from '@/libs/api/error-codes';
 import { ApiErrorSchema, AppError, BackendApiError, NetworkError } from '@/libs/api/types';
 
+import { TokenService } from '../api/token-service';
 import { JSONService } from '../json';
 import { Logger } from '../log';
 import { toast } from '../notification/toast';
 import { PlatformService } from '../platform';
-import { SecureStorage } from '../secure-storage';
-import { SecureStorageKey } from '../secure-storage/keys';
 
 const logger = new Logger('HTTPClient');
 
 export class HTTPClient {
+  private instance: typeof ky;
+  private static refreshPromise: Promise<string | null> | null = null;
+  private baseURL: string;
+
+  getBaseUrl(): string {
+    return this.baseURL;
+  }
+
+  constructor(baseURL: string, config?: Options) {
+    this.baseURL = baseURL;
+    this.instance = ky.create({
+      prefix: baseURL,
+      timeout: 15000,
+      ...config,
+
+      // Hooks Configurations
+      hooks: {
+        beforeRequest: [
+          ({ request }) => {
+            const token = TokenService.getAccessToken();
+            if (token) request.headers.set('Authorization', `Bearer ${token}`);
+
+            // Inject Platform & Version headers
+            const platformHeaders = PlatformService.getHeaders();
+            Object.entries(platformHeaders).forEach(([key, value]) => {
+              request.headers.set(key, value);
+            });
+
+            logger.debug(`${request.method.toUpperCase()} ${request.url}`);
+          },
+        ],
+      },
+    });
+  }
+
   /**
    * Transforms a raw Response into a structured BackendApiError or Error.
    * This is used when throwHttpErrors: false is set.
@@ -73,32 +107,6 @@ export class HTTPClient {
     return new Error('An unexpected error occurred');
   }
 
-  private instance: typeof ky;
-
-  constructor(baseURL: string, config?: Options) {
-    this.instance = ky.create({
-      prefix: baseURL,
-      timeout: 15000,
-      ...config,
-      hooks: {
-        beforeRequest: [
-          async ({ request }) => {
-            const token = await SecureStorage.getItem(SecureStorageKey.BEARER_TOKEN);
-            if (token) request.headers.set('Authorization', `Bearer ${token}`);
-
-            // Inject Platform & Version headers
-            const platformHeaders = PlatformService.getHeaders();
-            Object.entries(platformHeaders).forEach(([key, value]) => {
-              request.headers.set(key, value);
-            });
-
-            logger.debug(`${request.method.toUpperCase()} ${request.url}`);
-          },
-        ],
-      },
-    });
-  }
-
   private async handleResponseError(error: AppError) {
     if (error instanceof BackendApiError) {
       const fieldsLog =
@@ -108,13 +116,15 @@ export class HTTPClient {
       logger.error(`Backend Error [${error.code}]: ${error.message}${fieldsLog}`);
 
       // 401: Unauthorized (Clear session and redirect)
+      // Note: AUTH_TOKEN_EXPIRED is handled in execute() for automatic refresh
       if (
-        error.code === ErrorCode.AUTH_TOKEN_EXPIRED ||
-        error.code === ErrorCode.AUTH_INVALID_CREDENTIALS ||
-        error.code === ErrorCode.AUTH_SESSION_EXPIRED ||
-        error.code === ErrorCode.AUTH_TOKEN_INVALID ||
-        error.code === ErrorCode.AUTH_NOT_AUTHENTICATED ||
-        error.code === ErrorCode.AUTH_AUTHENTICATION_FAILED
+  error.code === ErrorCode.AUTH_TOKEN_EXPIRED ||
+  error.code === ErrorCode.AUTH_INVALID_CREDENTIALS ||
+  error.code === ErrorCode.AUTH_SESSION_EXPIRED ||
+  error.code === ErrorCode.AUTH_TOKEN_INVALID ||
+  error.code === ErrorCode.AUTH_NOT_AUTHENTICATED ||
+  error.code === ErrorCode.AUTH_AUTHENTICATION_FAILED ||
+  error.code === ErrorCode.AUTH_USER_NOT_FOUND
       ) {
         const { logout, isAuthenticated } = (
           await import('@/modules/auth/store')
@@ -128,6 +138,42 @@ export class HTTPClient {
     } else {
       logger.error(`API Error: ${error.message}`);
     }
+  }
+
+  private async refreshToken(): Promise<string | null> {
+    if (HTTPClient.refreshPromise) {
+      return HTTPClient.refreshPromise;
+    }
+
+    HTTPClient.refreshPromise = (async () => {
+      try {
+        const refreshToken = TokenService.getRefreshToken();
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
+
+        logger.debug('Attempting to refresh token...');
+
+        // Call the refresh endpoint directly to avoid interceptors/recursion
+        const response = await this.instance
+          .post('auth/token/refresh/', {
+            json: { refresh: refreshToken },
+            // Important: don't use the standard execute flow to avoid 401 loops
+          })
+          .json<{ access: string }>();
+
+        await TokenService.setAccessToken(response.access);
+        logger.debug('Token refreshed successfully');
+        return response.access;
+      } catch (error) {
+        logger.error('Token refresh failed', (error as Error).message);
+        return null;
+      } finally {
+        HTTPClient.refreshPromise = null;
+      }
+    })();
+
+    return HTTPClient.refreshPromise;
   }
 
   // --- Public API Methods ---
@@ -173,9 +219,23 @@ export class HTTPClient {
       const response = await this.instance(url, { ...options, throwHttpErrors: false });
 
       if (!response.ok) {
-        logger.error(`FAILURE ${response.status} ${method.toUpperCase()} ${url}`);
-
         const error = await HTTPClient.parseResponseError(response);
+
+        // Handle automatic token refresh
+        if (
+          error instanceof BackendApiError &&
+          error.code === ErrorCode.AUTH_TOKEN_EXPIRED &&
+          !url.includes('auth/token/refresh/')
+        ) {
+          const newToken = await this.refreshToken();
+          if (newToken) {
+            // Retry the request with the new token
+            // The beforeRequest hook will pick up the new token from TokenService
+            return this.execute<T>(method, url, data, config);
+          }
+        }
+
+        logger.error(`FAILURE ${response.status} ${method.toUpperCase()} ${url}`);
         await this.handleResponseError(error);
         throw error;
       }

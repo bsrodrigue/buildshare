@@ -129,15 +129,57 @@ export type UploadIntentParams = z.infer<typeof UploadIntentParamsSchema>;
 
 export const UploadIntentResponseSchema = z.object({
   job_id: z.string(),
-  upload_url: z.string().url(),
+  upload_url: z.string().url().nullable(),
 });
 
 export type UploadIntentResponse = z.infer<typeof UploadIntentResponseSchema>;
+
+export const AppConflictInfoSchema = z.object({
+  app_id: z.number(),
+  title: z.string(),
+  app_signature: z.string().nullable(),
+  tag: z.string().nullable(),
+});
+
+export type AppConflictInfo = z.infer<typeof AppConflictInfoSchema>;
+
+export const AnalysisResultSchema = z.object({
+  job_id: z.string(),
+  package_name: z.string(),
+  version_code: z.number(),
+  version_name: z.string(),
+  architecture: z.string(),
+  hash: z.string(),
+  signature: z.string().nullable(),
+  is_debuggable: z.boolean(),
+  file_size: z.number(),
+  app_id_exists: z.boolean(),
+  signature_matches: z.boolean().nullable(),
+  existing_app: AppConflictInfoSchema.nullable().optional(),
+  sibling_apps: z.array(AppConflictInfoSchema).default([]),
+  version_code_exists: z.boolean(),
+  architecture_exists: z.boolean(),
+  hash_exists: z.boolean(),
+  decisions_needed: z.array(z.string()).default([]),
+});
+
+export type AnalysisResult = z.infer<typeof AnalysisResultSchema>;
+
+export const ResolutionSchema = z.object({
+  action: z.enum(['create_app', 'create_sibling', 'override']),
+  application_id: z.number().optional(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  tag: z.string().optional(),
+});
+
+export type Resolution = z.infer<typeof ResolutionSchema>;
 
 export const ProcessAPKParamsSchema = z.object({
   job_id: z.string(),
   title: z.string().optional(),
   description: z.string().optional(),
+  resolution: ResolutionSchema.optional(),
 });
 
 export const TaskJobSchema = z.object({

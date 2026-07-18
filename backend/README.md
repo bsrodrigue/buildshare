@@ -1,70 +1,96 @@
-# App-share Backend 🚀
+# BuildShare Backend
 
-Backend de la plateforme **App-share**, une solution de distribution d'applications Android pour les testeurs et parties prenantes.
+Backend de la plateforme **BuildShare**, une solution de distribution d'applications Android pour les testeurs et parties prenantes.
 
-## 🏛️ Architecture & Philosophie
-
-Ce projet suit le **HackSoft Django Styleguide**, une architecture modulaire orientée domaine qui sépare strictement la logique métier des couches de présentation.
-
-### Structure des modules
-Chaque domaine (Users, Projects, Binaries) est organisé comme suit :
-- `models.py` : Définition des entités et des contraintes (Zero Business Logic).
-- `services.py` : Actions de mutation (Écritures). C'est ici que vit la logique métier.
-- `selectors.py` : Requêtes de récupération de données (Lectures).
-- `apis.py` : Points d'entrée REST utilisant DRF `APIView`.
-- `serializers.py` : Serializers d'entrée/sortie spécifiques à chaque API.
-
-### Principes de qualité
-- **Isolation Multi-tenant** : Les données sont isolées au niveau du Projet via le `UserProjectProfile`.
-- **RBAC Strict** : Seul l'Admin d'un projet peut uploader des binaires. Les Membres ont un accès en lecture seule.
-- **Typage Explicite** : Utilisation intensive des annotations de type.
-- **Documentation OpenAPI** : Documentation automatique via `drf-spectacular`.
-
-## 🛠️ Stack Technique
+## Stack Technique
 
 - **Langage** : Python 3.14
-- **Framework** : Django 6.0 + Django REST Framework
-- **Auth** : SimpleJWT (JWT)
-- **Base de données** : SQLite (Dev) / PostgreSQL (Prod ready)
+- **Framework** : FastAPI
+- **ORM** : SQLAlchemy 2.0
+- **Auth** : JWT (python-jose)
+- **Validation** : Pydantic v2
+- **Tâches asynchrones** : Celery + RabbitMQ
+- **Stockage** : Cloudflare R2 (boto3)
+- **Base de données** : SQLite (Dev) / PostgreSQL (Prod)
 - **Gestionnaire de paquets** : `uv`
 
-## 🚀 Installation & Lancement
+## Architecture
+
+Le backend suit une architecture modulaire orientée domaine :
+
+```
+app/
+├── main.py              # Application FastAPI, middleware, error handlers
+├── config.py            # Configuration via pydantic-settings
+├── database.py          # Moteur SQLAlchemy et session
+├── dependencies.py      # Dépendances FastAPI (auth, DB)
+├── models/              # Modèles SQLAlchemy
+├── schemas/             # Schémas Pydantic (validation entrée/sortie)
+├── api/                 # Routeurs FastAPI
+├── services/            # Logique métier (écritures)
+├── tasks/               # Tâches Celery (processing APK)
+└── libs/                # Utilitaires (FSM, codes d'erreur)
+```
+
+### Principes
+
+- **Séparation des couches** : API (routes) → Services (logique) → Models (données)
+- **RBAC Strict** : ADMIN peut uploader/modifier, MEMBER accès lecture seule
+- **Typage explicite** : Annotations de type Python partout
+- **Documentation OpenAPI** : Générée automatiquement par FastAPI
+
+## Installation & Lancement
 
 ### Prérequis
-- [uv](https://github.com/astral-sh/uv) installé sur votre machine.
+
+- [uv](https://github.com/astral-sh/uv)
+- RabbitMQ (pour Celery)
 
 ### Installation
+
 ```bash
-# Synchroniser l'environnement et installer les dépendances
 uv sync
 ```
 
 ### Lancement du serveur
+
 ```bash
 npm run server
 # ou
-uv run python manage.py runserver
+uv run uvicorn app.main:app --reload
+```
+
+### Worker Celery
+
+```bash
+npm run celery
+# ou
+uv run celery -A app.tasks.celery_app worker -l info
 ```
 
 ### Qualité du code
-```bash
-# Linting (Ruff & Mypy)
-npm run lint
 
-# Formatage
-npm run format
+```bash
+npm run lint    # Ruff + Mypy
+npm run format  # Ruff format
 ```
 
-## 📖 Documentation API
+## Documentation API
 
-Une fois le serveur lancé, accédez à la documentation interactive :
-- **Swagger UI** : `/api/docs/swagger/`
-- **Redoc** : `/api/docs/redoc/`
-- **Schema JSON/YAML** : `/api/schema/`
+Une fois le serveur lancé :
 
-## 🔐 Administration
+- **Swagger UI** : `/docs`
+- **Redoc** : `/redoc`
+- **OpenAPI JSON** : `/openapi.json`
 
-Le panel d'administration est enrichi pour faciliter la gestion des projets et des binaires :
-- Accès via `/admin/`.
-- Gestion granulaire des rôles (`ADMIN` vs `MEMBER`) par projet.
-- Visualisation des releases et artifacts groupés par application.
+## Variables d'environnement
+
+Copier `.env` depuis la racine du projet :
+
+| Variable                | Description                       |
+| ----------------------- | --------------------------------- |
+| `DATABASE_URL`          | URL de connexion (défaut: sqlite) |
+| `JWT_SECRET_KEY`        | Clé de signature JWT              |
+| `CELERY_BROKER_URL`     | URL RabbitMQ pour Celery          |
+| `CELERY_RESULT_BACKEND` | Backend de résultats Celery       |
+| `R2_*`                  | Credentials Cloudflare R2         |

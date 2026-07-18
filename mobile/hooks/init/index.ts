@@ -45,7 +45,8 @@ export default function useInitApp() {
             error.code === ErrorCode.AUTH_TOKEN_EXPIRED ||
             error.code === ErrorCode.AUTH_SESSION_EXPIRED ||
             error.code === ErrorCode.AUTH_NOT_AUTHENTICATED ||
-            error.code === ErrorCode.AUTH_AUTHENTICATION_FAILED);
+            error.code === ErrorCode.AUTH_AUTHENTICATION_FAILED ||
+            error.code === ErrorCode.AUTH_USER_NOT_FOUND);
 
         if (isAuthError) {
           logger.debug('Stored token is invalid or expired, wiping session');

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import uuid
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -23,6 +25,8 @@ from app.models.project import Project
 from app.models.task_job import TaskJob
 from app.models.user import User
 from app.schemas.binary import (
+    AnalysisResult,
+    AppConflictInfo,
     ApplicationInput,
     ApplicationOut,
     ApplicationUpdateInput,
@@ -35,10 +39,12 @@ from app.schemas.binary import (
     BugReportPatchInput,
     MessageOut,
     ProcessAPKInput,
+    ProcessAPKWithResolution,
     ReleaseOut,
     ReleasePatchInput,
     ReleaseTagInput,
     ReleaseTagOut,
+    Resolution,
     TaskJobOut,
     UploadIntentInput,
     UploadIntentOut,
@@ -53,6 +59,7 @@ from app.services.project import (
 )
 from app.services.storage import StorageBackend
 from app.tasks.binary_processing import process_apk_task
+from libs.android import AndroidBinaryDownloader, AndroidBinaryService
 
 router = APIRouter(prefix="/api/binaries", tags=["binaries"])
 
@@ -140,6 +147,7 @@ def create_application(
             app_id=data.app_id,
             title=data.title,
             description=data.description,
+            app_signature=data.app_signature,
             user=user,
         )
     except AppError as e:
@@ -505,9 +513,179 @@ def create_upload_intent(
     return UploadIntentOut(job_id=job.id, upload_url=upload_url)
 
 
+@router.post("/upload/{job_id}/", status_code=status.HTTP_204_NO_CONTENT)
+def upload_apk_direct(
+    job_id: str,
+    file: UploadFile = File(...),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    storage: StorageBackend = Depends(get_storage),
+):
+    try:
+        job_uuid = uuid.UUID(job_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid job ID format.")
+    job = db.execute(
+        select(TaskJob).where(
+            TaskJob.id == job_uuid,
+            TaskJob.user_id == user.id,
+            TaskJob.type == "BINARY_PROCESSING",
+        )
+    ).scalar_one_or_none()
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "gen_val_003", "message": "Tâche non trouvée.", "fields": {}},
+        )
+
+    key = f"uploads/{job.id}.apk"
+    storage.upload(file.file, key)
+    job.input_data = {**job.input_data, "r2_path": key}
+    db.flush()
+
+
+@router.post("/analyze-apk/{job_id}/", response_model=AnalysisResult)
+def analyze_apk(
+    job_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    storage: StorageBackend = Depends(get_storage),
+):
+    try:
+        job_uuid = uuid.UUID(job_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid job ID format.")
+    job = db.execute(
+        select(TaskJob).where(
+            TaskJob.id == job_uuid,
+            TaskJob.user_id == user.id,
+            TaskJob.type == "BINARY_PROCESSING",
+        )
+    ).scalar_one_or_none()
+
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "gen_val_003", "message": "Tâche non trouvée.", "fields": {}},
+        )
+
+    project_id = job.input_data.get("project_id")
+    r2_path = job.input_data.get("r2_path")
+    if not project_id or not r2_path:
+        raise HTTPException(status_code=400, detail="Job input data incomplete.")
+
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found.")
+    try:
+        check_is_project_admin(db, user=user, project=project)
+    except AppError as e:
+        raise HTTPException(status_code=403, detail=e.message) from e
+
+    downloader = AndroidBinaryDownloader()
+    binary_service = AndroidBinaryService()
+
+    tmp_path = downloader.download(storage, r2_path)
+    try:
+        metadata = binary_service.parse_metadata(tmp_path)
+    finally:
+        if tmp_path.exists():
+            tmp_path.unlink()
+
+    package_name = metadata.package_name
+    signature = metadata.signature_hash
+    version_code = metadata.version_code
+    file_hash = metadata.file_hash
+    architecture = metadata.architecture
+
+    existing_apps = list(
+        db.execute(
+            select(Application).where(
+                Application.project_id == project_id,
+                Application.app_id == package_name,
+            )
+        ).scalars().all()
+    )
+
+    matching_app = None
+    sibling_apps: list[AppConflictInfo] = []
+    app_id_exists = len(existing_apps) > 0
+    signature_matches: bool | None = None
+
+    for app in existing_apps:
+        info = AppConflictInfo(
+            app_id=app.id, title=app.title, app_signature=app.app_signature, tag=app.tag
+        )
+        if app.app_signature == signature:
+            matching_app = info
+            signature_matches = True
+        elif app.app_signature is not None and app.app_signature != signature:
+            sibling_apps.append(info)
+
+    if app_id_exists and signature_matches is None:
+        signature_matches = False
+
+    existing_release = None
+    version_code_exists = False
+    architecture_exists = False
+    hash_exists = False
+
+    if matching_app:
+        existing_release = db.execute(
+            select(Release).where(
+                Release.application_id == matching_app.app_id,
+                Release.version_code == version_code,
+            )
+        ).scalar_one_or_none()
+        if existing_release:
+            version_code_exists = True
+            existing_arch = db.execute(
+                select(Artifact).where(
+                    Artifact.release_id == existing_release.id,
+                    Artifact.architecture == architecture,
+                )
+            ).scalar_one_or_none()
+            if existing_arch:
+                architecture_exists = True
+            existing_hash = db.execute(
+                select(Artifact).where(
+                    Artifact.release_id == existing_release.id,
+                    Artifact.hash == file_hash,
+                )
+            ).scalar_one_or_none()
+            if existing_hash:
+                hash_exists = True
+
+    decisions_needed: list[str] = []
+    if app_id_exists and signature_matches is False:
+        decisions_needed.append("app_conflict_signature")
+    if version_code_exists and hash_exists:
+        decisions_needed.append("artifact_duplicate")
+
+    return AnalysisResult(
+        job_id=job.id,
+        package_name=package_name,
+        version_code=version_code,
+        version_name=metadata.version_name,
+        architecture=architecture,
+        hash=file_hash,
+        signature=signature,
+        is_debuggable=metadata.is_debuggable,
+        file_size=metadata.file_size,
+        app_id_exists=app_id_exists,
+        signature_matches=signature_matches,
+        existing_app=matching_app,
+        sibling_apps=sibling_apps,
+        version_code_exists=version_code_exists,
+        architecture_exists=architecture_exists,
+        hash_exists=hash_exists,
+        decisions_needed=decisions_needed,
+    )
+
+
 @router.post("/process-apk/", response_model=MessageOut, status_code=status.HTTP_202_ACCEPTED)
 def process_apk(
-    data: ProcessAPKInput,
+    data: ProcessAPKWithResolution,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -537,10 +715,10 @@ def process_apk(
                     detail={"code": e.code, "message": e.message, "fields": {}},
                 ) from e
 
+    resolution_data = data.resolution.model_dump() if data.resolution else {}
     process_apk_task.delay(
         job_id=str(job.id),
-        title=data.title,
-        description=data.description,
+        resolution=resolution_data,
     )
 
     return MessageOut(message="Tâche démarrée")

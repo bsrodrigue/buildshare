@@ -17,7 +17,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppError } from '@/libs/api/types';
 import { toast } from '@/libs/notification/toast';
-import { useAPKUploadPipeline } from '@/modules/binaries/api/hooks';
+import { ConflictResolutionSheet } from '@/modules/binaries/components/ConflictResolutionSheet';
+import { useAPKUploadAnalysis, useProcessAPK } from '@/modules/binaries/api/hooks';
+import { AnalysisResult, Resolution } from '@/modules/binaries/api/schemas';
 import { ApkUploadInput } from '@/modules/binaries/components/ApkUploadInput';
 import { useProject } from '@/modules/projects/api/hooks';
 
@@ -29,7 +31,8 @@ export default function UploadArtifactScreen() {
   const { t } = useTranslation();
 
   const { data: project, isLoading: isProjectLoading } = useProject(pid);
-  const uploadPipeline = useAPKUploadPipeline();
+  const uploadAnalysis = useAPKUploadAnalysis();
+  const processAPK = useProcessAPK();
 
   React.useEffect(() => {
     if (project && project.role !== 'ADMIN') {
@@ -41,6 +44,8 @@ export default function UploadArtifactScreen() {
   const [selectedFile, setSelectedFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [showResolutionSheet, setShowResolutionSheet] = useState(false);
 
   const {
     control,
@@ -57,24 +62,20 @@ export default function UploadArtifactScreen() {
     setSelectedFile(file);
   };
 
-  const onSubmit = (data: { title: string; description: string }) => {
-    if (!selectedFile) {
-      toast.error(t('screens.upload.file_missing'), t('screens.upload.file_missing_desc'));
-      return;
-    }
-
-    setUploadProgress(0);
-    uploadPipeline.mutate(
+  const handleProcess = async (
+    analysis: AnalysisResult,
+    jobId: string,
+    title?: string,
+    description?: string,
+    resolution?: Resolution,
+  ) => {
+    await processAPK.mutateAsync(
       {
+        jobId,
+        title: isReleaseMode ? undefined : title?.trim() || undefined,
+        description: isReleaseMode ? undefined : description?.trim() || undefined,
+        resolution,
         projectId: pid,
-        file: {
-          uri: selectedFile.uri,
-          name: selectedFile.name,
-          type: selectedFile.mimeType || 'application/vnd.android.package-archive',
-        },
-        title: isReleaseMode ? undefined : data.title.trim() || undefined,
-        description: isReleaseMode ? undefined : data.description.trim() || undefined,
-        onProgress: (p) => setUploadProgress(p),
       },
       {
         onSuccess: () => {
@@ -85,14 +86,61 @@ export default function UploadArtifactScreen() {
           router.replace('/(protected)/activity');
         },
         onError: (error: AppError) => {
-          setUploadProgress(0);
           toast.error(t('screens.upload.upload_error'), error.message);
         },
       },
     );
   };
 
-  const isPending = uploadPipeline.isPending;
+  const onSubmit = async (data: { title: string; description: string }) => {
+    if (!selectedFile) {
+      toast.error(t('screens.upload.file_missing'), t('screens.upload.file_missing_desc'));
+      return;
+    }
+
+    setUploadProgress(0);
+    setAnalysisResult(null);
+
+    try {
+      const { analysis, jobId } = await uploadAnalysis.mutateAsync({
+        projectId: pid,
+        file: {
+          uri: selectedFile.uri,
+          name: selectedFile.name,
+          type: selectedFile.mimeType || 'application/vnd.android.package-archive',
+        },
+        onProgress: (p) => setUploadProgress(p),
+      });
+
+      setAnalysisResult(analysis);
+
+      const decisions = analysis.decisions_needed ?? [];
+      if (decisions.length > 0) {
+        setShowResolutionSheet(true);
+      } else {
+        await handleProcess(analysis, jobId, data.title, data.description);
+      }
+    } catch (error) {
+      setUploadProgress(0);
+      const appError = error as AppError;
+      toast.error(t('screens.upload.upload_error'), appError.message);
+    }
+  };
+
+  const handleResolve = async (resolution: Resolution) => {
+    setShowResolutionSheet(false);
+    if (analysisResult) {
+      const jobId = analysisResult.job_id;
+      const { title, description } = control._formValues;
+      try {
+        await handleProcess(analysisResult, jobId, title, description, resolution);
+      } catch {
+        // error handled in handleProcess
+      }
+    }
+  };
+
+  const isPending = uploadAnalysis.isPending || processAPK.isPending;
 
   if (isProjectLoading) {
     return (
@@ -209,6 +257,15 @@ export default function UploadArtifactScreen() {
           </List.Section>
         </View>
       </ScrollView>
+
+      {showResolutionSheet && analysisResult && (
+        <ConflictResolutionSheet
+          analysis={analysisResult}
+          onResolve={handleResolve}
+          onDismiss={() => setShowResolutionSheet(false)}
+          isProcessing={processAPK.isPending}
+        />
+      )}
     </View>
   );
 }

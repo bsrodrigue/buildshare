@@ -11,6 +11,8 @@ module.exports = function (api) {
     plugins.push(['transform-remove-console', { exclude: ['error', 'warn'] }]);
   }
 
+  plugins.push('react-native-reanimated/plugin');
+
   return {
     presets: ['babel-preset-expo'],
     plugins: plugins,

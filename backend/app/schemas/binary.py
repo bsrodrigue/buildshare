@@ -22,6 +22,9 @@ class ApplicationOut(BaseModel):
     app_id: str
     title: str
     description: str
+    app_signature: str | None = None
+    is_debuggable: bool = False
+    tag: str | None = None
     created_at: datetime
     latest_release: dict | None = None
 
@@ -33,6 +36,7 @@ class ApplicationInput(BaseModel):
     app_id: str
     title: str
     description: str = ""
+    app_signature: str | None = None
 
 
 class ApplicationUpdateInput(BaseModel):
@@ -103,6 +107,49 @@ class ProcessAPKInput(BaseModel):
     job_id: UUID
     title: str | None = None
     description: str = ""
+
+
+class AppConflictInfo(BaseModel):
+    app_id: int | None = None
+    title: str = ""
+    app_signature: str | None = None
+    tag: str | None = None
+
+
+class AnalysisResult(BaseModel):
+    job_id: UUID
+    package_name: str
+    version_code: int
+    version_name: str
+    architecture: str
+    hash: str
+    signature: str | None
+    is_debuggable: bool
+    file_size: int
+
+    app_id_exists: bool
+    signature_matches: bool | None
+    existing_app: AppConflictInfo | None = None
+    sibling_apps: list[AppConflictInfo] = []
+
+    version_code_exists: bool
+    architecture_exists: bool
+    hash_exists: bool
+
+    decisions_needed: list[str] = []
+
+
+class Resolution(BaseModel):
+    action: str  # "create_app" | "create_sibling" | "override"
+    application_id: int | None = None
+    title: str | None = None
+    description: str = ""
+    tag: str | None = None
+
+
+class ProcessAPKWithResolution(BaseModel):
+    job_id: UUID
+    resolution: Resolution | None = None
 
 
 class TaskJobOut(BaseModel):

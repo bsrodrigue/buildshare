@@ -40,7 +40,8 @@ def application_get(db: Session, *, user: User, application_id: int) -> Applicat
 
 
 def application_create(
-    db: Session, *, project: Project, app_id: str, title: str, description: str, user: User
+    db: Session, *, project: Project, app_id: str, title: str, description: str, user: User,
+    app_signature: str | None = None,
 ) -> Application:
     check_is_project_admin(db, user=user, project=project)
 
@@ -49,6 +50,7 @@ def application_create(
         app_id=app_id,
         title=title,
         description=description,
+        app_signature=app_signature,
     )
     db.add(app)
     db.flush()

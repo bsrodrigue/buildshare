@@ -29,4 +29,7 @@ celery_app.conf.task_max_retries = 3
 celery_app.conf.task_default_retry_delay = 60
 celery_app.conf.task_retry_jitter = True
 
+# Suppress deprecation warning about cancelling tasks on connection loss
+celery_app.conf.worker_cancel_long_running_tasks_on_connection_loss = True
+
 celery_app.autodiscover_tasks(["app.tasks"])

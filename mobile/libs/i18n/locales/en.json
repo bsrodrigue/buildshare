@@ -5,6 +5,8 @@
     "success": "Success",
     "loading": "Loading...",
     "cancel": "Cancel",
+    "yes": "Yes",
+    "no": "No",
     "save": "Save",
     "delete": "Delete",
     "close": "Close",
@@ -113,7 +115,28 @@
       "submit_app": "Launch Deployment",
       "info_header": "Information",
       "async_info_title": "Asynchronous Processing",
-      "async_info_desc": "The server will automatically extract APK metadata (ID, Version)."
+      "async_info_desc": "The server will automatically extract APK metadata (ID, Version).",
+      "analysis": {
+        "title": "APK Analysis",
+        "metadata_label": "METADATA",
+        "metadata_architecture": "Architecture",
+        "metadata_hash": "Hash",
+        "metadata_debuggable": "Debuggable",
+        "metadata_size": "Size",
+        "conflict_signature_title": "Signature Conflict",
+        "conflict_signature_desc": "This APK signature does not match the existing application.",
+        "action_create_sibling_label": "Create sibling application",
+        "action_create_sibling_desc": "Keep both signatures as distinct variants",
+        "tag_input_label": "Tag (e.g. debug, staging, release)",
+        "action_override_label": "Override signature",
+        "action_override_desc": "Update the existing application's signature",
+        "conflict_duplicate_title": "Duplicate Artifact",
+        "conflict_duplicate_desc": "An identical artifact already exists for this version.",
+        "no_conflict_title": "No Conflict Detected",
+        "no_conflict_desc": "The APK can be processed directly.",
+        "confirm_with_conflicts": "Confirm and process",
+        "confirm_clean": "Start processing"
+      }
     },
     "activity": {
       "title": "Recent Activity",

@@ -3,8 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, ForeignKey, String, Text, Uuid, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
@@ -23,6 +22,8 @@ class Application(BaseModel):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, default="", nullable=False)
     app_signature: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    is_debuggable: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    tag: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     project: Mapped[Project] = relationship("Project", back_populates="applications")
     releases: Mapped[list[Release]] = relationship(
@@ -105,7 +106,6 @@ class Artifact(BaseModel):
 
     __table_args__ = (
         UniqueConstraint("release_id", "hash", name="unique_artifact_hash_per_release"),
-        UniqueConstraint("release_id", "architecture", name="unique_artifact_arch_per_release"),
     )
 
     def __repr__(self) -> str:
@@ -115,7 +115,7 @@ class Artifact(BaseModel):
 class BugReport(BaseModel):
     __tablename__ = "binaries_bugreport"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(native_uuid=False), primary_key=True, default=uuid.uuid4)
     release_id: Mapped[int] = mapped_column(ForeignKey("binaries_release.id"), nullable=False)
     reporter_id: Mapped[int] = mapped_column(ForeignKey("users_user.id"), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
@@ -136,7 +136,7 @@ class BugReport(BaseModel):
 class BugMessage(BaseModel):
     __tablename__ = "binaries_bugmessage"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(native_uuid=False), primary_key=True, default=uuid.uuid4)
     bug_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("binaries_bugreport.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users_user.id"), nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)

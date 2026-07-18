@@ -42,8 +42,6 @@ StorageBackend
    - Stores under `STORAGE_LOCAL_PATH` (default: `./data/storage/`)
    - `presigned_url` returns `None`; files served directly by the web server (or via a static route)
 
-3. **(Future) SFTP / WebDAV / GCS**
-
 ### Configuration
 
 ```env

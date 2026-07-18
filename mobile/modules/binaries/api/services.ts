@@ -1,7 +1,9 @@
-import { http } from '@/libs/api/client';
+import { APIService, http } from '@/libs/api/client';
+import { TokenService } from '@/libs/api/token-service';
 import { validateModel } from '@/libs/api/validation';
 
 import {
+  AnalysisResult,
   Application,
   ApplicationCreateParams,
   ApplicationSchema,
@@ -91,7 +93,61 @@ export const binaryService = {
   },
 
   /**
-   * Trigger APK processing on the server (Step 3 of the new pipeline)
+   * Upload file directly to the backend (Step 2b — local storage fallback)
+   */
+  uploadDirect: async (
+    jobId: string,
+    file: unknown,
+    onProgress?: (progress: number) => void,
+  ): Promise<void> => {
+    const baseUrl = APIService.getClient().getBaseUrl();
+    const token = TokenService.getAccessToken();
+    const fileAsset = file as { uri: string; type?: string; name?: string };
+
+    return new Promise((resolve, reject) => {
+      const formData = new FormData();
+      formData.append('file', {
+        uri: fileAsset.uri,
+        type: fileAsset.type || 'application/vnd.android.package-archive',
+        name: fileAsset.name || 'upload.apk',
+      } as unknown as Blob);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${baseUrl}/binaries/upload/${jobId}/`);
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+      if (onProgress) {
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            onProgress((event.loaded / event.total) * 100);
+          }
+        };
+      }
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+        } else {
+          reject(new Error(`Upload failed: ${xhr.status} ${xhr.responseText}`));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error during upload'));
+
+      xhr.send(formData);
+    });
+  },
+
+  /**
+   * Analyze an uploaded APK: returns metadata + conflict detection (Step 3)
+   */
+  analyzeAPK: async (jobId: string): Promise<AnalysisResult> => {
+    const response = await http.post<AnalysisResult>(`binaries/analyze-apk/${jobId}/`);
+    return response;
+  },
+
+  /**
+   * Trigger APK processing on the server with optional resolution (Step 4)
    */
   processAPK: async (params: ProcessAPKParams): Promise<{ message: string }> => {
     const response = await http.post<{ message: string }>('binaries/process-apk/', params);

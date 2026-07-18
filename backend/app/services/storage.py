@@ -120,7 +120,10 @@ class LocalStorageBackend:
 def get_storage_backend() -> StorageBackend:
     backend_type = settings.STORAGE_BACKEND
     if backend_type == "s3":
-        return S3StorageBackend()
+        if settings.R2_ENDPOINT_URL:
+            return S3StorageBackend()
+        logger.warning("R2_ENDPOINT_URL not set, falling back to local storage")
+        return LocalStorageBackend()
     if backend_type == "local":
         return LocalStorageBackend()
     raise ValueError(f"Unknown storage backend: {backend_type}")

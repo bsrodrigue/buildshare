@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { StyleSheet, View } from 'react-native';
+import { Modal, StyleSheet, View } from 'react-native';
 import { Button, Dialog, HelperText, Portal, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { AppConfig } from '@/libs/app-config';
 import { env } from '@/libs/env';
 import { createLogger } from '@/libs/log';
 import { toast } from '@/libs/notification/toast';
+
+import { QrScannerView } from './QrScannerView';
 
 const logger = createLogger('ApiConfigModal');
 
@@ -17,17 +19,18 @@ interface ApiConfigModalProps {
 
 /**
  * Dialog that lets users swap the API base URL at runtime.
- * This is useful for self-hosting or pointing the app to a different backend instance.
- * The change is persisted in AsyncStorage and takes effect immediately.
+ * Supports manual entry and QR code scanning.
  */
 export function ApiConfigModal({ visible, onDismiss }: ApiConfigModalProps) {
   const theme = useTheme();
   const [isSaving, setIsSaving] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
 
   const {
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -51,7 +54,6 @@ export function ApiConfigModal({ visible, onDismiss }: ApiConfigModalProps) {
       logger.info(`API URL changed to: ${data.url}`);
       onDismiss();
     } catch (err) {
-      // In a real app, you might want to map this to the 'url' field properly
       toast.error('Failed to save URL', err instanceof Error ? err.message : '');
     } finally {
       setIsSaving(false);
@@ -70,6 +72,23 @@ export function ApiConfigModal({ visible, onDismiss }: ApiConfigModalProps) {
       setIsSaving(false);
     }
   };
+
+  const handleQrScan = (url: string) => {
+    setShowScanner(false);
+    setValue('url', url);
+    toast.info('QR code scanned', url);
+  };
+
+  if (showScanner) {
+    return (
+      <Modal visible={visible} animationType="slide" onRequestClose={() => setShowScanner(false)}>
+        <QrScannerView
+          onScan={handleQrScan}
+          onCancel={() => setShowScanner(false)}
+        />
+      </Modal>
+    );
+  }
 
   return (
     <Portal>
@@ -123,6 +142,15 @@ export function ApiConfigModal({ visible, onDismiss }: ApiConfigModalProps) {
             )}
           </View>
 
+          <Button
+            mode="outlined"
+            icon="qrcode-scan"
+            onPress={() => setShowScanner(true)}
+            style={styles.scanButton}
+          >
+            Scan QR Code
+          </Button>
+
           <Text variant="bodySmall" style={{ color: theme.colors.outline }}>
             Default: {env.API_URL}
           </Text>
@@ -170,5 +198,8 @@ const styles = StyleSheet.create({
   },
   input: {
     fontSize: 14,
+  },
+  scanButton: {
+    marginBottom: 16,
   },
 });

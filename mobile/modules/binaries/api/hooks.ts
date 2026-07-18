@@ -4,6 +4,7 @@ import { AppError } from '@/libs/api/types';
 import { toast } from '@/libs/notification/toast';
 
 import {
+  AnalysisResult,
   Application,
   ApplicationCreateParams,
   ApplicationUpdateParams,
@@ -11,8 +12,10 @@ import {
   BugMessageInput,
   BugReport,
   BugReportInput,
+  ProcessAPKParams,
   Release,
   ReleaseTag,
+  Resolution,
   TaskJob,
 } from './schemas';
 import { binaryService } from './services';
@@ -89,47 +92,75 @@ export const useDeleteApplication = () => {
 };
 
 /**
- * Orchestrated pipeline hook for APK uploads using R2 and asynchronous processing.
+ * Orchestrated pipeline hook for APK upload + analysis using R2.
+ * Returns the AnalysisResult so the caller can inspect decisions_needed.
  */
-export const useAPKUploadPipeline = () => {
+export const useAPKUploadAnalysis = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { analysis: AnalysisResult; jobId: string },
+    AppError,
+    {
+      projectId: number;
+      file: unknown;
+      onProgress?: (progress: number) => void;
+    }
+  >({
+    mutationFn: async ({ projectId, file, onProgress }) => {
+      const idempotencyKey = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+
+      const intent = await binaryService.getUploadIntent({
+        project_id: projectId,
+        idempotency_key: idempotencyKey,
+      });
+
+      if (intent.upload_url) {
+        await binaryService.uploadToR2(intent.upload_url, file, onProgress);
+      } else {
+        await binaryService.uploadDirect(intent.job_id, file, onProgress);
+      }
+
+      const analysis = await binaryService.analyzeAPK(intent.job_id);
+
+      return { analysis, jobId: intent.job_id };
+    },
+    onSuccess: (_, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ['applications', variables.projectId] });
+    },
+  });
+};
+
+/**
+ * Final step: trigger APK processing with optional resolution.
+ * Call this after the user has resolved any conflicts.
+ */
+export const useProcessAPK = () => {
   const queryClient = useQueryClient();
 
   return useMutation<
     { message: string },
     AppError,
     {
-      projectId: number;
-      file: unknown;
+      jobId: string;
       title?: string;
       description?: string;
-      onProgress?: (progress: number) => void;
+      resolution?: Resolution;
+      projectId: number;
     }
   >({
-    mutationFn: async ({ projectId, file, title, description, onProgress }) => {
-      // Step 0: Generate a unique idempotency key for this attempt
-      const idempotencyKey = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-
-      // Step 1: Request Intent (get signed URL and tracking job ID)
-      const intent = await binaryService.getUploadIntent({
-        project_id: projectId,
-        idempotency_key: idempotencyKey,
-      });
-
-      // Step 2: Direct Binary PUT to Cloudflare R2
-      await binaryService.uploadToR2(intent.upload_url, file, onProgress);
-
-      // Step 3: Trigger backend processing task
-      return await binaryService.processAPK({
-        job_id: intent.job_id,
+    mutationFn: async ({ jobId, title, description, resolution }) => {
+      const params: ProcessAPKParams = {
+        job_id: jobId,
         title,
         description,
-      });
+        resolution,
+      };
+      return await binaryService.processAPK(params);
     },
     onSuccess: (_, variables) => {
-      // Invalidate relevant queries to refresh the UI
       void queryClient.invalidateQueries({ queryKey: ['applications', variables.projectId] });
       void queryClient.invalidateQueries({ queryKey: ['artifacts'] });
-
       toast.success('Upload réussi !', "L'APK est en cours de traitement par le serveur.");
     },
   });

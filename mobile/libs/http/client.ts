@@ -14,8 +14,14 @@ const logger = new Logger('HTTPClient');
 export class HTTPClient {
   private instance: typeof ky;
   private static refreshPromise: Promise<string | null> | null = null;
+  private baseURL: string;
+
+  getBaseUrl(): string {
+    return this.baseURL;
+  }
 
   constructor(baseURL: string, config?: Options) {
+    this.baseURL = baseURL;
     this.instance = ky.create({
       prefix: baseURL,
       timeout: 15000,
@@ -112,12 +118,13 @@ export class HTTPClient {
       // 401: Unauthorized (Clear session and redirect)
       // Note: AUTH_TOKEN_EXPIRED is handled in execute() for automatic refresh
       if (
-        error.code === ErrorCode.AUTH_TOKEN_EXPIRED ||
-        error.code === ErrorCode.AUTH_INVALID_CREDENTIALS ||
-        error.code === ErrorCode.AUTH_SESSION_EXPIRED ||
-        error.code === ErrorCode.AUTH_TOKEN_INVALID ||
-        error.code === ErrorCode.AUTH_NOT_AUTHENTICATED ||
-        error.code === ErrorCode.AUTH_AUTHENTICATION_FAILED
+  error.code === ErrorCode.AUTH_TOKEN_EXPIRED ||
+  error.code === ErrorCode.AUTH_INVALID_CREDENTIALS ||
+  error.code === ErrorCode.AUTH_SESSION_EXPIRED ||
+  error.code === ErrorCode.AUTH_TOKEN_INVALID ||
+  error.code === ErrorCode.AUTH_NOT_AUTHENTICATED ||
+  error.code === ErrorCode.AUTH_AUTHENTICATION_FAILED ||
+  error.code === ErrorCode.AUTH_USER_NOT_FOUND
       ) {
         const { logout, isAuthenticated } = (
           await import('@/modules/auth/store')

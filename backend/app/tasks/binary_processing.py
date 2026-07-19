@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from typing import Any
 
 from celery import shared_task
@@ -112,7 +113,7 @@ def process_apk_task(
 ) -> None:
     db = Session(_engine)
     try:
-        job = db.execute(select(TaskJob).where(TaskJob.id == job_id)).scalar_one()
+        job = db.execute(select(TaskJob).where(TaskJob.id == uuid.UUID(job_id))).scalar_one()
         flow = TaskJobFlow(job)
         logger.info(f"Starting APK processing for job {job_id}")
 
@@ -211,7 +212,7 @@ def process_apk_task(
                 "artifact_id": str(artifact.id),
             }
             flow.finish()
-            db.flush()
+            db.commit()
 
             logger.info(f"Successfully processed APK for job {job_id}")
 
@@ -222,10 +223,10 @@ def process_apk_task(
     except Exception as e:
         logger.exception(f"Error processing APK for job {job_id}: {e}")
         try:
-            job = db.execute(select(TaskJob).where(TaskJob.id == job_id)).scalar_one()
+            job = db.execute(select(TaskJob).where(TaskJob.id == uuid.UUID(job_id))).scalar_one()
             flow = TaskJobFlow(job)
             flow.fail(error_message=str(e))
-            db.flush()
+            db.commit()
         except Exception:
             logger.exception(f"Failed to mark job {job_id} as failed")
         raise e

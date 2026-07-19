@@ -8,6 +8,8 @@ from app.config import settings
 
 os.environ.setdefault("FASTAPI_SETTINGS_MODULE", "app.config")
 
+import app.tasks.binary_processing  # noqa: F401 — register tasks
+
 celery_app = Celery("buildshare")
 
 celery_app.conf.broker_url = settings.CELERY_BROKER_URL

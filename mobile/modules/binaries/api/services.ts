@@ -1,6 +1,7 @@
 import { APIService, http } from '@/libs/api/client';
 import { TokenService } from '@/libs/api/token-service';
 import { validateModel } from '@/libs/api/validation';
+import { createLogger } from '@/libs/log';
 
 import {
   AnalysisResult,
@@ -21,6 +22,8 @@ import {
   UploadIntentParams,
   UploadIntentResponse,
 } from './schemas';
+
+const logger = createLogger('BinaryService');
 
 export const binaryService = {
   /**
@@ -62,6 +65,9 @@ export const binaryService = {
       const fileAsset = file as { uri: string; type?: string; name?: string };
       const contentType = fileAsset.type || 'application/vnd.android.package-archive';
 
+      logger.debug(`PUT ${url}`);
+      logger.debug(`file: ${fileAsset.name || 'upload.apk'} (${contentType})`);
+
       const xhr = new XMLHttpRequest();
 
       xhr.open('PUT', url);
@@ -78,13 +84,18 @@ export const binaryService = {
 
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
+          logger.debug('SUCCESS PUT upload to R2');
           resolve();
         } else {
+          logger.error(`FAILURE ${xhr.status} PUT ${url}: ${xhr.responseText}`);
           reject(new Error(`Failed to upload to storage: ${xhr.status} ${xhr.responseText}`));
         }
       };
 
-      xhr.onerror = () => reject(new Error('Network error during upload to R2'));
+      xhr.onerror = () => {
+        logger.error(`Network error PUT ${url}`);
+        reject(new Error('Network error during upload to R2'));
+      };
 
       // React Native's XMLHttpRequest supports Blob/File/Uri-based objects
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,6 +114,9 @@ export const binaryService = {
     const baseUrl = APIService.getClient().getBaseUrl();
     const token = TokenService.getAccessToken();
     const fileAsset = file as { uri: string; type?: string; name?: string };
+    const url = new URL(`binaries/upload/${jobId}/`, baseUrl).href;
+    logger.debug(`POST ${url}`);
+    logger.debug(`file: ${fileAsset.name || 'upload.apk'} (${fileAsset.type || 'unknown'})`);
 
     return new Promise((resolve, reject) => {
       const formData = new FormData();
@@ -113,7 +127,7 @@ export const binaryService = {
       } as unknown as Blob);
 
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', `${baseUrl}/binaries/upload/${jobId}/`);
+      xhr.open('POST', url);
       xhr.setRequestHeader('Authorization', `Bearer ${token}`);
 
       if (onProgress) {
@@ -126,13 +140,18 @@ export const binaryService = {
 
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
+          logger.debug(`SUCCESS POST binaries/upload/${jobId}/`);
           resolve();
         } else {
+          logger.error(`FAILURE ${xhr.status} POST ${url}: ${xhr.responseText}`);
           reject(new Error(`Upload failed: ${xhr.status} ${xhr.responseText}`));
         }
       };
 
-      xhr.onerror = () => reject(new Error('Network error during upload'));
+      xhr.onerror = () => {
+        logger.error(`Network error POST ${url}`);
+        reject(new Error('Network error during upload'));
+      };
 
       xhr.send(formData);
     });

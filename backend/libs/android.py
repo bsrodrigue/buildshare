@@ -82,7 +82,15 @@ class AndroidBinaryService:
     def is_debuggable(path: Path) -> bool:
         try:
             apk = AndroguardAPK(str(path))
-            return apk.is_debuggable()
+            manifest = apk.get_android_manifest_xml()
+            if manifest is None:
+                return False
+            ns_android = "{http://schemas.android.com/apk/res/android}"
+            application = manifest.find("application")
+            if application is None:
+                return False
+            val = application.get(f"{ns_android}debuggable")
+            return val == "true"
         except Exception as e:
             logger.error(f"Failed to extract debuggable flag from {path}: {e}")
         return False

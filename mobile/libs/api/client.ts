@@ -34,6 +34,10 @@ export class APIService {
     }
     return APIService.defaultClient;
   }
+
+  public static isReady(): boolean {
+    return APIService.defaultClient !== null;
+  }
 }
 
 /**

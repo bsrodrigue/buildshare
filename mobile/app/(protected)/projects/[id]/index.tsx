@@ -282,16 +282,6 @@ export default function ProjectDetailScreen() {
                 title="Quitter le projet"
                 leadingIcon="account-remove"
               />
-              <Divider />
-              <Menu.Item
-                onPress={() => {
-                  closeMenu();
-                  void useAuthStore.getState().logout();
-                }}
-                title={t('common.logout')}
-                leadingIcon="logout"
-                titleStyle={{ color: theme.colors.error }}
-              />
 
               {project?.role === 'ADMIN' && (
                 <Menu.Item

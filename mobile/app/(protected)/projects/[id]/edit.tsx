@@ -4,7 +4,16 @@ import React, { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Button, Card, Text, TextInput, useTheme } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  Button,
+  HelperText,
+  IconButton,
+  Text,
+  TextInput,
+  useTheme,
+} from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { setFormErrors } from '@/libs/api/forms';
 import { AppError } from '@/libs/api/types';
@@ -16,6 +25,7 @@ export default function EditProjectScreen() {
   const { id } = useLocalSearchParams();
   const projectId = parseInt(id as string, 10);
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
 
   const { data: project, isLoading } = useProject(projectId);
@@ -77,21 +87,43 @@ export default function EditProjectScreen() {
   }
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-      contentContainerStyle={styles.content}
-    >
-      <View style={styles.header}>
-        <Text variant="headlineSmall" style={[styles.title, { color: theme.colors.onSurface }]}>
-          {t('screens.edit_project.title')}
-        </Text>
-        <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-          {t('screens.edit_project.subtitle')}
-        </Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: theme.colors.surface,
+            paddingTop: insets.top + 8,
+            borderBottomColor: theme.colors.outline + '20',
+          },
+        ]}
+      >
+        <IconButton
+          icon="arrow-left"
+          iconColor={theme.colors.onSurface}
+          size={28}
+          onPress={() => router.back()}
+          style={styles.backButton}
+        />
+        <View style={styles.headerTitleContainer}>
+          <Text variant="headlineSmall" style={[styles.pageTitle, { color: theme.colors.onSurface }]}>
+            {t('screens.edit_project.title')}
+          </Text>
+          <Text
+            variant="bodySmall"
+            style={[styles.pageSubtitle, { color: theme.colors.onSurfaceVariant }]}
+          >
+            {t('screens.edit_project.subtitle')}
+          </Text>
+        </View>
       </View>
 
-      <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-        <Card.Content>
+      <ScrollView
+        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 96 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.fieldGroup}>
           <Controller
             control={control}
             name="title"
@@ -107,12 +139,12 @@ export default function EditProjectScreen() {
               />
             )}
           />
-          {errors.title && (
-            <Text style={{ color: theme.colors.error }} variant="bodySmall">
-              {errors.title.message}
-            </Text>
-          )}
+          <HelperText type="error" visible={!!errors.title}>
+            {errors.title?.message}
+          </HelperText>
+        </View>
 
+        <View style={styles.fieldGroup}>
           <Controller
             control={control}
             name="description"
@@ -129,25 +161,29 @@ export default function EditProjectScreen() {
               />
             )}
           />
+        </View>
 
-          <Button
-            mode="contained"
-            onPress={() => {
-              void handleSubmit(onSubmit)();
-            }}
-            loading={updateProject.isPending}
-            disabled={updateProject.isPending}
-            style={styles.button}
-          >
-            {t('screens.edit_project.submit')}
-          </Button>
+        <Button
+          mode="contained"
+          onPress={() => {
+            void handleSubmit(onSubmit)();
+          }}
+          loading={updateProject.isPending}
+          disabled={updateProject.isPending}
+          style={styles.submitBtn}
+        >
+          {t('screens.edit_project.submit')}
+        </Button>
 
-          <Button mode="outlined" onPress={() => router.back()} style={styles.cancel}>
-            {t('common.cancel')}
-          </Button>
-        </Card.Content>
-      </Card>
-    </ScrollView>
+        <Button
+          mode="outlined"
+          onPress={() => router.back()}
+          style={styles.cancelBtn}
+        >
+          {t('common.cancel')}
+        </Button>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -155,30 +191,35 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
-    padding: 20,
-    paddingTop: 60,
-  },
   header: {
-    marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    paddingHorizontal: 24,
+    paddingBottom: 12,
   },
-  title: {
+  backButton: {
+    marginLeft: -8,
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
+  pageTitle: {
     fontWeight: 'bold',
   },
-  card: {
-    elevation: 2,
-    borderRadius: 12,
+  pageSubtitle: {
+    opacity: 0.6,
   },
-  input: {
-    marginBottom: 16,
+  listContent: {
+    padding: 16,
   },
-  button: {
-    marginTop: 8,
-    paddingVertical: 6,
-  },
-  cancel: {
+  fieldGroup: { marginBottom: 8 },
+  input: { fontSize: 16 },
+  submitBtn: {
     marginTop: 12,
+    borderRadius: 28,
   },
+  cancelBtn: { marginTop: 12 },
   center: {
     flex: 1,
     justifyContent: 'center',

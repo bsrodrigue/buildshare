@@ -1,11 +1,13 @@
+import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { BackHandler, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Badge, Card, FAB, IconButton, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuthStore } from '@/modules/auth/store';
+import { toast } from '@/libs/notification/toast';
 import { useUnreadNotificationsCount } from '@/modules/notifications/api/hooks';
 import { useProjects } from '@/modules/projects/api/hooks';
 import { Project } from '@/modules/projects/api/schemas';
@@ -20,6 +22,25 @@ export default function DashboardScreen() {
   const { data: projects, isLoading, isRefetching, refetch } = useProjects();
   const unreadCount = useUnreadNotificationsCount();
   const [menuVisible, setMenuVisible] = React.useState(false);
+  const lastBackPress = useRef(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        const now = Date.now();
+        if (now - lastBackPress.current < 2000) {
+          BackHandler.exitApp();
+          return true;
+        }
+        lastBackPress.current = now;
+        toast.info(t('common.press_again_to_exit'));
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [t]),
+  );
 
   const renderProjectItem = ({ item }: { item: Project }) => (
     <Card

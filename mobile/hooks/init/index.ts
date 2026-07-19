@@ -16,6 +16,9 @@ export default function useInitApp() {
   const hasInitialized = useRef(false);
 
   useEffect(() => {
+    if (!APIService.isReady()) {
+      hasInitialized.current = false;
+    }
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 

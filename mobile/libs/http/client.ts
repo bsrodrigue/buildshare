@@ -76,6 +76,19 @@ export class HTTPClient {
       return new BackendApiError(apiResult.data);
     }
 
+    // FastAPI wraps HTTPException detail in {"detail": {...}}
+    if (
+      responseData &&
+      typeof responseData === 'object' &&
+      'detail' in responseData
+    ) {
+      const detail = (responseData as Record<string, unknown>).detail;
+      const nestedResult = ApiErrorSchema.safeParse(detail);
+      if (nestedResult.success) {
+        return new BackendApiError(nestedResult.data);
+      }
+    }
+
     // Fallback for unknown error formats
     const fallbackMessage =
       responseData && typeof responseData === 'object' && 'message' in responseData

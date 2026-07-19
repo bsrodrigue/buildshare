@@ -524,7 +524,7 @@ def upload_apk_direct(
     try:
         job_uuid = uuid.UUID(job_id)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid job ID format.")
+        raise HTTPException(status_code=400, detail="Invalid job ID format.") from None
     job = db.execute(
         select(TaskJob).where(
             TaskJob.id == job_uuid,

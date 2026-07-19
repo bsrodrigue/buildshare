@@ -25,6 +25,7 @@ class ApplicationOut(BaseModel):
     app_signature: str | None = None
     is_debuggable: bool = False
     tag: str | None = None
+    icon_url: str | None = None
     created_at: datetime
     latest_release: dict | None = None
 

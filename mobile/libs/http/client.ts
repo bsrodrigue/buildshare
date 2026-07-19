@@ -2,6 +2,7 @@ import ky, { HTTPError, Options } from 'ky';
 
 import { ErrorCode } from '@/libs/api/error-codes';
 import { ApiErrorSchema, AppError, BackendApiError, NetworkError } from '@/libs/api/types';
+import { useAuthStore } from '@/modules/auth/store';
 
 import { TokenService } from '../api/token-service';
 import { JSONService } from '../json';
@@ -14,6 +15,7 @@ const logger = new Logger('HTTPClient');
 export class HTTPClient {
   private instance: typeof ky;
   private static refreshPromise: Promise<string | null> | null = null;
+  private static retriedUrls = new Set<string>();
   private baseURL: string;
 
   getBaseUrl(): string {
@@ -77,11 +79,7 @@ export class HTTPClient {
     }
 
     // FastAPI wraps HTTPException detail in {"detail": {...}}
-    if (
-      responseData &&
-      typeof responseData === 'object' &&
-      'detail' in responseData
-    ) {
+    if (responseData && typeof responseData === 'object' && 'detail' in responseData) {
       const detail = (responseData as Record<string, unknown>).detail;
       const nestedResult = ApiErrorSchema.safeParse(detail);
       if (nestedResult.success) {
@@ -131,17 +129,15 @@ export class HTTPClient {
       // 401: Unauthorized (Clear session and redirect)
       // Note: AUTH_TOKEN_EXPIRED is handled in execute() for automatic refresh
       if (
-  error.code === ErrorCode.AUTH_TOKEN_EXPIRED ||
-  error.code === ErrorCode.AUTH_INVALID_CREDENTIALS ||
-  error.code === ErrorCode.AUTH_SESSION_EXPIRED ||
-  error.code === ErrorCode.AUTH_TOKEN_INVALID ||
-  error.code === ErrorCode.AUTH_NOT_AUTHENTICATED ||
-  error.code === ErrorCode.AUTH_AUTHENTICATION_FAILED ||
-  error.code === ErrorCode.AUTH_USER_NOT_FOUND
+        error.code === ErrorCode.AUTH_TOKEN_EXPIRED ||
+        error.code === ErrorCode.AUTH_INVALID_CREDENTIALS ||
+        error.code === ErrorCode.AUTH_SESSION_EXPIRED ||
+        error.code === ErrorCode.AUTH_TOKEN_INVALID ||
+        error.code === ErrorCode.AUTH_NOT_AUTHENTICATED ||
+        error.code === ErrorCode.AUTH_AUTHENTICATION_FAILED ||
+        error.code === ErrorCode.AUTH_USER_NOT_FOUND
       ) {
-        const { logout, isAuthenticated } = (
-          await import('@/modules/auth/store')
-        ).useAuthStore.getState();
+        const { logout, isAuthenticated } = useAuthStore.getState();
 
         if (isAuthenticated) {
           toast.error('Session expirée. Veuillez vous reconnecter.');
@@ -151,6 +147,13 @@ export class HTTPClient {
     } else {
       logger.error(`API Error: ${error.message}`);
     }
+  }
+
+  /**
+   * Resets the retry tracking state. Useful after a successful logout or login.
+   */
+  public static resetRetryState(): void {
+    HTTPClient.retriedUrls.clear();
   }
 
   private async refreshToken(): Promise<string | null> {
@@ -176,6 +179,7 @@ export class HTTPClient {
           .json<{ access: string }>();
 
         await TokenService.setAccessToken(response.access);
+        HTTPClient.retriedUrls.clear();
         logger.debug('Token refreshed successfully');
         return response.access;
       } catch (error) {
@@ -234,16 +238,17 @@ export class HTTPClient {
       if (!response.ok) {
         const error = await HTTPClient.parseResponseError(response);
 
-        // Handle automatic token refresh
+        // Handle automatic token refresh (at most once per URL)
+        const retryKey = `${method}:${url}`;
         if (
           error instanceof BackendApiError &&
           error.code === ErrorCode.AUTH_TOKEN_EXPIRED &&
-          !url.includes('auth/token/refresh/')
+          !url.includes('auth/token/refresh/') &&
+          !HTTPClient.retriedUrls.has(retryKey)
         ) {
+          HTTPClient.retriedUrls.add(retryKey);
           const newToken = await this.refreshToken();
           if (newToken) {
-            // Retry the request with the new token
-            // The beforeRequest hook will pick up the new token from TokenService
             return this.execute<T>(method, url, data, config);
           }
         }

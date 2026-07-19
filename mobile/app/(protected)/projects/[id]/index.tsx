@@ -8,7 +8,6 @@ import {
   Button,
   Chip,
   Dialog,
-  Divider,
   FAB,
   IconButton,
   List,
@@ -141,12 +140,16 @@ export default function ProjectDetailScreen() {
             <View
               style={[styles.avatarContainer, { backgroundColor: theme.colors.secondaryContainer }]}
             >
-              <Avatar.Icon
-                icon="android"
-                size={32}
-                color={theme.colors.onSecondaryContainer}
-                style={styles.avatar}
-              />
+              {item.icon_url ? (
+                <Avatar.Image source={{ uri: item.icon_url }} size={32} style={styles.avatar} />
+              ) : (
+                <Avatar.Icon
+                  icon="android"
+                  size={32}
+                  color={theme.colors.onSecondaryContainer}
+                  style={styles.avatar}
+                />
+              )}
             </View>
           )}
         />

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from io import BytesIO
 from typing import Any
 
 from celery import shared_task
@@ -159,6 +160,13 @@ def process_apk_task(
                 description or "",
             )
 
+            if not app.icon_key:
+                icon_bytes = binary_service.get_app_icon_bytes(tmp_path)
+                if icon_bytes is not None:
+                    icon_key = f"icons/{package_name}/{version_code}/{uuid.uuid4().hex}.png"
+                    storage_service.upload(BytesIO(icon_bytes), icon_key)
+                    app.icon_key = icon_key
+
             db.flush()
 
             release = db.execute(
@@ -222,6 +230,7 @@ def process_apk_task(
 
     except Exception as e:
         logger.exception(f"Error processing APK for job {job_id}: {e}")
+        db.rollback()
         try:
             job = db.execute(select(TaskJob).where(TaskJob.id == uuid.UUID(job_id))).scalar_one()
             flow = TaskJobFlow(job)
@@ -229,6 +238,6 @@ def process_apk_task(
             db.commit()
         except Exception:
             logger.exception(f"Failed to mark job {job_id} as failed")
-        raise e
+            db.rollback()
     finally:
         db.close()

@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Animated, Easing, Modal, Pressable, StyleSheet, View } from 'react-native';
-import { Divider, Surface, Text, useTheme } from 'react-native-paper';
+import { Button, Divider, Surface, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useCancelJob } from '@/modules/binaries/api/hooks';
 import { TaskJob } from '@/modules/binaries/api/schemas';
+import { useTheme as useCustomTheme } from '@/modules/shared/theme/ThemeProvider';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -108,6 +110,7 @@ const DURATION_OUT = 220;
  */
 export function JobDetailSheet({ job, onDismiss }: JobDetailSheetProps) {
   const theme = useTheme();
+  const customTheme = useCustomTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(600)).current;
@@ -123,11 +126,13 @@ export function JobDetailSheet({ job, onDismiss }: JobDetailSheetProps) {
           return theme.colors.error;
         case 'STARTED':
           return theme.colors.primary;
+        case 'PENDING':
+          return customTheme.colors.warning;
         default:
           return theme.colors.outline;
       }
     },
-    [theme.colors.error, theme.colors.primary, theme.colors.outline],
+    [theme.colors.error, theme.colors.primary, theme.colors.outline, customTheme.colors.warning],
   );
 
   const visible = job !== null;
@@ -243,6 +248,9 @@ export function JobDetailSheet({ job, onDismiss }: JobDetailSheetProps) {
             <DetailRow label={t('jobs.labels.application')} value={job.app_title} />
           )}
 
+          {/* Cancel button for PENDING jobs */}
+          {job.status === 'PENDING' && <CancelButton jobId={job.id} onCancelled={handleDismiss} />}
+
           {/* Error box */}
           {!!job.error_message && (
             <>
@@ -342,5 +350,35 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 4,
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Cancel button sub-component
+// ---------------------------------------------------------------------------
+
+function CancelButton({ jobId, onCancelled }: { jobId: string; onCancelled: () => void }) {
+  const { t } = useTranslation();
+  const cancelJob = useCancelJob();
+
+  return (
+    <Button
+      mode="contained"
+      buttonColor="#E53935"
+      textColor="#fff"
+      loading={cancelJob.isPending}
+      disabled={cancelJob.isPending}
+      onPress={() => cancelJob.mutate(jobId, { onSuccess: onCancelled })}
+      style={cancelStyles.button}
+    >
+      {t('common.cancel')}
+    </Button>
+  );
+}
+
+const cancelStyles = StyleSheet.create({
+  button: {
+    borderRadius: 12,
+    marginTop: 16,
   },
 });

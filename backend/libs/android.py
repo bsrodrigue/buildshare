@@ -72,7 +72,7 @@ class AndroidBinaryService:
                 # Get the SHA-256 fingerprint from the first certificate
                 # format is usually "AA:BB:CC..."
                 fingerprint = str(certs[0].sha256_fingerprint)
-                return fingerprint.replace(":", "").lower()
+                return fingerprint.replace(":", "").replace(" ", "").lower()
         except Exception as e:
             logger.error(f"Failed to extract signature from {path}: {e}")
 
@@ -94,6 +94,50 @@ class AndroidBinaryService:
         except Exception as e:
             logger.error(f"Failed to extract debuggable flag from {path}: {e}")
         return False
+
+    @staticmethod
+    def get_app_icon_bytes(path: Path) -> bytes | None:
+        # Try androguard first (handles most APK/AAB formats)
+        try:
+            apk = AndroguardAPK(str(path))
+            icon_name = apk.get_app_icon()
+            if icon_name:
+                data = apk.get_file(icon_name)
+                if data:
+                    return data
+        except Exception as e:
+            logger.warning(f"androguard icon extraction failed for {path}: {e}")
+
+        # Fallback: scan the zip for the highest-density launcher icon
+        try:
+            with zipfile.ZipFile(path, "r") as zf:
+                candidates = [
+                    n
+                    for n in zf.namelist()
+                    if n.startswith("res/mipmap")
+                    or n.startswith("res/drawable")
+                    and (n.endswith(".png") or n.endswith(".webp"))
+                ]
+                if not candidates:
+                    return None
+
+                def _density(name: str) -> int:
+                    for token in name.split("/"):
+                        if "xxxhdpi" in token:
+                            return 4
+                        if "xxhdpi" in token:
+                            return 3
+                        if "xhdpi" in token:
+                            return 2
+                        if "hdpi" in token:
+                            return 1
+                    return 0
+
+                best = max(candidates, key=lambda n: (_density(n), len(n)))
+                return zf.read(best)
+        except Exception as e:
+            logger.error(f"Failed to extract app icon from {path}: {e}")
+        return None
 
     @staticmethod
     def calculate_hash(path: Path) -> str:

@@ -69,6 +69,7 @@ export function ThemeProvider({ children, forcedColorScheme }: ThemeProviderProp
           onError: baseTheme.colors.onError,
           errorContainer: baseTheme.colors.errorContainer,
           onErrorContainer: baseTheme.colors.onErrorContainer,
+          // warning intentionally omitted — paper theme doesn't type it; use customTheme.colors.warning
         },
       },
     };

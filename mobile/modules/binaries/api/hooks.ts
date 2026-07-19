@@ -185,6 +185,21 @@ export const useTaskJobs = (projectId?: number) => {
 };
 
 /**
+ * Hook to cancel a PENDING task job.
+ */
+export const useCancelJob = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, AppError, string>({
+    mutationFn: (jobId: string) => binaryService.cancelJob(jobId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['task-jobs'] });
+      toast.success('Tâche annulée !');
+    },
+  });
+};
+
+/**
  * Hook to fetch releases for an application.
  */
 export const useReleases = (applicationId: number) => {

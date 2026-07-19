@@ -22,6 +22,7 @@ export const ApplicationSchema = z.object({
   app_id: z.string(),
   title: z.string(),
   description: z.string(),
+  icon_url: z.string().nullable().optional(),
   latest_release: z
     .object({
       id: z.number(),

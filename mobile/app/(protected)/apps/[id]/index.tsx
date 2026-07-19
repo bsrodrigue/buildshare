@@ -10,7 +10,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { ActivityIndicator, FAB, IconButton, Menu, Portal, Text } from 'react-native-paper';
+import { ActivityIndicator, Avatar, FAB, IconButton, Menu, Portal, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { env } from '@/libs/env';
@@ -150,6 +150,20 @@ export default function AppDetailScreen() {
               void router.back();
             }}
           />
+          {application?.icon_url ? (
+            <Avatar.Image
+              source={{ uri: application.icon_url }}
+              size={36}
+              style={styles.headerIcon}
+            />
+          ) : (
+            <Avatar.Icon
+              icon="android"
+              size={36}
+              style={styles.headerIcon}
+              color={theme.colors.onSurfaceVariant}
+            />
+          )}
           <Text variant="titleLarge" style={[styles.title, { color: theme.colors.onSurface }]}>
             {application?.title || t('screens.release_list.title')}
           </Text>
@@ -444,6 +458,7 @@ const styles = StyleSheet.create({
   },
   headerIcon: {
     margin: 0,
+    marginRight: 8,
   },
   headerTitleContainer: {
     flex: 1,

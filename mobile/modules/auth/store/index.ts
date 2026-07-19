@@ -1,6 +1,8 @@
+import { router } from 'expo-router';
 import { create } from 'zustand';
 
 import { TokenService } from '@/libs/api/token-service';
+import { HTTPClient } from '@/libs/http/client';
 import { Logger } from '@/libs/log';
 import { User } from '@/modules/auth/api/schemas';
 
@@ -33,7 +35,9 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
   logout: async () => {
     logger.debug('Logging out');
     await TokenService.clearTokens();
+    HTTPClient.resetRetryState();
     set({ user: null, isAuthenticated: false });
+    router.replace('/(auth)/login');
   },
 
   setIsVerifyingAuth: (isVerifyingAuth: boolean) => {

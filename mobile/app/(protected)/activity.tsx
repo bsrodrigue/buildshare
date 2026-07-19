@@ -59,6 +59,8 @@ export default function ActivityScreen() {
         return theme.colors.error;
       case 'STARTED':
         return theme.colors.primary;
+      case 'PENDING':
+        return customTheme.colors.warning;
       default:
         return theme.colors.outline;
     }

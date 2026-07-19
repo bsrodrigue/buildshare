@@ -302,6 +302,13 @@ export const binaryService = {
   },
 
   /**
+   * Cancel a PENDING task job
+   */
+  cancelJob: async (jobId: string): Promise<void> => {
+    await http.post(`binaries/jobs/${jobId}/cancel/`);
+  },
+
+  /**
    * Update tags for a specific release
    */
   updateReleaseTags: async (releaseId: number, tagIds: number[]): Promise<Release> => {

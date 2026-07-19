@@ -86,6 +86,7 @@ export const darkColors = {
   errorContainer: '#8C1D18',
   onErrorContainer: '#F9DEDC',
   success: '#B2EEB1',
+  warning: '#FFAB00',
   disabled: 'rgba(230, 225, 229, 0.38)',
 
   // UI Elements
@@ -157,6 +158,7 @@ export const lightColors: ThemeColors = {
   errorContainer: '#F9DEDC',
   onErrorContainer: '#410E0B',
   success: '#2E7D32',
+  warning: '#FFAB00',
   disabled: 'rgba(28, 27, 31, 0.38)',
 
   // UI Elements

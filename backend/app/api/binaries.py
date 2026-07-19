@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import uuid
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from fastapi.responses import FileResponse, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user, get_storage
 from app.libs.errors import AppError
+from app.libs.flows import TaskJobFlow
 from app.models.binary import (
     Application,
     Artifact,
@@ -38,13 +38,11 @@ from app.schemas.binary import (
     BugReportOut,
     BugReportPatchInput,
     MessageOut,
-    ProcessAPKInput,
     ProcessAPKWithResolution,
     ReleaseOut,
     ReleasePatchInput,
     ReleaseTagInput,
     ReleaseTagOut,
-    Resolution,
     TaskJobOut,
     UploadIntentInput,
     UploadIntentOut,
@@ -64,11 +62,23 @@ from libs.android import AndroidBinaryDownloader, AndroidBinaryService
 router = APIRouter(prefix="/api/binaries", tags=["binaries"])
 
 
+def _parse_uuid(value: str, code: str = "gen_val_001") -> uuid.UUID:
+    try:
+        return uuid.UUID(value)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": code, "message": "Identifiant invalide.", "fields": {}},
+        ) from None
+
+
 @router.get("/applications/", response_model=list[ApplicationOut])
 def list_applications(
+    request: Request,
     project_id: int | None = None,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    storage: StorageBackend = Depends(get_storage),
 ):
     if not project_id:
         raise HTTPException(
@@ -121,6 +131,7 @@ def list_applications(
                 app_id=a.app_id,
                 title=a.title,
                 description=a.description,
+                icon_url=_app_icon_url(a, request, storage),
                 created_at=a.created_at,
                 latest_release=latest_release,
             )
@@ -130,9 +141,11 @@ def list_applications(
 
 @router.post("/applications/", response_model=ApplicationOut, status_code=status.HTTP_201_CREATED)
 def create_application(
+    request: Request,
     data: ApplicationInput,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    storage: StorageBackend = Depends(get_storage),
 ):
     project = db.get(Project, data.project_id)
     if not project:
@@ -164,6 +177,7 @@ def create_application(
         app_id=app.app_id,
         title=app.title,
         description=app.description,
+        icon_url=_app_icon_url(app, request, storage),
         created_at=app.created_at,
         latest_release=None,
     )
@@ -171,9 +185,11 @@ def create_application(
 
 @router.get("/applications/{application_id}/", response_model=ApplicationOut)
 def get_application(
+    request: Request,
     application_id: int,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    storage: StorageBackend = Depends(get_storage),
 ):
     try:
         app = binary_service.application_get(db, user=user, application_id=application_id)
@@ -206,6 +222,7 @@ def get_application(
         app_id=app.app_id,
         title=app.title,
         description=app.description,
+        icon_url=_app_icon_url(app, request, storage),
         created_at=app.created_at,
         latest_release=latest_release,
     )
@@ -213,10 +230,12 @@ def get_application(
 
 @router.put("/applications/{application_id}/", response_model=ApplicationOut)
 def update_application(
+    request: Request,
     application_id: int,
     data: ApplicationUpdateInput,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    storage: StorageBackend = Depends(get_storage),
 ):
     try:
         app = binary_service.application_get(db, user=user, application_id=application_id)
@@ -240,6 +259,7 @@ def update_application(
         app_id=app.app_id,
         title=app.title,
         description=app.description,
+        icon_url=_app_icon_url(app, request, storage),
         created_at=app.created_at,
     )
 
@@ -258,6 +278,36 @@ def delete_application(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": e.code, "message": e.message, "fields": {}},
         ) from e
+
+
+def _app_icon_url(
+    app: Application, request: Request, storage: StorageBackend | None = None
+) -> str | None:
+    if not app.icon_key:
+        return None
+    if storage:
+        presigned = storage.presigned_download_url(app.icon_key, expires=86400)
+        if presigned:
+            return presigned
+    return str(request.url_for("serve_app_icon", application_id=app.id))
+
+
+@router.get("/applications/{application_id}/icon/")
+def serve_app_icon(
+    application_id: int,
+    db: Session = Depends(get_db),
+    storage: StorageBackend = Depends(get_storage),
+):
+    app = db.get(Application, application_id)
+    if not app:
+        raise HTTPException(status_code=404)
+    if not app.icon_key:
+        raise HTTPException(status_code=404)
+    try:
+        data = storage.download(app.icon_key).read()
+    except Exception:
+        raise HTTPException(status_code=404) from None
+    return Response(content=data, media_type="image/png")
 
 
 @router.get("/releases/", response_model=list[ReleaseOut])
@@ -554,7 +604,7 @@ def analyze_apk(
     try:
         job_uuid = uuid.UUID(job_id)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid job ID format.")
+        raise HTTPException(status_code=400, detail="Invalid job ID format.") from None
     job = db.execute(
         select(TaskJob).where(
             TaskJob.id == job_uuid,
@@ -604,7 +654,9 @@ def analyze_apk(
                 Application.project_id == project_id,
                 Application.app_id == package_name,
             )
-        ).scalars().all()
+        )
+        .scalars()
+        .all()
     )
 
     matching_app = None
@@ -757,6 +809,35 @@ def list_jobs(
     return result
 
 
+@router.post("/jobs/{job_id}/cancel/", status_code=status.HTTP_204_NO_CONTENT)
+def cancel_job(
+    job_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    job_uuid = _parse_uuid(job_id)
+    job = db.execute(
+        select(TaskJob).where(
+            TaskJob.id == job_uuid,
+            TaskJob.user_id == user.id,
+        )
+    ).scalar_one_or_none()
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "gen_val_003", "message": "Tâche non trouvée.", "fields": {}},
+        )
+    try:
+        flow = TaskJobFlow(job)
+        flow.cancel()
+        db.flush()
+    except AppError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": e.code, "message": e.message, "fields": {}},
+        ) from e
+
+
 @router.get("/releases/{release_id}/bugs/", response_model=list[BugReportOut])
 def list_bugs(
     release_id: int,
@@ -857,7 +938,9 @@ def get_bug(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    bug = db.execute(select(BugReport).where(BugReport.id == bug_id)).scalar_one_or_none()
+    bug = db.execute(
+        select(BugReport).where(BugReport.id == _parse_uuid(bug_id))
+    ).scalar_one_or_none()
     if not bug:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -906,7 +989,9 @@ def patch_bug(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    bug = db.execute(select(BugReport).where(BugReport.id == bug_id)).scalar_one_or_none()
+    bug = db.execute(
+        select(BugReport).where(BugReport.id == _parse_uuid(bug_id))
+    ).scalar_one_or_none()
     if not bug:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -947,7 +1032,9 @@ def transition_bug(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    bug = db.execute(select(BugReport).where(BugReport.id == bug_id)).scalar_one_or_none()
+    bug = db.execute(
+        select(BugReport).where(BugReport.id == _parse_uuid(bug_id))
+    ).scalar_one_or_none()
     if not bug:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -991,7 +1078,9 @@ def list_bug_messages(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    bug = db.execute(select(BugReport).where(BugReport.id == bug_id)).scalar_one_or_none()
+    bug = db.execute(
+        select(BugReport).where(BugReport.id == _parse_uuid(bug_id))
+    ).scalar_one_or_none()
     if not bug:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -1027,7 +1116,9 @@ def create_bug_message(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    bug = db.execute(select(BugReport).where(BugReport.id == bug_id)).scalar_one_or_none()
+    bug = db.execute(
+        select(BugReport).where(BugReport.id == _parse_uuid(bug_id))
+    ).scalar_one_or_none()
     if not bug:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

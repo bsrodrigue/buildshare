@@ -26,8 +26,8 @@ class Settings(BaseSettings):
 
     # JWT
     JWT_SECRET_KEY: str = "dev-secret-key-change-in-production"
-    JWT_ACCESS_TOKEN_MINUTES: int = 60
-    JWT_REFRESH_TOKEN_DAYS: int = 1
+    JWT_ACCESS_TOKEN_MINUTES: int = 10080  # 7 days
+    JWT_REFRESH_TOKEN_DAYS: int = 30
     JWT_ISSUER: str = "appshare"
     JWT_ALGORITHM: str = "HS256"
 

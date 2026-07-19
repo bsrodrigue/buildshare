@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy import select, update
@@ -25,11 +26,12 @@ def notification_mark_as_read(db: Session, *, notification: Notification) -> Not
 
 
 def notification_bulk_mark_as_read(db: Session, *, user: User, notification_ids: list[str]) -> int:
+    ids = [uuid.UUID(nid) for nid in notification_ids]
     stmt = (
         update(Notification)
         .where(
             Notification.user_id == user.id,
-            Notification.id.in_(notification_ids),
+            Notification.id.in_(ids),
             Notification.read_at.is_(None),
         )
         .values(read_at=datetime.now(UTC))

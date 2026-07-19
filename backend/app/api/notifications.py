@@ -62,7 +62,7 @@ def mark_as_read(
 ):
     notification = db.execute(
         select(Notification).where(
-            Notification.id == notification_id,
+            Notification.id == UUID(notification_id),
             Notification.user_id == user.id,
         )
     ).scalar_one_or_none()

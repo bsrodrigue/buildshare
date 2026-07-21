@@ -15,7 +15,7 @@ from app.models.binary import Application, Artifact, Release
 from app.models.project import Project
 from app.models.task_job import TaskJob
 from app.services.storage import get_storage_backend
-from libs.android import AndroidBinaryDownloader, AndroidBinaryService
+from libs.android import AndroidBinaryDownloader, AndroidBinaryService, APKDownloader, APKParser
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +111,8 @@ def process_apk_task(
     resolution: dict[str, Any] | None = None,
     title: str | None = None,
     description: str | None = None,
+    parser: APKParser | None = None,
+    downloader: APKDownloader | None = None,
 ) -> None:
     db = Session(_engine)
     try:
@@ -132,101 +134,95 @@ def process_apk_task(
             raise ValueError(f"Project {project_id} not found.")
 
         storage_service = get_storage_backend()
-        downloader = AndroidBinaryDownloader()
-        binary_service = AndroidBinaryService()
+        downloader = downloader or AndroidBinaryDownloader()
+        parser = parser or AndroidBinaryService()
 
-        tmp_path = downloader.download(storage_service, r2_path)
+        apk_bytes = downloader.download(storage_service, r2_path)
+        metadata = parser.parse_metadata(apk_bytes)
 
-        try:
-            metadata = binary_service.parse_metadata(tmp_path)
+        package_name = metadata.package_name
+        version_code = metadata.version_code
+        version_name = metadata.version_name
+        file_hash = metadata.file_hash
+        architecture = metadata.architecture
+        signature = metadata.signature_hash
+        is_debuggable = metadata.is_debuggable
 
-            package_name = metadata.package_name
-            version_code = metadata.version_code
-            version_name = metadata.version_name
-            file_hash = metadata.file_hash
-            architecture = metadata.architecture
-            signature = metadata.signature_hash
-            is_debuggable = metadata.is_debuggable
+        app = _resolve_app(
+            db,
+            project_id,
+            package_name,
+            signature,
+            is_debuggable,
+            metadata,
+            resolution or {},
+            title,
+            description or "",
+        )
 
-            app = _resolve_app(
-                db,
-                project_id,
-                package_name,
-                signature,
-                is_debuggable,
-                metadata,
-                resolution or {},
-                title,
-                description or "",
+        if not app.icon_key:
+            icon_bytes = parser.get_app_icon_bytes(apk_bytes)
+            if icon_bytes is not None:
+                icon_key = f"icons/{package_name}/{version_code}/{uuid.uuid4().hex}.png"
+                storage_service.upload(BytesIO(icon_bytes), icon_key)
+                app.icon_key = icon_key
+
+        db.flush()
+
+        release = db.execute(
+            select(Release).where(
+                Release.application_id == app.id,
+                Release.version_code == version_code,
             )
+        ).scalar_one_or_none()
 
-            if not app.icon_key:
-                icon_bytes = binary_service.get_app_icon_bytes(tmp_path)
-                if icon_bytes is not None:
-                    icon_key = f"icons/{package_name}/{version_code}/{uuid.uuid4().hex}.png"
-                    storage_service.upload(BytesIO(icon_bytes), icon_key)
-                    app.icon_key = icon_key
-
+        if not release:
+            release = Release(
+                application_id=app.id,
+                version_code=version_code,
+                version_id=version_name,
+            )
+            db.add(release)
             db.flush()
 
-            release = db.execute(
-                select(Release).where(
-                    Release.application_id == app.id,
-                    Release.version_code == version_code,
-                )
-            ).scalar_one_or_none()
-
-            if not release:
-                release = Release(
-                    application_id=app.id,
-                    version_code=version_code,
-                    version_id=version_name,
-                )
-                db.add(release)
-                db.flush()
-
-            existing_hash = db.execute(
-                select(Artifact).where(
-                    Artifact.release_id == release.id,
-                    Artifact.hash == file_hash,
-                )
-            ).scalar_one_or_none()
-
-            if existing_hash:
-                raise ValueError("Ce binaire a déjà été téléversé pour cette version.")
-
-            artifact = Artifact(
-                release_id=release.id,
-                file_path=f"artifacts/{package_name}/{version_code}/{package_name}-{version_name}.apk",
-                hash=file_hash,
-                architecture=architecture,
-                size=metadata.file_size,
+        existing_hash = db.execute(
+            select(Artifact).where(
+                Artifact.release_id == release.id,
+                Artifact.hash == file_hash,
             )
-            db.add(artifact)
-            db.flush()
+        ).scalar_one_or_none()
 
-            job.output_data = {
-                "package_name": metadata.package_name,
-                "version_code": metadata.version_code,
-                "version_name": metadata.version_name,
-                "hash": metadata.file_hash,
-                "architecture": metadata.architecture,
-                "apk_label": metadata.app_label,
-                "signature": metadata.signature_hash,
-                "is_debuggable": metadata.is_debuggable,
-                "application_id": str(app.id),
-                "application_title": app.title,
-                "release_id": str(release.id),
-                "artifact_id": str(artifact.id),
-            }
-            flow.finish()
-            db.commit()
+        if existing_hash:
+            raise ValueError("Ce binaire a déjà été téléversé pour cette version.")
 
-            logger.info(f"Successfully processed APK for job {job_id}")
+        artifact = Artifact(
+            release_id=release.id,
+            file_path=f"artifacts/{package_name}/{version_code}/{package_name}-{version_name}.apk",
+            hash=file_hash,
+            architecture=architecture,
+            size=metadata.file_size,
+        )
+        db.add(artifact)
+        db.flush()
 
-        finally:
-            if tmp_path.exists():
-                tmp_path.unlink()
+        job.output_data = {
+            "package_name": metadata.package_name,
+            "version_code": metadata.version_code,
+            "version_name": metadata.version_name,
+            "hash": metadata.file_hash,
+            "architecture": metadata.architecture,
+            "apk_label": metadata.app_label,
+            "signature": metadata.signature_hash,
+            "is_debuggable": metadata.is_debuggable,
+            "application_id": str(app.id),
+            "application_title": app.title,
+            "release_id": str(release.id),
+            "artifact_id": str(artifact.id),
+        }
+        flow.finish()
+        db.commit()
+
+        logger.info(f"Successfully processed APK for job {job_id}")
 
     except Exception as e:
         logger.exception(f"Error processing APK for job {job_id}: {e}")

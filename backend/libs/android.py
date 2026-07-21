@@ -6,7 +6,7 @@ import tempfile
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from androguard.core.apk import APK as AndroguardAPK  # noqa: N811
 from pyaxmlparser import APK as PyAXMLAPK  # noqa: N811
@@ -19,28 +19,48 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class AndroidMetadata:
-    package_name: str
-    version_code: int
-    version_name: str
     app_label: str
+    package_name: str
     signature_hash: str | None
     is_debuggable: bool
+    version_code: int
+    version_name: str
     architecture: str
     file_hash: str
     file_size: int
 
 
+@runtime_checkable
+class APKParser(Protocol):
+    """Parses raw APK bytes into metadata and extractable content."""
+
+    def parse_metadata(self, data: bytes) -> AndroidMetadata:
+        """Extract all metadata from raw APK bytes."""
+        ...
+
+    def get_app_icon_bytes(self, data: bytes) -> bytes | None:
+        """Extract the app launcher icon from raw APK bytes."""
+        ...
+
+
+@runtime_checkable
+class APKDownloader(Protocol):
+    """Downloads an APK from remote storage as raw bytes."""
+
+    def download(self, storage: StorageBackend, key: str) -> bytes: ...
+
+
 class AndroidBinaryService:
-    """
-    Service for parsing and extracting metadata from Android binaries (APK/AAB).
-    Wraps pyaxmlparser and androguard for robust analysis.
+    """Parses Android APK/AAB files using androguard and pyaxmlparser.
+
+    Implements APKParser. Internally writes APK bytes to a temporary file
+    because the underlying C libraries require a filesystem path.
     """
 
+    # --- Helpers that operate on a Path (shared by all public methods) ---
+
     @staticmethod
-    def get_architecture(path: Path) -> str:
-        """
-        Extracts the architecture from the APK by inspecting the lib/ directory.
-        """
+    def _get_architecture(path: Path) -> str:
         try:
             with zipfile.ZipFile(path, "r") as zf:
                 lib_dirs = [
@@ -51,35 +71,27 @@ class AndroidBinaryService:
                     parts = d.split("/")
                     if len(parts) > 1:
                         archs.add(parts[1])
-
                 if not archs:
                     return "universal"
                 return ",".join(sorted(archs))
         except Exception as e:
-            logger.error(f"Failed to extract architecture from {path}: {e}")
+            logger.error("Failed to extract architecture from %s: %s", path, e)
             return "unknown"
 
     @staticmethod
-    def get_signature_hash(path: Path) -> str | None:
-        """
-        Extracts the SHA-256 fingerprint of the first signing certificate.
-        Uses androguard for more reliable signature parsing.
-        """
+    def _get_signature_hash(path: Path) -> str | None:
         try:
             apk = AndroguardAPK(str(path))
             certs = apk.get_certificates()
             if certs:
-                # Get the SHA-256 fingerprint from the first certificate
-                # format is usually "AA:BB:CC..."
                 fingerprint = str(certs[0].sha256_fingerprint)
                 return fingerprint.replace(":", "").replace(" ", "").lower()
         except Exception as e:
-            logger.error(f"Failed to extract signature from {path}: {e}")
-
+            logger.error("Failed to extract signature from %s: %s", path, e)
         return None
 
     @staticmethod
-    def is_debuggable(path: Path) -> bool:
+    def _is_debuggable(path: Path) -> bool:
         try:
             apk = AndroguardAPK(str(path))
             manifest = apk.get_android_manifest_xml()
@@ -92,12 +104,11 @@ class AndroidBinaryService:
             val = application.get(f"{ns_android}debuggable")
             return val == "true"
         except Exception as e:
-            logger.error(f"Failed to extract debuggable flag from {path}: {e}")
+            logger.error("Failed to extract debuggable flag from %s: %s", path, e)
         return False
 
     @staticmethod
-    def get_app_icon_bytes(path: Path) -> bytes | None:
-        # Try androguard first (handles most APK/AAB formats)
+    def _get_icon_bytes(path: Path) -> bytes | None:
         try:
             apk = AndroguardAPK(str(path))
             icon_name = apk.get_app_icon()
@@ -106,16 +117,14 @@ class AndroidBinaryService:
                 if data:
                     return data
         except Exception as e:
-            logger.warning(f"androguard icon extraction failed for {path}: {e}")
+            logger.warning("androguard icon extraction failed for %s: %s", path, e)
 
-        # Fallback: scan the zip for the highest-density launcher icon
         try:
             with zipfile.ZipFile(path, "r") as zf:
                 candidates = [
                     n
                     for n in zf.namelist()
-                    if n.startswith("res/mipmap")
-                    or n.startswith("res/drawable")
+                    if (n.startswith("res/mipmap") or n.startswith("res/drawable"))
                     and (n.endswith(".png") or n.endswith(".webp"))
                 ]
                 if not candidates:
@@ -136,23 +145,44 @@ class AndroidBinaryService:
                 best = max(candidates, key=lambda n: (_density(n), len(n)))
                 return zf.read(best)
         except Exception as e:
-            logger.error(f"Failed to extract app icon from {path}: {e}")
+            logger.error("Failed to extract app icon from %s: %s", path, e)
         return None
 
     @staticmethod
-    def calculate_hash(path: Path) -> str:
-        """Calculates the SHA-256 hash of the binary."""
+    def _calculate_hash(path: Path) -> str:
         sha256_hash = hashlib.sha256()
         with path.open("rb") as f:
             for byte_block in iter(lambda: f.read(4096), b""):
                 sha256_hash.update(byte_block)
         return sha256_hash.hexdigest()
 
-    def parse_metadata(self, path: Path) -> AndroidMetadata:
-        """
-        Extracts all relevant metadata from an Android binary.
-        """
-        # We use pyaxmlparser for basic metadata as it's often faster
+    # --- Private helpers ---
+
+    @staticmethod
+    def _to_path(data: bytes) -> Path:
+        with tempfile.NamedTemporaryFile(suffix=".apk", delete=False) as tmp:
+            tmp.write(data)
+            return Path(tmp.name)
+
+    # --- Public APKParser interface ---
+
+    def parse_metadata(self, data: bytes) -> AndroidMetadata:
+        path = self._to_path(data)
+        try:
+            return self._parse_metadata_from_path(path)
+        finally:
+            path.unlink(missing_ok=True)
+
+    def get_app_icon_bytes(self, data: bytes) -> bytes | None:
+        path = self._to_path(data)
+        try:
+            return self._get_icon_bytes(path)
+        finally:
+            path.unlink(missing_ok=True)
+
+    # --- Internal path-based implementation ---
+
+    def _parse_metadata_from_path(self, path: Path) -> AndroidMetadata:
         py_apk = PyAXMLAPK(str(path))
 
         package_name = py_apk.package
@@ -163,37 +193,32 @@ class AndroidBinaryService:
         if not package_name or not version_code:
             raise ValueError("Could not extract package name or version code from APK.")
 
-        # Use androguard for the signature and debuggable flag
-        signature_hash = self.get_signature_hash(path)
-        is_debuggable = self.is_debuggable(path)
-
-        # Extract architecture
-        architecture = self.get_architecture(path)
-
-        # Calculate file hash
-        file_hash = self.calculate_hash(path)
-
-        # File size
-        file_size = path.stat().st_size
-
         return AndroidMetadata(
             package_name=package_name,
             version_code=version_code,
             version_name=version_name,
             app_label=app_label,
-            signature_hash=signature_hash,
-            is_debuggable=is_debuggable,
-            architecture=architecture,
-            file_hash=file_hash,
-            file_size=file_size,
+            signature_hash=self._get_signature_hash(path),
+            is_debuggable=self._is_debuggable(path),
+            architecture=self._get_architecture(path),
+            file_hash=self._calculate_hash(path),
+            file_size=path.stat().st_size,
         )
 
 
 class AndroidBinaryDownloader:
-    """Service to download Android binaries from remote storage."""
+    """Downloads an Android binary from remote storage as raw bytes."""
 
-    def download(self, storage: StorageBackend, key: str) -> Path:
-        with tempfile.NamedTemporaryFile(suffix=".apk", delete=False) as tmp_file:
-            logger.info(f"Downloading {key} to {tmp_file.name}")
-            storage.download_file(key, tmp_file.name)
-            return Path(tmp_file.name)
+    def download(self, storage: StorageBackend, key: str) -> bytes:
+        logger.info("Downloading %s from storage", key)
+        return storage.download(key).read()
+
+
+def get_apk_parser() -> APKParser:
+    """FastAPI dependency: returns the real APK parser."""
+    return AndroidBinaryService()
+
+
+def get_apk_downloader() -> APKDownloader:
+    """FastAPI dependency: returns the real APK downloader."""
+    return AndroidBinaryDownloader()

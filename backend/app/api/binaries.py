@@ -57,7 +57,12 @@ from app.services.project import (
 )
 from app.services.storage import StorageBackend
 from app.tasks.binary_processing import process_apk_task
-from libs.android import AndroidBinaryDownloader, AndroidBinaryService
+from libs.android import (
+    APKDownloader,
+    APKParser,
+    get_apk_downloader,
+    get_apk_parser,
+)
 
 router = APIRouter(prefix="/api/binaries", tags=["binaries"])
 
@@ -600,6 +605,8 @@ def analyze_apk(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     storage: StorageBackend = Depends(get_storage),
+    parser: APKParser = Depends(get_apk_parser),
+    downloader: APKDownloader = Depends(get_apk_downloader),
 ):
     try:
         job_uuid = uuid.UUID(job_id)
@@ -632,15 +639,8 @@ def analyze_apk(
     except AppError as e:
         raise HTTPException(status_code=403, detail=e.message) from e
 
-    downloader = AndroidBinaryDownloader()
-    binary_service = AndroidBinaryService()
-
-    tmp_path = downloader.download(storage, r2_path)
-    try:
-        metadata = binary_service.parse_metadata(tmp_path)
-    finally:
-        if tmp_path.exists():
-            tmp_path.unlink()
+    apk_bytes = downloader.download(storage, r2_path)
+    metadata = parser.parse_metadata(apk_bytes)
 
     package_name = metadata.package_name
     signature = metadata.signature_hash

@@ -146,14 +146,14 @@ android {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
     }
 
-    packagingOptions {
-        jniLibs {
-            excludes += [
-                "**/libbarhopper_v3.so",
-                "**/libmlkit_*.so"
-            ]
-        }
-    }
+    // packagingOptions {
+    //     jniLibs {
+    //         excludes += [
+    //             "**/libbarhopper_v3.so",
+    //             "**/libmlkit_*.so"
+    //         ]
+    //     }
+    // }
 
     // The standard aaptOptions was ineffective for res/raw/ fonts.
 }

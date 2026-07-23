@@ -4,7 +4,6 @@ import { validateModel } from '@/libs/api/validation';
 import { createLogger } from '@/libs/log';
 
 import {
-  AnalysisResult,
   Application,
   ApplicationCreateParams,
   ApplicationSchema,
@@ -158,10 +157,10 @@ export const binaryService = {
   },
 
   /**
-   * Analyze an uploaded APK: returns metadata + conflict detection (Step 3)
+   * Dispatch APK analysis as a background task (Step 3)
    */
-  analyzeAPK: async (jobId: string): Promise<AnalysisResult> => {
-    const response = await http.post<AnalysisResult>(`binaries/analyze-apk/${jobId}/`);
+  analyzeAPK: async (jobId: string): Promise<TaskJob> => {
+    const response = await http.post<TaskJob>(`binaries/analyze-apk/${jobId}/`);
     return response;
   },
 

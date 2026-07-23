@@ -4,7 +4,6 @@ import { AppError } from '@/libs/api/types';
 import { toast } from '@/libs/notification/toast';
 
 import {
-  AnalysisResult,
   Application,
   ApplicationCreateParams,
   ApplicationUpdateParams,
@@ -93,13 +92,13 @@ export const useDeleteApplication = () => {
 
 /**
  * Orchestrated pipeline hook for APK upload + analysis using R2.
- * Returns the AnalysisResult so the caller can inspect decisions_needed.
+ * Returns the jobId so the caller can redirect to the activity screen.
  */
 export const useAPKUploadAnalysis = () => {
   const queryClient = useQueryClient();
 
   return useMutation<
-    { analysis: AnalysisResult; jobId: string },
+    { jobId: string },
     AppError,
     {
       projectId: number;
@@ -121,12 +120,13 @@ export const useAPKUploadAnalysis = () => {
         await binaryService.uploadDirect(intent.job_id, file, onProgress);
       }
 
-      const analysis = await binaryService.analyzeAPK(intent.job_id);
+      await binaryService.analyzeAPK(intent.job_id);
 
-      return { analysis, jobId: intent.job_id };
+      return { jobId: intent.job_id };
     },
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: ['applications', variables.projectId] });
+      void queryClient.invalidateQueries({ queryKey: ['task-jobs'] });
     },
   });
 };

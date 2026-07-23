@@ -52,6 +52,12 @@ def db_session() -> Generator:
 def app(db_session: Session) -> Generator:
     _app.dependency_overrides[get_db] = lambda: db_session
     _app.dependency_overrides[get_storage] = LocalStorageBackend
+
+    # Disable rate limiting in tests by removing the middleware
+    _app.user_middleware = [
+        m for m in _app.user_middleware if m.cls.__name__ != "RateLimitMiddleware"
+    ]
+
     yield _app
     _app.dependency_overrides.clear()
 

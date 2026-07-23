@@ -170,6 +170,11 @@ export const SideMenu: React.FC<SideMenuProps> = ({ visible, onClose }) => {
           <View style={styles.footer}>
             <Divider style={styles.divider} />
             <Drawer.Item
+              label={t('screens.settings.title', 'Paramètres')}
+              icon="cog-outline"
+              onPress={() => navigateTo('/(protected)/settings')}
+            />
+            <Drawer.Item
               label={t('common.logout', 'Déconnexion')}
               icon="logout"
               onPress={handleLogout}

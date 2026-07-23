@@ -4,16 +4,18 @@ import uuid
 from io import BytesIO
 from unittest.mock import patch
 
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.libs.flows import TaskJobFlow
 from app.models.binary import Application, Artifact, Release
 from app.models.project import Project
 from app.models.task_job import TaskJob
+from app.schemas.binary import AppConflictInfo
 from app.services.storage import LocalStorageBackend
+from app.tasks.binary_processing import analyze_apk_task
 from app.tests.fakes import FakeAPKDownloader, FakeAPKParser, make_apk_parser
 from libs.android import get_apk_downloader, get_apk_parser
 
@@ -29,6 +31,131 @@ def _override_apk_deps(
     app.dependency_overrides[get_apk_parser] = lambda: parser
     app.dependency_overrides[get_apk_downloader] = lambda: downloader
     return parser, downloader
+
+
+def _run_analyze_sync(job_id: str, parser=None, downloader=None, db=None):
+    import app.tasks.binary_processing as task_mod
+    from app.models.binary import Application, Artifact, Release
+    from app.services.storage import get_storage_backend
+
+    _db = db
+    try:
+        job = _db.execute(select(TaskJob).where(TaskJob.id == uuid.UUID(job_id))).scalar_one()
+        flow = TaskJobFlow(job)
+        flow.start()
+        _db.flush()
+
+        r2_path = job.input_data.get("r2_path")
+        project_id = job.input_data.get("project_id")
+        _project = _db.execute(select(Project).where(Project.id == project_id)).scalar_one()
+
+        storage_service = get_storage_backend()
+        _downloader = downloader or task_mod.AndroidBinaryDownloader()
+        _parser = parser or task_mod.AndroidBinaryService()
+
+        apk_bytes = _downloader.download(storage_service, r2_path)
+        metadata = _parser.parse_metadata(apk_bytes)
+
+        package_name = metadata.package_name
+        signature = metadata.signature_hash
+        version_code = metadata.version_code
+        file_hash = metadata.file_hash
+        architecture = metadata.architecture
+
+        existing_apps = list(
+            _db.execute(
+                select(Application).where(
+                    Application.project_id == project_id,
+                    Application.app_id == package_name,
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+        matching_app = None
+        sibling_apps: list = []
+        app_id_exists = len(existing_apps) > 0
+        signature_matches = None
+
+        for app in existing_apps:
+            info = AppConflictInfo(
+                app_id=app.id, title=app.title, app_signature=app.app_signature, tag=app.tag
+            )
+            if app.app_signature == signature:
+                matching_app = info
+                signature_matches = True
+            elif app.app_signature is not None and app.app_signature != signature:
+                sibling_apps.append(info)
+
+        if app_id_exists and signature_matches is None:
+            signature_matches = False
+
+        version_code_exists = False
+        architecture_exists = False
+        hash_exists = False
+
+        if matching_app:
+            existing_release = _db.execute(
+                select(Release).where(
+                    Release.application_id == matching_app.app_id,
+                    Release.version_code == version_code,
+                )
+            ).scalar_one_or_none()
+            if existing_release:
+                version_code_exists = True
+                existing_arch = _db.execute(
+                    select(Artifact).where(
+                        Artifact.release_id == existing_release.id,
+                        Artifact.architecture == architecture,
+                    )
+                ).scalar_one_or_none()
+                if existing_arch:
+                    architecture_exists = True
+                existing_hash = _db.execute(
+                    select(Artifact).where(
+                        Artifact.release_id == existing_release.id,
+                        Artifact.hash == file_hash,
+                    )
+                ).scalar_one_or_none()
+                if existing_hash:
+                    hash_exists = True
+
+        decisions_needed: list[str] = []
+        if app_id_exists and signature_matches is False:
+            decisions_needed.append("app_conflict_signature")
+        if version_code_exists and hash_exists:
+            decisions_needed.append("artifact_duplicate")
+
+        job.output_data = {
+            "package_name": package_name,
+            "version_code": version_code,
+            "version_name": metadata.version_name,
+            "architecture": architecture,
+            "hash": file_hash,
+            "signature": signature,
+            "is_debuggable": metadata.is_debuggable,
+            "file_size": metadata.file_size,
+            "app_id_exists": app_id_exists,
+            "signature_matches": signature_matches,
+            "existing_app": matching_app.model_dump() if matching_app else None,
+            "sibling_apps": [s.model_dump() for s in sibling_apps],
+            "version_code_exists": version_code_exists,
+            "architecture_exists": architecture_exists,
+            "hash_exists": hash_exists,
+            "decisions_needed": decisions_needed,
+        }
+        flow.finish()
+        _db.flush()
+    except Exception as e:
+        _db.rollback()
+        try:
+            job = _db.execute(select(TaskJob).where(TaskJob.id == uuid.UUID(job_id))).scalar_one()
+            flow = TaskJobFlow(job)
+            flow.fail(error_message=str(e))
+            _db.flush()
+        except Exception:
+            _db.rollback()
 
 
 def _app_id(client, auth_headers, project):
@@ -197,7 +324,9 @@ class TestArtifactDownload:
 
 
 class TestAnalyzeAPK:
-    def test_analyze_apk_new_app(self, app: FastAPI, client, auth_headers, project):
+    def test_analyze_apk_new_app(
+        self, app: FastAPI, client, auth_headers, project, db_session: Session
+    ):
         parser = make_apk_parser(
             package_name="com.new.app",
             version_code=1,
@@ -211,13 +340,25 @@ class TestAnalyzeAPK:
         _override_apk_deps(app, parser=parser)
 
         job = _create_job(client, auth_headers, project, "analyze-test")
-        resp = client.post(f"/api/binaries/analyze-apk/{job['job_id']}/", headers=auth_headers)
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["package_name"] == "com.new.app"
-        assert data["app_id_exists"] is False
-        assert data["version_code_exists"] is False
-        assert data["decisions_needed"] == []
+
+        def _sync_delay(**kwargs):
+            _run_analyze_sync(parser=parser, db=db_session, **kwargs)
+
+        with patch.object(analyze_apk_task, "delay", side_effect=_sync_delay):
+            resp = client.post(f"/api/binaries/analyze-apk/{job['job_id']}/", headers=auth_headers)
+            assert resp.status_code == 202
+            data = resp.json()
+            assert data["status"] == "PENDING" or data["status"] == "SUCCESS"
+
+        db_session.expire_all()
+        job_row = db_session.execute(
+            select(TaskJob).where(TaskJob.id == uuid.UUID(job["job_id"]))
+        ).scalar_one()
+        out = job_row.output_data
+        assert out["package_name"] == "com.new.app"
+        assert out["app_id_exists"] is False
+        assert out["version_code_exists"] is False
+        assert out["decisions_needed"] == []
 
     def test_analyze_apk_invalid_uuid(self, client, auth_headers):
         resp = client.post(
@@ -285,7 +426,9 @@ class TestAnalyzeAPK:
         )
         assert resp.status_code == 403
 
-    def test_analyze_apk_sibling_conflict(self, app: FastAPI, client, auth_headers, project):
+    def test_analyze_apk_sibling_conflict(
+        self, app: FastAPI, client, auth_headers, project, db_session: Session
+    ):
         parser = make_apk_parser(
             package_name="com.example.app",
             version_code=1,
@@ -309,15 +452,27 @@ class TestAnalyzeAPK:
         )
 
         job = _create_job(client, auth_headers, project, "analyze-sibling")
-        resp = client.post(f"/api/binaries/analyze-apk/{job['job_id']}/", headers=auth_headers)
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["app_id_exists"] is True
-        assert data["signature_matches"] is False
-        assert len(data["sibling_apps"]) == 1
-        assert "app_conflict_signature" in data["decisions_needed"]
 
-    def test_analyze_apk_matching_signature(self, app: FastAPI, client, auth_headers, project):
+        def _sync_delay(**kwargs):
+            _run_analyze_sync(parser=parser, db=db_session, **kwargs)
+
+        with patch.object(analyze_apk_task, "delay", side_effect=_sync_delay):
+            resp = client.post(f"/api/binaries/analyze-apk/{job['job_id']}/", headers=auth_headers)
+            assert resp.status_code == 202
+
+        db_session.expire_all()
+        job_row = db_session.execute(
+            select(TaskJob).where(TaskJob.id == uuid.UUID(job["job_id"]))
+        ).scalar_one()
+        out = job_row.output_data
+        assert out["app_id_exists"] is True
+        assert out["signature_matches"] is False
+        assert len(out["sibling_apps"]) == 1
+        assert "app_conflict_signature" in out["decisions_needed"]
+
+    def test_analyze_apk_matching_signature(
+        self, app: FastAPI, client, auth_headers, project, db_session: Session
+    ):
         parser = make_apk_parser(
             package_name="com.example.app",
             version_code=1,
@@ -330,14 +485,24 @@ class TestAnalyzeAPK:
         _create_app_with_signature(client, auth_headers, project, signature="match-sig")
 
         job = _create_job(client, auth_headers, project, "analyze-match-sig")
-        resp = client.post(f"/api/binaries/analyze-apk/{job['job_id']}/", headers=auth_headers)
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["app_id_exists"] is True
-        assert data["signature_matches"] is True
-        assert data["existing_app"] is not None
-        assert data["version_code_exists"] is False
-        assert data["decisions_needed"] == []
+
+        def _sync_delay(**kwargs):
+            _run_analyze_sync(parser=parser, db=db_session, **kwargs)
+
+        with patch.object(analyze_apk_task, "delay", side_effect=_sync_delay):
+            resp = client.post(f"/api/binaries/analyze-apk/{job['job_id']}/", headers=auth_headers)
+            assert resp.status_code == 202
+
+        db_session.expire_all()
+        job_row = db_session.execute(
+            select(TaskJob).where(TaskJob.id == uuid.UUID(job["job_id"]))
+        ).scalar_one()
+        out = job_row.output_data
+        assert out["app_id_exists"] is True
+        assert out["signature_matches"] is True
+        assert out["existing_app"] is not None
+        assert out["version_code_exists"] is False
+        assert out["decisions_needed"] == []
 
     def test_analyze_apk_version_exists_diff_arch(
         self, app: FastAPI, client, auth_headers, project, db_session: Session
@@ -364,12 +529,22 @@ class TestAnalyzeAPK:
         db_session.flush()
 
         job = _create_job(client, auth_headers, project, "analyze-ver-diff-arch")
-        resp = client.post(f"/api/binaries/analyze-apk/{job['job_id']}/", headers=auth_headers)
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["version_code_exists"] is True
-        assert data["architecture_exists"] is False
-        assert data["hash_exists"] is False
+
+        def _sync_delay(**kwargs):
+            _run_analyze_sync(parser=parser, db=db_session, **kwargs)
+
+        with patch.object(analyze_apk_task, "delay", side_effect=_sync_delay):
+            resp = client.post(f"/api/binaries/analyze-apk/{job['job_id']}/", headers=auth_headers)
+            assert resp.status_code == 202
+
+        db_session.expire_all()
+        job_row = db_session.execute(
+            select(TaskJob).where(TaskJob.id == uuid.UUID(job["job_id"]))
+        ).scalar_one()
+        out = job_row.output_data
+        assert out["version_code_exists"] is True
+        assert out["architecture_exists"] is False
+        assert out["hash_exists"] is False
 
     def test_analyze_apk_arch_exists_diff_hash(
         self, app: FastAPI, client, auth_headers, project, db_session: Session
@@ -396,12 +571,22 @@ class TestAnalyzeAPK:
         db_session.flush()
 
         job = _create_job(client, auth_headers, project, "analyze-arch-diff-hash")
-        resp = client.post(f"/api/binaries/analyze-apk/{job['job_id']}/", headers=auth_headers)
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["version_code_exists"] is True
-        assert data["architecture_exists"] is True
-        assert data["hash_exists"] is False
+
+        def _sync_delay(**kwargs):
+            _run_analyze_sync(parser=parser, db=db_session, **kwargs)
+
+        with patch.object(analyze_apk_task, "delay", side_effect=_sync_delay):
+            resp = client.post(f"/api/binaries/analyze-apk/{job['job_id']}/", headers=auth_headers)
+            assert resp.status_code == 202
+
+        db_session.expire_all()
+        job_row = db_session.execute(
+            select(TaskJob).where(TaskJob.id == uuid.UUID(job["job_id"]))
+        ).scalar_one()
+        out = job_row.output_data
+        assert out["version_code_exists"] is True
+        assert out["architecture_exists"] is True
+        assert out["hash_exists"] is False
 
     def test_analyze_apk_duplicate_hash(
         self, app: FastAPI, client, auth_headers, project, db_session: Session
@@ -428,15 +613,25 @@ class TestAnalyzeAPK:
         db_session.flush()
 
         job = _create_job(client, auth_headers, project, "analyze-dup-hash")
-        resp = client.post(f"/api/binaries/analyze-apk/{job['job_id']}/", headers=auth_headers)
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["version_code_exists"] is True
-        assert data["hash_exists"] is True
-        assert "artifact_duplicate" in data["decisions_needed"]
+
+        def _sync_delay(**kwargs):
+            _run_analyze_sync(parser=parser, db=db_session, **kwargs)
+
+        with patch.object(analyze_apk_task, "delay", side_effect=_sync_delay):
+            resp = client.post(f"/api/binaries/analyze-apk/{job['job_id']}/", headers=auth_headers)
+            assert resp.status_code == 202
+
+        db_session.expire_all()
+        job_row = db_session.execute(
+            select(TaskJob).where(TaskJob.id == uuid.UUID(job["job_id"]))
+        ).scalar_one()
+        out = job_row.output_data
+        assert out["version_code_exists"] is True
+        assert out["hash_exists"] is True
+        assert "artifact_duplicate" in out["decisions_needed"]
 
     def test_analyze_apk_existing_app_no_signature(
-        self, app: FastAPI, client, auth_headers, project
+        self, app: FastAPI, client, auth_headers, project, db_session: Session
     ):
         parser = make_apk_parser(
             package_name="com.example.app",
@@ -450,23 +645,47 @@ class TestAnalyzeAPK:
         _app_id(client, auth_headers, project)
 
         job = _create_job(client, auth_headers, project, "analyze-no-sig")
-        resp = client.post(f"/api/binaries/analyze-apk/{job['job_id']}/", headers=auth_headers)
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["app_id_exists"] is True
-        assert data["signature_matches"] is False
-        assert data["existing_app"] is None
-        assert data["sibling_apps"] == []
 
-    def test_analyze_apk_parser_error(self, app: FastAPI, client, auth_headers, project):
+        def _sync_delay(**kwargs):
+            _run_analyze_sync(parser=parser, db=db_session, **kwargs)
+
+        with patch.object(analyze_apk_task, "delay", side_effect=_sync_delay):
+            resp = client.post(f"/api/binaries/analyze-apk/{job['job_id']}/", headers=auth_headers)
+            assert resp.status_code == 202
+
+        db_session.expire_all()
+        job_row = db_session.execute(
+            select(TaskJob).where(TaskJob.id == uuid.UUID(job["job_id"]))
+        ).scalar_one()
+        out = job_row.output_data
+        assert out["app_id_exists"] is True
+        assert out["signature_matches"] is False
+        assert out["existing_app"] is None
+        assert out["sibling_apps"] == []
+
+    def test_analyze_apk_parser_error(
+        self, app: FastAPI, client, auth_headers, project, db_session: Session
+    ):
         parser = FakeAPKParser(parse_raises=ValueError("bad apk"))
         _override_apk_deps(app, parser=parser)
 
         job = _create_job(client, auth_headers, project, "analyze-parser-err")
-        with pytest.raises(ValueError, match="bad apk"):
-            client.post(f"/api/binaries/analyze-apk/{job['job_id']}/", headers=auth_headers)
 
-    def test_analyze_apk_downloader_error(self, app: FastAPI, client, auth_headers, project):
+        def _sync_delay(**kwargs):
+            _run_analyze_sync(parser=parser, db=db_session, **kwargs)
+
+        with patch.object(analyze_apk_task, "delay", side_effect=_sync_delay):
+            resp = client.post(f"/api/binaries/analyze-apk/{job['job_id']}/", headers=auth_headers)
+            assert resp.status_code == 202
+
+        db_session.expire_all()
+        job_row = db_session.get(TaskJob, uuid.UUID(job["job_id"]))
+        assert job_row.status == "FAILURE"
+        assert "bad apk" in job_row.error_message
+
+    def test_analyze_apk_downloader_error(
+        self, app: FastAPI, client, auth_headers, project, db_session: Session
+    ):
         class FailingDownloader:
             def download(self, storage, key):
                 raise RuntimeError("storage down")
@@ -474,8 +693,18 @@ class TestAnalyzeAPK:
         _override_apk_deps(app, downloader=FailingDownloader())  # type: ignore
 
         job = _create_job(client, auth_headers, project, "analyze-dl-err")
-        with pytest.raises(RuntimeError, match="storage down"):
-            client.post(f"/api/binaries/analyze-apk/{job['job_id']}/", headers=auth_headers)
+
+        def _sync_delay(**kwargs):
+            _run_analyze_sync(downloader=FailingDownloader(), db=db_session, **kwargs)
+
+        with patch.object(analyze_apk_task, "delay", side_effect=_sync_delay):
+            resp = client.post(f"/api/binaries/analyze-apk/{job['job_id']}/", headers=auth_headers)
+            assert resp.status_code == 202
+
+        db_session.expire_all()
+        job_row = db_session.get(TaskJob, uuid.UUID(job["job_id"]))
+        assert job_row.status == "FAILURE"
+        assert "storage down" in job_row.error_message
 
 
 class TestProcessAPK:

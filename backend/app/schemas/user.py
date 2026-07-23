@@ -52,3 +52,31 @@ class ResendOtpInput(BaseModel):
 
 class MessageOut(BaseModel):
     message: str
+
+
+class ForgotPasswordInput(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordInput(BaseModel):
+    token: str
+    new_password: str
+
+
+class ChangePasswordInput(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class ChangeEmailInput(BaseModel):
+    new_email: EmailStr
+    password: str
+
+
+class ChangeEmailVerifyInput(BaseModel):
+    new_email: EmailStr
+    code: str
+
+
+class DeleteAccountInput(BaseModel):
+    password: str

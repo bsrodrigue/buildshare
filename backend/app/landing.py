@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import io
 import base64
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+import io
 
 import qrcode
+from fastapi import APIRouter, Request
+from fastapi.responses import HTMLResponse
 
 from app.config import settings
 
@@ -304,7 +304,7 @@ def _generate_qr_data_uri(data: str) -> str:
 
 @router.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def landing(request: Request):
-    server_url = (settings.PUBLIC_URL or str(request.base_url).rstrip("/"))
+    server_url = settings.PUBLIC_URL or str(request.base_url).rstrip("/")
     qr_data_uri = _generate_qr_data_uri(server_url)
     html = LANDING_TEMPLATE.format(
         logo=LOGO_B64,

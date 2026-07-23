@@ -33,6 +33,7 @@ export default function LoginScreen() {
   const mutation = useLogin();
   const [showPassword, setShowPassword] = useState(false);
   const [configVisible, setConfigVisible] = useState(false);
+  const [notVerifiedEmail, setNotVerifiedEmail] = useState<string | null>(null);
 
   const {
     control,
@@ -45,8 +46,14 @@ export default function LoginScreen() {
   });
 
   const onLogin = (data: LoginParams) => {
+    setNotVerifiedEmail(null);
     mutation.mutate(data, {
-      onError: (err: AppError) => setFormErrors(err, setError),
+      onError: (err: AppError) => {
+        if ('code' in err && err.code === 'auth_val_007') {
+          setNotVerifiedEmail(data.email);
+        }
+        setFormErrors(err, setError);
+      },
     });
   };
 
@@ -164,6 +171,33 @@ export default function LoginScreen() {
           {t('auth.login.submit')}
         </Button>
 
+        {/* Forgot password */}
+        <Button
+          mode="text"
+          onPress={() => {
+            void router.push('/(auth)/forgot-password');
+          }}
+          style={styles.forgotBtn}
+        >
+          {t('auth.login.forgot_password_link')}
+        </Button>
+
+        {/* Resend verification (only shown when user is not verified) */}
+        {notVerifiedEmail && (
+          <Button
+            mode="text"
+            onPress={() => {
+              void router.replace({
+                pathname: '/(auth)/verify-otp',
+                params: { email: notVerifiedEmail },
+              });
+            }}
+            style={styles.resendBtn}
+          >
+            {t('auth.login.resend_verification')}
+          </Button>
+        )}
+
         {/* Switch */}
         <Button
           mode="text"
@@ -241,5 +275,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   submitContent: { height: 52 },
+  forgotBtn: { marginTop: 4 },
+  resendBtn: { marginTop: 4 },
   switchBtn: { marginTop: 8 },
 });

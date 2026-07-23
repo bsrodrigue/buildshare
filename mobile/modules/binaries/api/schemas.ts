@@ -189,7 +189,11 @@ export const TaskJobSchema = z.object({
   status: z.string(),
   status_display: z.string(),
   error_message: z.string().nullable().optional(),
+  input_data: z.record(z.unknown()).optional(),
+  output_data: z.record(z.unknown()).optional(),
   app_title: z.string().nullable().optional(),
+  started_at: z.string().nullable().optional(),
+  finished_at: z.string().nullable().optional(),
   created_at: z.string(),
 });
 

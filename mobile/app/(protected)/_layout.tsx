@@ -28,6 +28,11 @@ export default function ProtectedRootLayout() {
       <Stack.Screen name="projects/[id]/members" />
       <Stack.Screen name="projects/create" options={{ presentation: 'modal' }} />
       <Stack.Screen name="projects/[id]/upload" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="settings/index" />
+      <Stack.Screen name="settings/change-password" />
+      <Stack.Screen name="settings/change-email" />
+      <Stack.Screen name="settings/change-email-verify" />
+      <Stack.Screen name="settings/delete-account" />
     </Stack>
   );
 }

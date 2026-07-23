@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from passlib.hash import pbkdf2_sha256
+import bcrypt
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -49,10 +49,12 @@ class User(BaseModel):
     )
 
     def set_password(self, password: str) -> None:
-        self.password = pbkdf2_sha256.hash(password)
+        self.password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=12)).decode(
+            "utf-8"
+        )
 
     def check_password(self, password: str) -> bool:
-        return pbkdf2_sha256.verify(password, self.password)
+        return bcrypt.checkpw(password.encode("utf-8"), self.password.encode("utf-8"))
 
     def __repr__(self) -> str:
         return f"<User id={self.id} email={self.email}>"

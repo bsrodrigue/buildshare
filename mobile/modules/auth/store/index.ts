@@ -16,6 +16,7 @@ interface AuthState {
 
 interface AuthActions {
   setUser: (user: User) => void;
+  clearUser: () => void;
   logout: () => Promise<void>;
   setIsVerifyingAuth: (isVerifyingAuth: boolean) => void;
 }
@@ -30,6 +31,11 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
   setUser: (user) => {
     logger.debug(`Setting user: ${user.first_name} ${user.last_name} (${user.email})`);
     set({ user, isAuthenticated: true });
+  },
+
+  clearUser: () => {
+    logger.debug('Clearing user');
+    set({ user: null, isAuthenticated: false });
   },
 
   logout: async () => {

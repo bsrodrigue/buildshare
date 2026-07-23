@@ -10,9 +10,10 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api import auth, binaries, notifications, projects
 from app.config import settings
-from app.landing import router as landing_router
 from app.database import init_db
+from app.landing import router as landing_router
 from app.libs.errors import AppError, ErrorCode
+from app.libs.rate_limit import RateLimitMiddleware
 
 
 @asynccontextmanager
@@ -34,6 +35,12 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+app.add_middleware(
+    RateLimitMiddleware,
+    max_requests=10,
+    window_seconds=60,
 )
 
 

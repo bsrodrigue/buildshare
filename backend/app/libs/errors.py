@@ -15,6 +15,11 @@ class ErrorCode(StrEnum):
     AUTH_USER_NOT_FOUND = "auth_val_004"
     AUTH_USER_INACTIVE = "auth_val_005"
     AUTH_SESSION_EXPIRED = "auth_val_006"
+    AUTH_USER_NOT_VERIFIED = "auth_val_007"
+    AUTH_EMAIL_ALREADY_EXISTS = "auth_val_008"
+    AUTH_RATE_LIMITED = "auth_val_009"
+    AUTH_INVALID_RESET_TOKEN = "auth_val_010"
+    AUTH_EMAIL_CHANGE_PENDING = "auth_val_011"
 
     PROJECT_NOT_FOUND = "prj_val_001"
     PROJECT_ALREADY_EXISTS = "prj_val_002"

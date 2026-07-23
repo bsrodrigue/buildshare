@@ -17,22 +17,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppError } from '@/libs/api/types';
 import { toast } from '@/libs/notification/toast';
-import { ConflictResolutionSheet } from '@/modules/binaries/components/ConflictResolutionSheet';
-import { useAPKUploadAnalysis, useProcessAPK } from '@/modules/binaries/api/hooks';
-import { AnalysisResult, Resolution } from '@/modules/binaries/api/schemas';
+import { useAPKUploadAnalysis } from '@/modules/binaries/api/hooks';
 import { ApkUploadInput } from '@/modules/binaries/components/ApkUploadInput';
 import { useProject } from '@/modules/projects/api/hooks';
 
 export default function UploadArtifactScreen() {
-  const { id, appId } = useLocalSearchParams();
+  const { id } = useLocalSearchParams();
   const pid = parseInt(id as string, 10);
-  const isReleaseMode = !!appId;
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
 
   const { data: project, isLoading: isProjectLoading } = useProject(pid);
   const uploadAnalysis = useAPKUploadAnalysis();
-  const processAPK = useProcessAPK();
 
   React.useEffect(() => {
     if (project && project.role !== 'ADMIN') {
@@ -44,8 +40,6 @@ export default function UploadArtifactScreen() {
   const [selectedFile, setSelectedFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
-  const [showResolutionSheet, setShowResolutionSheet] = useState(false);
 
   const {
     control,
@@ -62,47 +56,16 @@ export default function UploadArtifactScreen() {
     setSelectedFile(file);
   };
 
-  const handleProcess = async (
-    analysis: AnalysisResult,
-    jobId: string,
-    title?: string,
-    description?: string,
-    resolution?: Resolution,
-  ) => {
-    await processAPK.mutateAsync(
-      {
-        jobId,
-        title: isReleaseMode ? undefined : title?.trim() || undefined,
-        description: isReleaseMode ? undefined : description?.trim() || undefined,
-        resolution,
-        projectId: pid,
-      },
-      {
-        onSuccess: () => {
-          toast.success(
-            t('screens.upload.upload_success'),
-            t('screens.upload.upload_success_desc'),
-          );
-          router.replace('/(protected)/activity');
-        },
-        onError: (error: AppError) => {
-          toast.error(t('screens.upload.upload_error'), error.message);
-        },
-      },
-    );
-  };
-
-  const onSubmit = async (data: { title: string; description: string }) => {
+  const onSubmit = async (_data: { title: string; description: string }) => {
     if (!selectedFile) {
       toast.error(t('screens.upload.file_missing'), t('screens.upload.file_missing_desc'));
       return;
     }
 
     setUploadProgress(0);
-    setAnalysisResult(null);
 
     try {
-      const { analysis, jobId } = await uploadAnalysis.mutateAsync({
+      await uploadAnalysis.mutateAsync({
         projectId: pid,
         file: {
           uri: selectedFile.uri,
@@ -112,14 +75,8 @@ export default function UploadArtifactScreen() {
         onProgress: (p) => setUploadProgress(p),
       });
 
-      setAnalysisResult(analysis);
-
-      const decisions = analysis.decisions_needed ?? [];
-      if (decisions.length > 0) {
-        setShowResolutionSheet(true);
-      } else {
-        await handleProcess(analysis, jobId, data.title, data.description);
-      }
+      toast.success(t('screens.upload.upload_success'), t('screens.upload.upload_success_desc'));
+      router.replace('/(protected)/activity');
     } catch (error) {
       setUploadProgress(0);
       const appError = error as AppError;
@@ -127,20 +84,7 @@ export default function UploadArtifactScreen() {
     }
   };
 
-  const handleResolve = async (resolution: Resolution) => {
-    setShowResolutionSheet(false);
-    if (analysisResult) {
-      const jobId = analysisResult.job_id;
-      const { title, description } = control._formValues;
-      try {
-        await handleProcess(analysisResult, jobId, title, description, resolution);
-      } catch {
-        // error handled in handleProcess
-      }
-    }
-  };
-
-  const isPending = uploadAnalysis.isPending || processAPK.isPending;
+  const isPending = uploadAnalysis.isPending;
 
   if (isProjectLoading) {
     return (
@@ -155,9 +99,7 @@ export default function UploadArtifactScreen() {
       <View style={styles.header}>
         <IconButton icon="arrow-left" onPress={() => router.back()} />
         <Text variant="headlineSmall" style={styles.title}>
-          {isReleaseMode
-            ? t('screens.upload.title_new_release')
-            : t('screens.upload.title_new_app')}
+          {t('screens.upload.title_new_app')}
         </Text>
         <View style={styles.spacer} />
       </View>
@@ -174,7 +116,7 @@ export default function UploadArtifactScreen() {
             progress={uploadProgress}
           />
 
-          {!isReleaseMode && !showDetails && (
+          {!showDetails && (
             <Button
               mode="text"
               icon="plus"
@@ -185,7 +127,7 @@ export default function UploadArtifactScreen() {
             </Button>
           )}
 
-          {!isReleaseMode && showDetails && (
+          {showDetails && (
             <Card style={styles.formCard}>
               <Card.Content>
                 <View style={styles.cardHeader}>
@@ -244,7 +186,7 @@ export default function UploadArtifactScreen() {
             contentStyle={styles.submitButtonContent}
             style={styles.submitButton}
           >
-            {isReleaseMode ? t('screens.upload.submit_release') : t('screens.upload.submit_app')}
+            {t('screens.upload.submit_app')}
           </Button>
 
           <List.Section>
@@ -257,15 +199,6 @@ export default function UploadArtifactScreen() {
           </List.Section>
         </View>
       </ScrollView>
-
-      {showResolutionSheet && analysisResult && (
-        <ConflictResolutionSheet
-          analysis={analysisResult}
-          onResolve={handleResolve}
-          onDismiss={() => setShowResolutionSheet(false)}
-          isProcessing={processAPK.isPending}
-        />
-      )}
     </View>
   );
 }

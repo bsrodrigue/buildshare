@@ -30,7 +30,9 @@
       "email_label": "Email",
       "password_label": "Mot de passe",
       "submit": "Se connecter",
-      "register_link": "Pas de compte ? S'inscrire"
+      "register_link": "Pas de compte ? S'inscrire",
+      "forgot_password_link": "Mot de passe oublié ?",
+      "resend_verification": "Renvoyer le code de vérification"
     },
     "register": {
       "title": "Inscription",
@@ -40,7 +42,60 @@
       "email_label": "Email",
       "password_label": "Mot de passe",
       "submit": "S'inscrire",
-      "login_link": "Déjà un compte ? Se connecter"
+      "login_link": "Déjà un compte ? Se connecter",
+      "otp_sent": "Un code de vérification a été envoyé à votre adresse email."
+    },
+    "verify_otp": {
+      "title": "Vérification",
+      "subtitle": "Entrez le code à 6 chiffres envoyé à votre adresse email.",
+      "code_label": "Code de vérification",
+      "submit": "Vérifier",
+      "resend": "Renvoyer le code",
+      "resend_countdown": "Renvoyer le code ({{seconds}}s)",
+      "back_to_login": "Retour à la connexion",
+      "invalid_code": "Le code doit faire 6 chiffres"
+    },
+    "forgot_password": {
+      "title": "Mot de passe oublié",
+      "subtitle": "Entrez votre adresse email pour recevoir un lien de réinitialisation.",
+      "email_label": "Adresse email",
+      "submit": "Envoyer le lien",
+      "back_to_login": "Retour à la connexion"
+    },
+    "reset_password": {
+      "title": "Nouveau mot de passe",
+      "subtitle": "Choisissez un nouveau mot de passe pour votre compte.",
+      "password_label": "Nouveau mot de passe",
+      "submit": "Réinitialiser le mot de passe",
+      "back_to_login": "Retour à la connexion"
+    },
+    "change_password": {
+      "title": "Changer le mot de passe",
+      "current_password_label": "Mot de passe actuel",
+      "new_password_label": "Nouveau mot de passe",
+      "submit": "Modifier le mot de passe"
+    },
+    "change_email": {
+      "title": "Changer l'email",
+      "new_email_label": "Nouvelle adresse email",
+      "password_label": "Mot de passe actuel",
+      "submit": "Envoyer le code"
+    },
+    "change_email_verify": {
+      "title": "Vérifier le nouvel email",
+      "subtitle": "Entrez le code envoyé à {{email}}",
+      "code_label": "Code de vérification",
+      "submit": "Confirmer le changement",
+      "invalid_code": "Le code doit faire 6 chiffres"
+    },
+    "delete_account": {
+      "title": "Supprimer le compte",
+      "warning": "Cette action est irréversible. Toutes vos données seront supprimées définitivement.",
+      "password_label": "Votre mot de passe",
+      "submit": "Supprimer mon compte",
+      "confirm_title": "Confirmer la suppression",
+      "confirm_message": "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.",
+      "confirm_button": "Supprimer"
     }
   },
   "screens": {
@@ -182,6 +237,16 @@
     },
     "notifications": {
       "title": "Notifications"
+    },
+    "settings": {
+      "title": "Paramètres",
+      "account_section": "Compte",
+      "change_password": "Changer le mot de passe",
+      "change_password_description": "Modifiez votre mot de passe",
+      "change_email": "Changer l'email",
+      "change_email_description": "Modifiez votre adresse email",
+      "delete_account": "Supprimer le compte",
+      "delete_account_description": "Supprimez définitivement votre compte"
     }
   },
   "components": {

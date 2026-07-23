@@ -2,6 +2,11 @@ import { http } from '@/libs/api/client';
 import { validateModel } from '@/libs/api/validation';
 
 import {
+  ChangeEmailParams,
+  ChangeEmailVerifyParams,
+  ChangePasswordParams,
+  DeleteAccountParams,
+  ForgotPasswordParams,
   LoginParams,
   LoginResponse,
   LoginResponseSchema,
@@ -14,6 +19,7 @@ import {
   RegisterResponse,
   RegisterResponseSchema,
   ResendOtpParams,
+  ResetPasswordParams,
   VerifyOtpParams,
 } from './schemas';
 
@@ -62,5 +68,47 @@ export const authService = {
    */
   resendOtp: async (params: ResendOtpParams): Promise<{ message: string }> => {
     return http.post<{ message: string }>('auth/resend-otp/', params);
+  },
+
+  /**
+   * Send forgot password email
+   */
+  forgotPassword: async (params: ForgotPasswordParams): Promise<{ message: string }> => {
+    return http.post<{ message: string }>('auth/forgot-password/', params);
+  },
+
+  /**
+   * Reset password with token
+   */
+  resetPassword: async (params: ResetPasswordParams): Promise<{ message: string }> => {
+    return http.post<{ message: string }>('auth/reset-password/', params);
+  },
+
+  /**
+   * Change password (requires current password)
+   */
+  changePassword: async (params: ChangePasswordParams): Promise<{ message: string }> => {
+    return http.post<{ message: string }>('auth/change-password/', params);
+  },
+
+  /**
+   * Initiate email change (sends OTP to new email)
+   */
+  changeEmail: async (params: ChangeEmailParams): Promise<{ message: string }> => {
+    return http.post<{ message: string }>('auth/change-email/', params);
+  },
+
+  /**
+   * Verify email change with OTP
+   */
+  verifyChangeEmail: async (params: ChangeEmailVerifyParams): Promise<{ message: string }> => {
+    return http.post<{ message: string }>('auth/verify-change-email/', params);
+  },
+
+  /**
+   * Delete account (requires password)
+   */
+  deleteAccount: async (params: DeleteAccountParams): Promise<{ message: string }> => {
+    return http.post<{ message: string }>('auth/delete-account/', params);
   },
 };

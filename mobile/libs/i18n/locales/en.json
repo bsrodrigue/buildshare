@@ -30,7 +30,9 @@
       "email_label": "Email",
       "password_label": "Password",
       "submit": "Sign In",
-      "register_link": "Don't have an account? Sign Up"
+      "register_link": "Don't have an account? Sign Up",
+      "forgot_password_link": "Forgot password?",
+      "resend_verification": "Resend verification code"
     },
     "register": {
       "title": "Sign Up",
@@ -40,7 +42,60 @@
       "email_label": "Email",
       "password_label": "Password",
       "submit": "Register",
-      "login_link": "Already have an account? Sign In"
+      "login_link": "Already have an account? Sign In",
+      "otp_sent": "A verification code has been sent to your email."
+    },
+    "verify_otp": {
+      "title": "Verification",
+      "subtitle": "Enter the 6-digit code sent to your email.",
+      "code_label": "Verification code",
+      "submit": "Verify",
+      "resend": "Resend code",
+      "resend_countdown": "Resend code ({{seconds}}s)",
+      "back_to_login": "Back to login",
+      "invalid_code": "Code must be 6 digits"
+    },
+    "forgot_password": {
+      "title": "Forgot Password",
+      "subtitle": "Enter your email to receive a reset link.",
+      "email_label": "Email address",
+      "submit": "Send Link",
+      "back_to_login": "Back to login"
+    },
+    "reset_password": {
+      "title": "New Password",
+      "subtitle": "Choose a new password for your account.",
+      "password_label": "New password",
+      "submit": "Reset Password",
+      "back_to_login": "Back to login"
+    },
+    "change_password": {
+      "title": "Change Password",
+      "current_password_label": "Current password",
+      "new_password_label": "New password",
+      "submit": "Update Password"
+    },
+    "change_email": {
+      "title": "Change Email",
+      "new_email_label": "New email address",
+      "password_label": "Current password",
+      "submit": "Send Code"
+    },
+    "change_email_verify": {
+      "title": "Verify New Email",
+      "subtitle": "Enter the code sent to {{email}}",
+      "code_label": "Verification code",
+      "submit": "Confirm Change",
+      "invalid_code": "Code must be 6 digits"
+    },
+    "delete_account": {
+      "title": "Delete Account",
+      "warning": "This action is irreversible. All your data will be permanently deleted.",
+      "password_label": "Your password",
+      "submit": "Delete My Account",
+      "confirm_title": "Confirm Deletion",
+      "confirm_message": "Are you sure you want to delete your account? This action is irreversible.",
+      "confirm_button": "Delete"
     }
   },
   "screens": {
@@ -182,6 +237,16 @@
     },
     "notifications": {
       "title": "Notifications"
+    },
+    "settings": {
+      "title": "Settings",
+      "account_section": "Account",
+      "change_password": "Change Password",
+      "change_password_description": "Update your password",
+      "change_email": "Change Email",
+      "change_email_description": "Update your email address",
+      "delete_account": "Delete Account",
+      "delete_account_description": "Permanently delete your account"
     }
   },
   "components": {

@@ -25,8 +25,6 @@ from app.models.project import Project
 from app.models.task_job import TaskJob
 from app.models.user import User
 from app.schemas.binary import (
-    AnalysisResult,
-    AppConflictInfo,
     ApplicationInput,
     ApplicationOut,
     ApplicationUpdateInput,
@@ -56,13 +54,7 @@ from app.services.project import (
     is_project_member,
 )
 from app.services.storage import StorageBackend
-from app.tasks.binary_processing import process_apk_task
-from libs.android import (
-    APKDownloader,
-    APKParser,
-    get_apk_downloader,
-    get_apk_parser,
-)
+from app.tasks.binary_processing import analyze_apk_task, process_apk_task
 
 router = APIRouter(prefix="/api/binaries", tags=["binaries"])
 
@@ -599,14 +591,13 @@ def upload_apk_direct(
     db.flush()
 
 
-@router.post("/analyze-apk/{job_id}/", response_model=AnalysisResult)
+@router.post(
+    "/analyze-apk/{job_id}/", response_model=TaskJobOut, status_code=status.HTTP_202_ACCEPTED
+)
 def analyze_apk(
     job_id: str,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-    storage: StorageBackend = Depends(get_storage),
-    parser: APKParser = Depends(get_apk_parser),
-    downloader: APKDownloader = Depends(get_apk_downloader),
 ):
     try:
         job_uuid = uuid.UUID(job_id)
@@ -639,99 +630,20 @@ def analyze_apk(
     except AppError as e:
         raise HTTPException(status_code=403, detail=e.message) from e
 
-    apk_bytes = downloader.download(storage, r2_path)
-    metadata = parser.parse_metadata(apk_bytes)
+    analyze_apk_task.delay(job_id=str(job.id))
 
-    package_name = metadata.package_name
-    signature = metadata.signature_hash
-    version_code = metadata.version_code
-    file_hash = metadata.file_hash
-    architecture = metadata.architecture
-
-    existing_apps = list(
-        db.execute(
-            select(Application).where(
-                Application.project_id == project_id,
-                Application.app_id == package_name,
-            )
-        )
-        .scalars()
-        .all()
-    )
-
-    matching_app = None
-    sibling_apps: list[AppConflictInfo] = []
-    app_id_exists = len(existing_apps) > 0
-    signature_matches: bool | None = None
-
-    for app in existing_apps:
-        info = AppConflictInfo(
-            app_id=app.id, title=app.title, app_signature=app.app_signature, tag=app.tag
-        )
-        if app.app_signature == signature:
-            matching_app = info
-            signature_matches = True
-        elif app.app_signature is not None and app.app_signature != signature:
-            sibling_apps.append(info)
-
-    if app_id_exists and signature_matches is None:
-        signature_matches = False
-
-    existing_release = None
-    version_code_exists = False
-    architecture_exists = False
-    hash_exists = False
-
-    if matching_app:
-        existing_release = db.execute(
-            select(Release).where(
-                Release.application_id == matching_app.app_id,
-                Release.version_code == version_code,
-            )
-        ).scalar_one_or_none()
-        if existing_release:
-            version_code_exists = True
-            existing_arch = db.execute(
-                select(Artifact).where(
-                    Artifact.release_id == existing_release.id,
-                    Artifact.architecture == architecture,
-                )
-            ).scalar_one_or_none()
-            if existing_arch:
-                architecture_exists = True
-            existing_hash = db.execute(
-                select(Artifact).where(
-                    Artifact.release_id == existing_release.id,
-                    Artifact.hash == file_hash,
-                )
-            ).scalar_one_or_none()
-            if existing_hash:
-                hash_exists = True
-
-    decisions_needed: list[str] = []
-    if app_id_exists and signature_matches is False:
-        decisions_needed.append("app_conflict_signature")
-    if version_code_exists and hash_exists:
-        decisions_needed.append("artifact_duplicate")
-
-    return AnalysisResult(
-        job_id=job.id,
-        package_name=package_name,
-        version_code=version_code,
-        version_name=metadata.version_name,
-        architecture=architecture,
-        hash=file_hash,
-        signature=signature,
-        is_debuggable=metadata.is_debuggable,
-        file_size=metadata.file_size,
-        app_id_exists=app_id_exists,
-        signature_matches=signature_matches,
-        existing_app=matching_app,
-        sibling_apps=sibling_apps,
-        version_code_exists=version_code_exists,
-        architecture_exists=architecture_exists,
-        hash_exists=hash_exists,
-        decisions_needed=decisions_needed,
+    return TaskJobOut(
+        id=job.id,
+        type=job.type,
+        status=job.status,
+        status_display=job.status,
+        error_message=job.error_message,
+        input_data=job.input_data,
+        output_data=job.output_data or {},
+        app_title=job.output_data.get("application_title") if job.output_data else "",
+        started_at=job.started_at,
+        finished_at=job.finished_at,
+        created_at=job.created_at,
     )
 
 

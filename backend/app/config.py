@@ -48,5 +48,10 @@ class Settings(BaseSettings):
     CELERY_RESULT_BACKEND: str = "db+sqlite:///celery_results.sqlite3"
     CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP: bool = True
 
+    # Brevo (Email Service)
+    BREVO_API_KEY: str = ""
+    BREVO_SENDER_EMAIL: str = ""
+    BREVO_SENDER_NAME: str = "BuildShare"
+
 
 settings = Settings()

@@ -14,6 +14,7 @@ from app.libs.flows import TaskJobFlow
 from app.models.binary import Application, Artifact, Release
 from app.models.project import Project
 from app.models.task_job import TaskJob
+from app.schemas.binary import AppConflictInfo
 from app.services.storage import get_storage_backend
 from libs.android import AndroidBinaryDownloader, AndroidBinaryService, APKDownloader, APKParser
 
@@ -102,6 +103,148 @@ def _resolve_app(
         db.flush()
 
     return app
+
+
+@shared_task(bind=True, name="app.tasks.binary_processing.analyze_apk_task")
+def analyze_apk_task(
+    self,
+    job_id: str,
+    parser: APKParser | None = None,
+    downloader: APKDownloader | None = None,
+) -> None:
+    db = Session(_engine)
+    try:
+        job = db.execute(select(TaskJob).where(TaskJob.id == uuid.UUID(job_id))).scalar_one()
+        flow = TaskJobFlow(job)
+        logger.info(f"Starting APK analysis for job {job_id}")
+
+        flow.start()
+        db.flush()
+
+        r2_path = job.input_data.get("r2_path")
+        project_id = job.input_data.get("project_id")
+
+        if not r2_path or not project_id:
+            raise ValueError("Missing r2_path or project_id in job input data.")
+
+        project = db.execute(select(Project).where(Project.id == project_id)).scalar_one()
+        if not project:
+            raise ValueError(f"Project {project_id} not found.")
+
+        storage_service = get_storage_backend()
+        downloader = downloader or AndroidBinaryDownloader()
+        parser = parser or AndroidBinaryService()
+
+        apk_bytes = downloader.download(storage_service, r2_path)
+        metadata = parser.parse_metadata(apk_bytes)
+
+        package_name = metadata.package_name
+        signature = metadata.signature_hash
+        version_code = metadata.version_code
+        file_hash = metadata.file_hash
+        architecture = metadata.architecture
+
+        existing_apps = list(
+            db.execute(
+                select(Application).where(
+                    Application.project_id == project_id,
+                    Application.app_id == package_name,
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+        matching_app = None
+        sibling_apps: list[AppConflictInfo] = []
+        app_id_exists = len(existing_apps) > 0
+        signature_matches: bool | None = None
+
+        for app in existing_apps:
+            info = AppConflictInfo(
+                app_id=app.id, title=app.title, app_signature=app.app_signature, tag=app.tag
+            )
+            if app.app_signature == signature:
+                matching_app = info
+                signature_matches = True
+            elif app.app_signature is not None and app.app_signature != signature:
+                sibling_apps.append(info)
+
+        if app_id_exists and signature_matches is None:
+            signature_matches = False
+
+        version_code_exists = False
+        architecture_exists = False
+        hash_exists = False
+
+        if matching_app:
+            existing_release = db.execute(
+                select(Release).where(
+                    Release.application_id == matching_app.app_id,
+                    Release.version_code == version_code,
+                )
+            ).scalar_one_or_none()
+            if existing_release:
+                version_code_exists = True
+                existing_arch = db.execute(
+                    select(Artifact).where(
+                        Artifact.release_id == existing_release.id,
+                        Artifact.architecture == architecture,
+                    )
+                ).scalar_one_or_none()
+                if existing_arch:
+                    architecture_exists = True
+                existing_hash = db.execute(
+                    select(Artifact).where(
+                        Artifact.release_id == existing_release.id,
+                        Artifact.hash == file_hash,
+                    )
+                ).scalar_one_or_none()
+                if existing_hash:
+                    hash_exists = True
+
+        decisions_needed: list[str] = []
+        if app_id_exists and signature_matches is False:
+            decisions_needed.append("app_conflict_signature")
+        if version_code_exists and hash_exists:
+            decisions_needed.append("artifact_duplicate")
+
+        job.output_data = {
+            "package_name": package_name,
+            "version_code": version_code,
+            "version_name": metadata.version_name,
+            "architecture": architecture,
+            "hash": file_hash,
+            "signature": signature,
+            "is_debuggable": metadata.is_debuggable,
+            "file_size": metadata.file_size,
+            "app_id_exists": app_id_exists,
+            "signature_matches": signature_matches,
+            "existing_app": matching_app.model_dump() if matching_app else None,
+            "sibling_apps": [s.model_dump() for s in sibling_apps],
+            "version_code_exists": version_code_exists,
+            "architecture_exists": architecture_exists,
+            "hash_exists": hash_exists,
+            "decisions_needed": decisions_needed,
+        }
+        flow.finish()
+        db.commit()
+
+        logger.info(f"Successfully analyzed APK for job {job_id}")
+
+    except Exception as e:
+        logger.exception(f"Error analyzing APK for job {job_id}: {e}")
+        db.rollback()
+        try:
+            job = db.execute(select(TaskJob).where(TaskJob.id == uuid.UUID(job_id))).scalar_one()
+            flow = TaskJobFlow(job)
+            flow.fail(error_message=str(e))
+            db.commit()
+        except Exception:
+            logger.exception(f"Failed to mark job {job_id} as failed")
+            db.rollback()
+    finally:
+        db.close()
 
 
 @shared_task(bind=True, name="app.tasks.binary_processing.process_apk_task")

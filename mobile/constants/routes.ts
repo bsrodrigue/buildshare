@@ -2,11 +2,16 @@ export const ROUTES = {
   AUTH: {
     LOGIN: '/(auth)/login',
     REGISTER: '/(auth)/register',
+    VERIFY_OTP: '/(auth)/verify-otp',
     FORGOT_PASSWORD: '/(auth)/forgot-password',
     RESET_PASSWORD: '/(auth)/reset-password',
   },
   PROTECTED: {
     HOME: '/(protected)',
+    SETTINGS: '/(protected)/settings',
+    CHANGE_PASSWORD: '/(protected)/settings/change-password',
+    CHANGE_EMAIL: '/(protected)/settings/change-email',
+    DELETE_ACCOUNT: '/(protected)/settings/delete-account',
   },
 } as const;
 

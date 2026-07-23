@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import {
@@ -13,8 +13,8 @@ import {
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTaskJobs } from '@/modules/binaries/api/hooks';
-import { TaskJob } from '@/modules/binaries/api/schemas';
+import { useProcessAPK, useTaskJobs } from '@/modules/binaries/api/hooks';
+import { AnalysisResult, TaskJob } from '@/modules/binaries/api/schemas';
 import { JobDetailSheet } from '@/modules/shared/components/JobDetailSheet';
 import { useTheme as useCustomTheme } from '@/modules/shared/theme/ThemeProvider';
 
@@ -29,6 +29,30 @@ export default function ActivityScreen() {
   const [statusFilter, setStatusFilter] = React.useState('ALL');
   const [selectedJob, setSelectedJob] = React.useState<TaskJob | null>(null);
   const { data: jobs, isRefetching, refetch } = useTaskJobs(pid);
+  const processAPK = useProcessAPK();
+
+  // Track jobs we've already auto-processed to avoid duplicate calls
+  const processedJobsRef = useRef(new Set<string>());
+
+  // Auto-trigger process-apk for completed analysis jobs with no conflicts
+  useEffect(() => {
+    if (!jobs) return;
+
+    for (const job of jobs) {
+      if (job.status !== 'SUCCESS' || job.type !== 'ANALYZE_APK') continue;
+      if (processedJobsRef.current.has(job.id)) continue;
+
+      const outputData = job.output_data as unknown as AnalysisResult | undefined;
+      if (!outputData?.decisions_needed || outputData.decisions_needed.length > 0) continue;
+
+      // No conflicts - auto-trigger process-apk
+      processedJobsRef.current.add(job.id);
+      processAPK.mutate({
+        jobId: job.id,
+        projectId: pid ?? 0,
+      });
+    }
+  }, [jobs, pid, processAPK]);
 
   const filteredJobs = React.useMemo(() => {
     if (!jobs) return [];
@@ -45,7 +69,9 @@ export default function ActivityScreen() {
       case 'FAILURE':
         return 'alert-circle';
       case 'STARTED':
-        return 'cog'; // Changed from 'loading' as requested
+        return 'cog';
+      case 'CANCELLED':
+        return 'close-circle';
       default:
         return 'clock-outline';
     }
@@ -61,6 +87,8 @@ export default function ActivityScreen() {
         return theme.colors.primary;
       case 'PENDING':
         return customTheme.colors.warning;
+      case 'CANCELLED':
+        return theme.colors.outline;
       default:
         return theme.colors.outline;
     }

@@ -6,8 +6,8 @@ import { BackHandler, FlatList, RefreshControl, StyleSheet, View } from 'react-n
 import { ActivityIndicator, Badge, Card, FAB, IconButton, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAuthStore } from '@/modules/auth/store';
 import { toast } from '@/libs/notification/toast';
+import { useAuthStore } from '@/modules/auth/store';
 import { useUnreadNotificationsCount } from '@/modules/notifications/api/hooks';
 import { useProjects } from '@/modules/projects/api/hooks';
 import { Project } from '@/modules/projects/api/schemas';

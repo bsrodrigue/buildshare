@@ -24,6 +24,8 @@ dependencies = [
     "asyncpg>=0.30.0",
     "qrcode[pil]>=7.4.2",
     "python-multipart>=0.0.20",
+    "brevo-python>=5.0.1",
+    "psycopg2-binary>=2.9.9",
 ]
 
 [tool.uv]
@@ -50,11 +52,13 @@ select = ["E", "F", "I", "W", "UP", "N", "S", "B", "T20", "RET", "SIM", "ARG", "
 ignore = ["S101", "B008", "S105", "ARG001", "PLR0912", "PLR0913", "PLR0915", "PLR2004", "RET504", "RET505"]
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/*" = ["S101", "S106", "PLR2004", "ERA001", "ARG", "E501"]
+"**/tests/*" = ["S101", "S106", "PLR2004", "ERA001", "ARG", "E501", "PLC0415"]
 "app/api/*" = ["E501"]
 "app/models/*" = ["E501"]
 "app/tasks/*" = ["E501"]
 "app/libs/*" = ["E501"]
+"app/services/*" = ["E501", "PLC0415"]
+"app/landing.py" = ["E501"]
 "app/main.py" = ["E501", "PLC0415"]
 
 [tool.mypy]

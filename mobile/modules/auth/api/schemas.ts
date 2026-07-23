@@ -89,3 +89,58 @@ export const ResendOtpParamsSchema = z.object({
 });
 
 export type ResendOtpParams = z.infer<typeof ResendOtpParamsSchema>;
+
+/**
+ * Forgot Password
+ */
+export const ForgotPasswordParamsSchema = z.object({
+  email: z.string().email('Adresse email invalide'),
+});
+
+export type ForgotPasswordParams = z.infer<typeof ForgotPasswordParamsSchema>;
+
+/**
+ * Reset Password
+ */
+export const ResetPasswordParamsSchema = z.object({
+  token: z.string().min(1, 'Le token est requis'),
+  new_password: z.string().min(8, 'Le mot de passe doit faire au moins 8 caractères'),
+});
+
+export type ResetPasswordParams = z.infer<typeof ResetPasswordParamsSchema>;
+
+/**
+ * Change Password
+ */
+export const ChangePasswordParamsSchema = z.object({
+  current_password: z.string().min(1, 'Le mot de passe actuel est requis'),
+  new_password: z.string().min(8, 'Le nouveau mot de passe doit faire au moins 8 caractères'),
+});
+
+export type ChangePasswordParams = z.infer<typeof ChangePasswordParamsSchema>;
+
+/**
+ * Change Email
+ */
+export const ChangeEmailParamsSchema = z.object({
+  new_email: z.string().email('Adresse email invalide'),
+  password: z.string().min(1, 'Le mot de passe est requis'),
+});
+
+export type ChangeEmailParams = z.infer<typeof ChangeEmailParamsSchema>;
+
+export const ChangeEmailVerifyParamsSchema = z.object({
+  new_email: z.string().email(),
+  code: z.string().min(1, 'Le code est requis'),
+});
+
+export type ChangeEmailVerifyParams = z.infer<typeof ChangeEmailVerifyParamsSchema>;
+
+/**
+ * Delete Account
+ */
+export const DeleteAccountParamsSchema = z.object({
+  password: z.string().min(1, 'Le mot de passe est requis'),
+});
+
+export type DeleteAccountParams = z.infer<typeof DeleteAccountParamsSchema>;

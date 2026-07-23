@@ -66,11 +66,11 @@ export default function SettingsScreen() {
           <List.Item
             title={t('screens.settings.delete_account')}
             description={t('screens.settings.delete_account_description')}
+            titleStyle={styles.dangerText}
             left={(props) => (
               <List.Icon {...props} icon="delete-outline" color={theme.colors.error} />
             )}
             right={(props) => <List.Icon {...props} icon="chevron-right" />}
-            titleColor={theme.colors.error}
             onPress={() => router.push('/(protected)/settings/delete-account')}
           />
         </List.Section>
@@ -108,4 +108,5 @@ const styles = StyleSheet.create({
   userInfo: { flex: 1 },
   userName: { fontWeight: 'bold' },
   userEmail: { opacity: 0.6 },
+  dangerText: { color: 'red' },
 });

@@ -154,7 +154,7 @@ export const useChangeEmail = () => {
     onSuccess: (_data, variables) => {
       toast.success('Code envoyé !', 'Vérifiez votre nouvelle adresse email.');
       router.push({
-        pathname: '/(auth)/change-email-verify',
+        pathname: '/(protected)/settings/change-email-verify',
         params: { newEmail: variables.new_email },
       });
     },

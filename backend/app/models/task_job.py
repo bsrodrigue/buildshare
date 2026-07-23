@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, Uuid, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
 
@@ -15,7 +15,9 @@ from app.models.user import User
 class TaskJob(BaseModel):
     __tablename__ = "core_taskjob"
 
-    id: Mapped[uuid.UUID] = mapped_column(Uuid(native_uuid=False), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(native_uuid=False), primary_key=True, default=uuid.uuid4
+    )
     user_id: Mapped[int] = mapped_column(ForeignKey("users_user.id"), nullable=False)
     type: Mapped[str] = mapped_column(String(50), nullable=False)
     status: Mapped[str] = mapped_column(String(50), default="PENDING", nullable=False)

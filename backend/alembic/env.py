@@ -10,7 +10,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.config import settings  # noqa: E402
 from app.database import Base  # noqa: E402
-import app.models  # noqa: E402
 
 config = context.config
 

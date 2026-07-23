@@ -1,7 +1,7 @@
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import React, { useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Text, useTheme } from 'react-native-paper';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { Button, Text } from 'react-native-paper';
 
 import { createLogger } from '@/libs/log';
 
@@ -13,7 +13,6 @@ interface QrScannerViewProps {
 }
 
 export function QrScannerView({ onScan, onCancel }: QrScannerViewProps) {
-  const theme = useTheme();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const processedRef = useRef(false);
@@ -28,7 +27,7 @@ export function QrScannerView({ onScan, onCancel }: QrScannerViewProps) {
         <Text variant="bodyLarge" style={styles.permissionText}>
           Camera permission is required to scan QR codes.
         </Text>
-        <Button mode="contained" onPress={requestPermission}>
+        <Button mode="contained" onPress={() => void requestPermission()}>
           Grant Permission
         </Button>
         <Button onPress={onCancel}>Cancel</Button>
@@ -68,7 +67,7 @@ export function QrScannerView({ onScan, onCancel }: QrScannerViewProps) {
       </CameraView>
 
       <View style={styles.footer}>
-        <Text variant="bodySmall" style={{ color: '#fff', marginBottom: 12 }}>
+        <Text variant="bodySmall" style={styles.footerText}>
           Point the camera at the QR code on the server setup page
         </Text>
         <Button mode="contained" onPress={onCancel} textColor="#fff">
@@ -117,5 +116,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
+  },
+  footerText: {
+    color: '#fff',
+    marginBottom: 12,
   },
 });

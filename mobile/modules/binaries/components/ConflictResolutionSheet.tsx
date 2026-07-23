@@ -5,15 +5,11 @@ import BottomSheet, {
 } from '@gorhom/bottom-sheet';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Card, IconButton, Text, TextInput } from 'react-native-paper';
 
-import {
-  AnalysisResult,
-  Resolution,
-} from '@/modules/binaries/api/schemas';
+import { AnalysisResult, Resolution } from '@/modules/binaries/api/schemas';
 import { useTheme } from '@/modules/shared/theme/ThemeProvider';
-
 
 interface Props {
   analysis: AnalysisResult | null;
@@ -32,8 +28,10 @@ export const ConflictResolutionSheet: React.FC<Props> = ({
   const theme = useTheme();
   const bottomSheetRef = React.useRef<BottomSheet>(null);
 
-  const hasSignatureConflict = analysis?.decisions_needed?.includes('app_conflict_signature');
-  const hasDuplicate = analysis?.decisions_needed?.includes('artifact_duplicate');
+  const hasSignatureConflict =
+    analysis !== null && analysis.decisions_needed.includes('app_conflict_signature');
+  const hasDuplicate =
+    analysis !== null && analysis.decisions_needed.includes('artifact_duplicate');
 
   const [action, setAction] = React.useState<'create_sibling' | 'override' | 'create_app'>(
     'create_sibling',
@@ -94,8 +92,14 @@ export const ConflictResolutionSheet: React.FC<Props> = ({
               <Text variant="labelLarge" style={styles.sectionLabel}>
                 {t('screens.upload.analysis.metadata_label')}
               </Text>
-              <MetadataRow label={t('screens.upload.analysis.metadata_architecture')} value={analysis.architecture} />
-              <MetadataRow label={t('screens.upload.analysis.metadata_hash')} value={analysis.hash.substring(0, 16) + '…'} />
+              <MetadataRow
+                label={t('screens.upload.analysis.metadata_architecture')}
+                value={analysis.architecture}
+              />
+              <MetadataRow
+                label={t('screens.upload.analysis.metadata_hash')}
+                value={analysis.hash.substring(0, 16) + '…'}
+              />
               <MetadataRow
                 label={t('screens.upload.analysis.metadata_debuggable')}
                 value={analysis.is_debuggable ? t('common.yes') : t('common.no')}
@@ -108,9 +112,7 @@ export const ConflictResolutionSheet: React.FC<Props> = ({
           </Card>
 
           {hasSignatureConflict && (
-            <Card
-              style={[styles.conflictCard, { borderColor: theme.colors.error + '40' }]}
-            >
+            <Card style={[styles.conflictCard, { borderColor: theme.colors.error + '40' }]}>
               <Card.Content>
                 <View style={styles.conflictHeader}>
                   <IconButton
@@ -254,46 +256,35 @@ const ActionOption: React.FC<ActionOptionProps> = ({
   onSelect,
   primary,
   outline,
-}) => (
-  <View
-    style={[
-      styles.actionOption,
-      {
-        borderColor: selected ? primary : outline + '30',
-        backgroundColor: selected ? primary + '08' : 'transparent',
-      },
-    ]}
-  >
-    <View style={styles.actionOptionContent}>
-      <View style={styles.actionRadio}>
-        <View
-          style={[
-            styles.radioOuter,
-            { borderColor: selected ? primary : outline },
-          ]}
-        >
-          {selected && (
-            <View
-              style={[styles.radioInner, { backgroundColor: primary }]}
-            />
-          )}
+}) => {
+  const actionStyle = {
+    borderColor: selected ? primary : outline + '30',
+    backgroundColor: selected ? primary + '08' : 'transparent',
+  };
+  const radioOuterStyle = { borderColor: selected ? primary : outline };
+  const radioInnerStyle = { backgroundColor: primary };
+  const labelStyle = selected ? { color: primary } : null;
+
+  return (
+    <Pressable onPress={onSelect} style={[styles.actionOption, actionStyle]}>
+      <View style={styles.actionOptionContent}>
+        <View style={styles.actionRadio}>
+          <View style={[styles.radioOuter, radioOuterStyle]}>
+            {selected && <View style={[styles.radioInner, radioInnerStyle]} />}
+          </View>
+        </View>
+        <View style={styles.actionTextContainer}>
+          <Text variant="labelLarge" onPress={onSelect} style={[styles.actionLabel, labelStyle]}>
+            {label}
+          </Text>
+          <Text variant="bodySmall" style={styles.actionDesc}>
+            {description}
+          </Text>
         </View>
       </View>
-      <View style={styles.actionTextContainer}>
-        <Text
-          variant="labelLarge"
-          onPress={onSelect}
-          style={[styles.actionLabel, selected && { color: primary }]}
-        >
-          {label}
-        </Text>
-        <Text variant="bodySmall" style={styles.actionDesc}>
-          {description}
-        </Text>
-      </View>
-    </View>
-  </View>
-);
+    </Pressable>
+  );
+};
 
 const styles = StyleSheet.create({
   content: {

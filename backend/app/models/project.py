@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, String, Text, Uuid, UniqueConstraint
+from sqlalchemy import ForeignKey, String, Text, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
@@ -64,7 +64,9 @@ class UserProjectProfile(BaseModel):
 class ProjectInvitation(BaseModel):
     __tablename__ = "projects_projectinvitation"
 
-    id: Mapped[uuid.UUID] = mapped_column(Uuid(native_uuid=False), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(native_uuid=False), primary_key=True, default=uuid.uuid4
+    )
     project_id: Mapped[int] = mapped_column(ForeignKey("projects_project.id"), nullable=False)
     email: Mapped[str] = mapped_column(String(254), nullable=False)
     role: Mapped[str] = mapped_column(

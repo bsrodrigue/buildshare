@@ -40,9 +40,9 @@ from app.services.auth import (
 )
 from app.services.email import (
     send_email_change_verification_email,
-    send_otp_email,
     send_password_reset_email,
 )
+from app.tasks.email import send_account_activated_email_task, send_otp_email_task
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -63,8 +63,7 @@ def register(data: RegisterInput, db: Session = Depends(get_db)):
             detail={"code": e.code, "message": e.message, "fields": {}},
         ) from e
 
-    # Send OTP email (non-blocking, don't fail registration if email fails)
-
+    user_name = f"{user.first_name} {user.last_name}".strip()
     otp = db.execute(
         select(OneTimePassword).where(
             OneTimePassword.user_id == user.id,
@@ -73,8 +72,7 @@ def register(data: RegisterInput, db: Session = Depends(get_db)):
     ).scalar_one_or_none()
 
     if otp:
-        user_name = f"{user.first_name} {user.last_name}".strip()
-        send_otp_email(
+        send_otp_email_task.delay(
             to_email=user.email,
             otp_code=otp.code,
             user_name=user_name,
@@ -158,6 +156,12 @@ def verify_otp(data: VerifyOtpInput, db: Session = Depends(get_db)):
     user.is_verified = True
     db.flush()
 
+    user_name = f"{user.first_name} {user.last_name}".strip()
+    send_account_activated_email_task.delay(
+        to_email=user.email,
+        user_name=user_name,
+    )
+
     return MessageOut(message="Compte vérifié avec succès.")
 
 
@@ -178,9 +182,8 @@ def resend_otp(data: ResendOtpInput, db: Session = Depends(get_db)):
             detail={"code": e.code, "message": e.message, "fields": {}},
         ) from e
 
-    # Send OTP email (non-blocking, don't fail if email fails)
     user_name = f"{user.first_name} {user.last_name}".strip()
-    send_otp_email(
+    send_otp_email_task.delay(
         to_email=user.email,
         otp_code=otp.code,
         user_name=user_name,

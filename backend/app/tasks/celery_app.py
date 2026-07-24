@@ -1,14 +1,10 @@
 from __future__ import annotations
 
-import os
-
 from celery import Celery
 
-from app.config import settings
-
-os.environ.setdefault("FASTAPI_SETTINGS_MODULE", "app.config")
-
 import app.tasks.binary_processing  # noqa: F401 — register tasks
+import app.tasks.email  # noqa: F401 — register tasks
+from app.config import settings
 
 celery_app = Celery("buildshare")
 

@@ -148,6 +148,53 @@ def send_otp_email(to_email: str, otp_code: str, user_name: str = "") -> bool:
     )
 
 
+def send_account_activated_email(to_email: str, user_name: str = "") -> bool:
+    subject = "Compte activé — Bienvenue sur BuildShare"
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 30px; text-align: center; margin-bottom: 30px;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">BuildShare</h1>
+        </div>
+
+        <div style="background: #f8f9fa; border-radius: 12px; padding: 30px; text-align: center;">
+            <h2 style="color: #333; margin-top: 0;">Votre compte est activé</h2>
+
+            <p style="color: #666; font-size: 16px;">
+                Bonjour{f" {user_name}" if user_name else ""},
+            </p>
+
+            <p style="color: #666; font-size: 16px;">
+                Votre adresse email a été vérifiée avec succès. Vous pouvez dès maintenant vous connecter et commencer à partager vos builds.
+            </p>
+
+            <div style="margin: 30px 0;">
+                <a href="{settings.PUBLIC_URL}/login" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px; font-weight: bold; display: inline-block;">
+                    Se connecter
+                </a>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; color: #999; font-size: 12px;">
+            <p>Cet email a été envoyé par BuildShare</p>
+        </div>
+    </body>
+    </html>
+    """
+
+    return email_service.send_email(
+        to_email=to_email,
+        subject=subject,
+        html_content=html_content,
+        to_name=user_name,
+    )
+
+
 def send_password_reset_email(to_email: str, reset_token: str, user_name: str = "") -> bool:
     """Send a password reset email with a reset link.
 

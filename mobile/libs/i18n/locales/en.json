@@ -32,7 +32,11 @@
       "submit": "Sign In",
       "register_link": "Don't have an account? Sign Up",
       "forgot_password_link": "Forgot password?",
-      "resend_verification": "Resend verification code"
+      "resend_verification": "Resend verification code",
+      "not_verified_title": "Email not verified",
+      "not_verified_message": "You need to verify your email address before signing in. We'll send a verification code to your inbox.",
+      "not_verified_send": "Send code",
+      "not_verified_cancel": "Cancel"
     },
     "register": {
       "title": "Sign Up",

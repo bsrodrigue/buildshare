@@ -32,7 +32,11 @@
       "submit": "Se connecter",
       "register_link": "Pas de compte ? S'inscrire",
       "forgot_password_link": "Mot de passe oublié ?",
-      "resend_verification": "Renvoyer le code de vérification"
+      "resend_verification": "Renvoyer le code de vérification",
+      "not_verified_title": "Email non vérifié",
+      "not_verified_message": "Vous devez vérifier votre adresse email avant de vous connecter. Nous allons vous envoyer un code de vérification.",
+      "not_verified_send": "Envoyer le code",
+      "not_verified_cancel": "Annuler"
     },
     "register": {
       "title": "Inscription",

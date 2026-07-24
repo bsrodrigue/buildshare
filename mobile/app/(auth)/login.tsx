@@ -6,8 +6,10 @@ import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import {
   Button,
+  Dialog,
   HelperText,
   IconButton,
+  Portal,
   Surface,
   Text,
   TextInput,
@@ -18,7 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { setFormErrors } from '@/libs/api/forms';
 import { AppError } from '@/libs/api/types';
 import { createLogger } from '@/libs/log';
-import { useLogin } from '@/modules/auth/api/hooks';
+import { useLogin, useResendOtp } from '@/modules/auth/api/hooks';
 import { LoginParams, LoginParamsSchema } from '@/modules/auth/api/schemas';
 import { ApiConfigModal } from '@/modules/shared/components/ApiConfigModal';
 
@@ -31,6 +33,7 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const mutation = useLogin();
+  const resendOtp = useResendOtp();
   const [showPassword, setShowPassword] = useState(false);
   const [configVisible, setConfigVisible] = useState(false);
   const [notVerifiedEmail, setNotVerifiedEmail] = useState<string | null>(null);
@@ -182,21 +185,44 @@ export default function LoginScreen() {
           {t('auth.login.forgot_password_link')}
         </Button>
 
-        {/* Resend verification (only shown when user is not verified) */}
-        {notVerifiedEmail && (
-          <Button
-            mode="text"
-            onPress={() => {
-              void router.replace({
-                pathname: '/(auth)/verify-otp',
-                params: { email: notVerifiedEmail },
-              });
-            }}
-            style={styles.resendBtn}
-          >
-            {t('auth.login.resend_verification')}
-          </Button>
-        )}
+        {/* Not verified modal */}
+        <Portal>
+          <Dialog visible={notVerifiedEmail !== null} onDismiss={() => setNotVerifiedEmail(null)}>
+            <Dialog.Icon icon="email-off-outline" />
+            <Dialog.Title style={styles.dialogTitle}>
+              {t('auth.login.not_verified_title')}
+            </Dialog.Title>
+            <Dialog.Content>
+              <Text variant="bodyMedium">{t('auth.login.not_verified_message')}</Text>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setNotVerifiedEmail(null)}>
+                {t('auth.login.not_verified_cancel')}
+              </Button>
+              <Button
+                onPress={() => {
+                  if (notVerifiedEmail) {
+                    resendOtp.mutate(
+                      { email: notVerifiedEmail },
+                      {
+                        onSuccess: () => {
+                          setNotVerifiedEmail(null);
+                          void router.replace({
+                            pathname: '/(auth)/verify-otp',
+                            params: { email: notVerifiedEmail },
+                          });
+                        },
+                      },
+                    );
+                  }
+                }}
+                loading={resendOtp.isPending}
+              >
+                {t('auth.login.not_verified_send')}
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
 
         {/* Switch */}
         <Button
@@ -278,4 +304,5 @@ const styles = StyleSheet.create({
   forgotBtn: { marginTop: 4 },
   resendBtn: { marginTop: 4 },
   switchBtn: { marginTop: 8 },
+  dialogTitle: { textAlign: 'center' },
 });

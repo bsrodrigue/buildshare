@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict
-from collections.abc import Callable
 from threading import Lock
 from typing import Any
 
@@ -10,7 +9,7 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
-from app.libs.errors import AppError, ErrorCode
+from app.libs.errors import ErrorCode
 
 
 class RateLimitStore:
@@ -60,48 +59,6 @@ class RateLimitStore:
 _rate_limit_store = RateLimitStore()
 
 
-def rate_limit(
-    max_requests: int = 5,
-    window_seconds: int = 60,
-    key_func: Callable[[Request], str] | None = None,
-) -> Callable[..., Any]:
-    """Decorator for rate limiting endpoints.
-
-    Args:
-        max_requests: Maximum number of requests allowed in the window
-        window_seconds: Time window in seconds
-        key_func: Function to extract rate limit key from request.
-                  Defaults to IP address.
-    """
-
-    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        async def wrapper(request: Request, *args: Any, **kwargs: Any) -> Any:
-            if key_func:
-                key = key_func(request)
-            else:
-                # Default to client IP
-                forwarded = request.headers.get("X-Forwarded-For")
-                if forwarded:
-                    key = forwarded.split(",")[0].strip()
-                else:
-                    key = request.client.host if request.client else "unknown"
-
-            full_key = f"{func.__module__}.{func.__name__}:{key}"
-
-            if not _rate_limit_store.check(full_key, max_requests, window_seconds):
-                reset_time = _rate_limit_store.get_reset_time(full_key, window_seconds)
-                raise AppError(
-                    f"Trop de requêtes. Veuillez réessayer dans {int(reset_time)} secondes.",
-                    ErrorCode.AUTH_RATE_LIMITED,
-                )
-
-            return await func(request, *args, **kwargs)
-
-        return wrapper
-
-    return decorator
-
-
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Middleware for rate limiting auth endpoints."""
 
@@ -116,8 +73,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.window_seconds = window_seconds
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        # Only apply to auth endpoints
         if not request.url.path.startswith("/api/auth/"):
+            return await call_next(request)
+
+        if request.url.path == "/api/auth/me/":
             return await call_next(request)
 
         # Get client IP

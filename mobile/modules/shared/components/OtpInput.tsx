@@ -22,6 +22,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
   const theme = useTheme();
   const inputRef = useRef<TextInput>(null);
   const [focused, setFocused] = useState(false);
+  const completedRef = useRef(false);
 
   const digits = value.split('').slice(0, length);
   while (digits.length < length) {
@@ -29,8 +30,12 @@ export const OtpInput: React.FC<OtpInputProps> = ({
   }
 
   useEffect(() => {
-    if (value.length === length) {
+    if (value.length === length && !completedRef.current) {
+      completedRef.current = true;
       onComplete?.(value);
+    }
+    if (value.length !== length) {
+      completedRef.current = false;
     }
   }, [value, length, onComplete]);
 

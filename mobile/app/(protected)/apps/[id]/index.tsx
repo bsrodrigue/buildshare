@@ -151,18 +151,22 @@ export default function AppDetailScreen() {
             }}
           />
           {application?.icon_url ? (
-            <Avatar.Image
-              source={{ uri: application.icon_url }}
-              size={36}
-              style={styles.headerIcon}
-            />
+            <View style={styles.headerIconCircle}>
+              <Avatar.Image
+                source={{ uri: application.icon_url }}
+                size={36}
+                style={styles.headerIcon}
+              />
+            </View>
           ) : (
-            <Avatar.Icon
-              icon="android"
-              size={36}
-              style={styles.headerIcon}
-              color={theme.colors.onSurfaceVariant}
-            />
+            <View style={styles.headerIconCircle}>
+              <Avatar.Icon
+                icon="android"
+                size={36}
+                style={styles.headerIcon}
+                color={theme.colors.primary}
+              />
+            </View>
           )}
           <Text variant="titleLarge" style={[styles.title, { color: theme.colors.onSurface }]}>
             {application?.title || t('screens.release_list.title')}
@@ -452,6 +456,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,

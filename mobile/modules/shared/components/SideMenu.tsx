@@ -165,6 +165,11 @@ export const SideMenu: React.FC<SideMenuProps> = ({ visible, onClose }) => {
               icon="history"
               onPress={() => navigateTo('/activity')}
             />
+            <Drawer.Item
+              label={t('screens.downloads.title', 'Downloads')}
+              icon="download"
+              onPress={() => navigateTo('/(protected)/downloads')}
+            />
           </Drawer.Section>
 
           <View style={styles.footer}>

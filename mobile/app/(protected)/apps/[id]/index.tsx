@@ -1,18 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  FlatList,
-  Linking,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Avatar, FAB, IconButton, Menu, Portal, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { DownloadService } from '@/libs/download/DownloadService';
 import { env } from '@/libs/env';
 import { toast } from '@/libs/notification/toast';
 import {
@@ -100,15 +93,11 @@ export default function AppDetailScreen() {
   };
 
   const handleDownload = (artifact: ReleaseArtifact) => {
-    if (artifact.file) {
-      let url = artifact.file;
-      if (!url.startsWith('http')) {
-        const baseUrl = env.API_URL.endsWith('/') ? env.API_URL.slice(0, -1) : env.API_URL;
-        const filePath = url.startsWith('/') ? url : `/${url}`;
-        url = `${baseUrl}${filePath}`;
-      }
-      void Linking.openURL(url);
-    }
+    const fileName = artifact.file.split('/').pop() || `artifact-${artifact.id}.apk`;
+    const baseUrl = env.API_URL.endsWith('/') ? env.API_URL.slice(0, -1) : env.API_URL;
+    const url = `${baseUrl}/binaries/artifacts/${artifact.id}/download/`;
+    void DownloadService.start(artifact.id, fileName, url);
+    void router.push('/(protected)/downloads');
   };
 
   const renderReleaseItem = ({ item, index }: { item: Release; index: number }) => (

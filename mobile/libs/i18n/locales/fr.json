@@ -18,6 +18,7 @@
     "accept": "Accepter",
     "reject": "Refuser",
     "refresh": "Actualiser",
+    "empty": "Rien ici",
     "roles": {
       "ADMIN": "Administrateur",
       "MEMBER": "Membre"
@@ -109,6 +110,7 @@
       "no_description": "Aucune description",
       "empty_title": "Aucun projet trouvé.",
       "empty_subtitle": "Créez votre premier projet pour commencer.",
+      "title": "Tableau de bord",
       "fab_new_project": "Nouveau Projet"
     },
     "project_detail": {
@@ -134,7 +136,9 @@
       "delete_error": "Échec de la suppression de l'application",
       "bugs_button": "SIGNALER UN BUG",
       "bugs_count": "{{count}} BUG ({{open}} OUVERT)",
-      "bugs_count_plural": "{{count}} BUGS ({{open}} OUVERTS)"
+      "bugs_count_plural": "{{count}} BUGS ({{open}} OUVERTS)",
+      "manage_tags": "Gérer les tags",
+      "no_match_tag": "Aucune version ne correspond à ce tag"
     },
     "bugs": {
       "title": "Bugs",
@@ -251,6 +255,11 @@
       "change_email_description": "Modifiez votre adresse email",
       "delete_account": "Supprimer le compte",
       "delete_account_description": "Supprimez définitivement votre compte"
+    },
+    "downloads": {
+      "title": "Téléchargements",
+      "clear": "Effacer",
+      "empty": "Aucun téléchargement"
     }
   },
   "components": {

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import ClassVar
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+os.environ.setdefault("FASTAPI_SETTINGS_MODULE", "app.config")
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 

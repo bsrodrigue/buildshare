@@ -357,9 +357,12 @@ def process_apk_task(
         if existing_hash:
             raise ValueError("Ce binaire a déjà été téléversé pour cette version.")
 
+        artifact_key = f"artifacts/{package_name}/{version_code}/{package_name}-{version_name}.apk"
+        storage_service.upload(BytesIO(apk_bytes), artifact_key)
+
         artifact = Artifact(
             release_id=release.id,
-            file_path=f"artifacts/{package_name}/{version_code}/{package_name}-{version_name}.apk",
+            file_path=artifact_key,
             hash=file_hash,
             architecture=architecture,
             size=metadata.file_size,

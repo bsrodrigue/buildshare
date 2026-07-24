@@ -18,6 +18,7 @@
     "accept": "Accept",
     "reject": "Reject",
     "refresh": "Refresh",
+    "empty": "Nothing here",
     "roles": {
       "ADMIN": "Administrator",
       "MEMBER": "Member"
@@ -109,6 +110,7 @@
       "no_description": "No description",
       "empty_title": "No projects found.",
       "empty_subtitle": "Create your first project to get started.",
+      "title": "Dashboard",
       "fab_new_project": "New Project"
     },
     "project_detail": {
@@ -134,7 +136,9 @@
       "delete_error": "Failed to delete application",
       "bugs_button": "REPORT A BUG",
       "bugs_count": "{{count}} BUG ({{open}} OPEN)",
-      "bugs_count_plural": "{{count}} BUGS ({{open}} OPEN)"
+      "bugs_count_plural": "{{count}} BUGS ({{open}} OPEN)",
+      "manage_tags": "Manage tags",
+      "no_match_tag": "No release matches this tag"
     },
     "bugs": {
       "title": "Bugs",
@@ -251,6 +255,11 @@
       "change_email_description": "Update your email address",
       "delete_account": "Delete Account",
       "delete_account_description": "Permanently delete your account"
+    },
+    "downloads": {
+      "title": "Downloads",
+      "clear": "Clear",
+      "empty": "No downloads"
     }
   },
   "components": {

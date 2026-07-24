@@ -4,7 +4,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -1142,8 +1142,10 @@ def delete_tag(
 @router.get("/artifacts/{artifact_id}/download/")
 def download_artifact(
     artifact_id: int,
+    request: Request,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    storage: StorageBackend = Depends(get_storage),
 ):
     artifact = db.get(Artifact, artifact_id)
     if not artifact:
@@ -1154,14 +1156,17 @@ def download_artifact(
 
     check_is_project_member(db, user=user, project=artifact.release.application.project)
 
+    presigned = storage.presigned_download_url(artifact.file_path, expires=86400)
+    if presigned:
+        return {"url": presigned, "filename": artifact.file_path.split("/")[-1]}
+
     file_path = Path("/") / artifact.file_path
     if file_path.exists():
-        return FileResponse(path=file_path, filename=file_path.name)
+        return {"url": str(request.url_for("download_artifact", artifact_id=artifact.id))}
 
-    # Try relative to media
     media_path = Path("media") / artifact.file_path
     if media_path.exists():
-        return FileResponse(path=media_path, filename=media_path.name)
+        return {"url": str(request.url_for("download_artifact", artifact_id=artifact.id))}
 
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,

@@ -1,11 +1,12 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
-import { Button, HelperText, Surface, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, HelperText, Surface, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useResendOtp, useVerifyOtp } from '@/modules/auth/api/hooks';
+import { OtpInput } from '@/modules/shared/components/OtpInput';
 
 export default function VerifyOtpScreen() {
   const theme = useTheme();
@@ -25,14 +26,25 @@ export default function VerifyOtpScreen() {
     return () => clearInterval(timer);
   }, []);
 
-  const onVerify = () => {
-    if (code.length !== 6) {
-      setError(t('auth.verify_otp.invalid_code'));
-      return;
-    }
-    setError('');
-    verifyMutation.mutate({ email: email || '', code });
-  };
+  const onVerify = useCallback(
+    (otpCode?: string) => {
+      const codeToVerify = otpCode || code;
+      if (codeToVerify.length !== 6) {
+        setError(t('auth.verify_otp.invalid_code'));
+        return;
+      }
+      setError('');
+      verifyMutation.mutate({ email: email || '', code: codeToVerify });
+    },
+    [code, email, t, verifyMutation],
+  );
+
+  const onComplete = useCallback(
+    (fullCode: string) => {
+      onVerify(fullCode);
+    },
+    [onVerify],
+  );
 
   const onResend = () => {
     if (email) {
@@ -72,27 +84,24 @@ export default function VerifyOtpScreen() {
         contentContainerStyle={styles.panelContent}
         keyboardShouldPersistTaps="handled"
       >
-        <TextInput
-          label={t('auth.verify_otp.code_label')}
+        <OtpInput
           value={code}
           onChangeText={setCode}
-          mode="outlined"
-          keyboardType="number-pad"
-          maxLength={6}
-          style={styles.codeInput}
+          onComplete={onComplete}
           error={!!error}
+          disabled={verifyMutation.isPending}
         />
         {error ? (
-          <HelperText type="error" visible>
+          <HelperText type="error" visible style={styles.errorText}>
             {error}
           </HelperText>
         ) : null}
 
         <Button
           mode="contained"
-          onPress={onVerify}
+          onPress={() => onVerify()}
           loading={verifyMutation.isPending}
-          disabled={verifyMutation.isPending}
+          disabled={verifyMutation.isPending || code.length !== 6}
           contentStyle={styles.submitContent}
           style={styles.submitBtn}
         >
@@ -131,8 +140,8 @@ const styles = StyleSheet.create({
   heroSubtitle: { opacity: 0.75 },
   panel: { flex: 1 },
   panelContent: { padding: 24, paddingTop: 28, paddingBottom: 48 },
-  codeInput: { fontSize: 24, textAlign: 'center', letterSpacing: 8 },
-  submitBtn: { marginTop: 16, borderRadius: 12 },
+  errorText: { textAlign: 'center', marginTop: 8 },
+  submitBtn: { marginTop: 20, borderRadius: 12 },
   submitContent: { height: 52 },
   resendBtn: { marginTop: 8 },
   backBtn: { marginTop: 4 },

@@ -680,6 +680,7 @@ def process_apk(
                 ) from e
 
     resolution_data = data.resolution.model_dump() if data.resolution else {}
+
     process_apk_task.delay(
         job_id=str(job.id),
         resolution=resolution_data,

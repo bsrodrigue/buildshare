@@ -108,25 +108,44 @@ class AndroidBinaryService:
         return False
 
     @staticmethod
+    def _is_valid_image(data: bytes) -> bool:
+        if len(data) < 12:
+            return False
+        # PNG: 89 50 4E 47 0D 0A 1A 0A
+        if data[:8] == b"\x89PNG\r\n\x1a\n":
+            return True
+        # JPEG: FF D8 FF
+        if data[:3] == b"\xff\xd8\xff":
+            return True
+        # WebP: 52 49 46 46 .... 57 45 42 50
+        return data[:4] == b"RIFF" and data[8:12] == b"WEBP"
+
+    @staticmethod
     def _get_icon_bytes(path: Path) -> bytes | None:
         try:
             apk = AndroguardAPK(str(path))
             icon_name = apk.get_app_icon()
-            if icon_name:
+            if icon_name and not icon_name.endswith(".xml"):
                 data = apk.get_file(icon_name)
-                if data:
+                if data and AndroidBinaryService._is_valid_image(data):
                     return data
         except Exception as e:
             logger.warning("androguard icon extraction failed for %s: %s", path, e)
 
         try:
             with zipfile.ZipFile(path, "r") as zf:
+                all_files = zf.namelist()
+
+                # Try structured res/mipmap and res/drawable dirs first
                 candidates = [
                     n
-                    for n in zf.namelist()
-                    if (n.startswith("res/mipmap") or n.startswith("res/drawable"))
+                    for n in all_files
+                    if n.startswith("res/")
+                    and not n.endswith(".xml")
+                    and not n.endswith(".9.png")
                     and (n.endswith(".png") or n.endswith(".webp"))
                 ]
+
                 if not candidates:
                     return None
 
@@ -142,8 +161,41 @@ class AndroidBinaryService:
                             return 1
                     return 0
 
-                best = max(candidates, key=lambda n: (_density(n), len(n)))
-                return zf.read(best)
+                def _score(name: str, info: zipfile.ZipInfo) -> float:
+                    s = float(_density(name))
+                    # Prefer files with "icon" or the app label in the path
+                    lower = name.lower()
+                    if "icon" in lower or "ic_" in lower:
+                        s += 5.0
+                    # Prefer non-9-patch files
+                    if not name.endswith(".9.png"):
+                        s += 2.0
+                    # Larger files are higher resolution
+                    s += info.file_size / 1000.0
+                    return s
+
+                scored = sorted(
+                    ((n, _score(n, zf.getinfo(n))) for n in candidates),
+                    key=lambda x: x[1],
+                    reverse=True,
+                )
+
+                for name, _ in scored[:10]:
+                    data = zf.read(name)
+                    if AndroidBinaryService._is_valid_image(data):
+                        logger.info("Extracted icon from %s (%d bytes)", name, len(data))
+                        return data
+
+                # Last resort: try 9-patch files if nothing else worked
+                nine_patch = [n for n in all_files if n.startswith("res/") and n.endswith(".9.png")]
+                for name in nine_patch:
+                    data = zf.read(name)
+                    if AndroidBinaryService._is_valid_image(data):
+                        logger.info("Extracted 9-patch icon from %s (%d bytes)", name, len(data))
+                        return data
+
+                logger.warning("No valid icon in APK (%d candidates checked)", len(candidates))
+                return None
         except Exception as e:
             logger.error("Failed to extract app icon from %s: %s", path, e)
         return None

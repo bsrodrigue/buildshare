@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from datetime import UTC, datetime
 from io import BytesIO
 from typing import Any
 
@@ -22,6 +23,23 @@ logger = logging.getLogger(__name__)
 
 _sync_url = settings.DATABASE_URL.replace("+aiosqlite", "").replace("+asyncpg", "")
 _engine = create_engine(_sync_url)
+
+ERROR_MESSAGE_MAX_LENGTH = 500
+
+
+def flow_finish(job: TaskJob) -> None:
+    job.status = "SUCCESS"
+    job.finished_at = datetime.now(UTC)
+
+
+def flow_fail(job: TaskJob, error_message: str) -> None:
+    job.status = "FAILURE"
+    job.finished_at = datetime.now(UTC)
+    job.error_message = (
+        error_message[: ERROR_MESSAGE_MAX_LENGTH - 3] + "..."
+        if len(error_message) > ERROR_MESSAGE_MAX_LENGTH
+        else error_message
+    )
 
 
 def _resolve_app(
@@ -260,10 +278,10 @@ def process_apk_task(
     db = Session(_engine)
     try:
         job = db.execute(select(TaskJob).where(TaskJob.id == uuid.UUID(job_id))).scalar_one()
-        flow = TaskJobFlow(job)
-        logger.info(f"Starting APK processing for job {job_id}")
+        logger.info(f"Starting APK processing for job {job_id} (current status: {job.status})")
 
-        flow.start()
+        flow = TaskJobFlow(job)
+        flow.restart()
         db.flush()
 
         r2_path = job.input_data.get("r2_path")
@@ -303,12 +321,13 @@ def process_apk_task(
             description or "",
         )
 
-        if not app.icon_key:
-            icon_bytes = parser.get_app_icon_bytes(apk_bytes)
-            if icon_bytes is not None:
-                icon_key = f"icons/{package_name}/{version_code}/{uuid.uuid4().hex}.png"
-                storage_service.upload(BytesIO(icon_bytes), icon_key)
-                app.icon_key = icon_key
+        icon_bytes = parser.get_app_icon_bytes(apk_bytes)
+        if icon_bytes is not None:
+            icon_key = f"icons/{package_name}/{version_code}/{uuid.uuid4().hex}.png"
+            storage_service.upload(BytesIO(icon_bytes), icon_key)
+            app.icon_key = icon_key
+        else:
+            app.icon_key = None
 
         db.flush()
 
@@ -362,7 +381,7 @@ def process_apk_task(
             "release_id": str(release.id),
             "artifact_id": str(artifact.id),
         }
-        flow.finish()
+        flow_finish(job)
         db.commit()
 
         logger.info(f"Successfully processed APK for job {job_id}")
@@ -372,8 +391,7 @@ def process_apk_task(
         db.rollback()
         try:
             job = db.execute(select(TaskJob).where(TaskJob.id == uuid.UUID(job_id))).scalar_one()
-            flow = TaskJobFlow(job)
-            flow.fail(error_message=str(e))
+            flow_fail(job, str(e))
             db.commit()
         except Exception:
             logger.exception(f"Failed to mark job {job_id} as failed")

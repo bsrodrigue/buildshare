@@ -39,7 +39,7 @@ export default function ActivityScreen() {
     if (!jobs) return;
 
     for (const job of jobs) {
-      if (job.status !== 'SUCCESS' || job.type !== 'ANALYZE_APK') continue;
+      if (job.status !== 'SUCCESS' || job.type !== 'BINARY_PROCESSING') continue;
       if (processedJobsRef.current.has(job.id)) continue;
 
       const outputData = job.output_data as unknown as AnalysisResult | undefined;

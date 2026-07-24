@@ -25,6 +25,18 @@ class TaskJobFlow:
         self.task_job.status = "SUCCESS"
         self.task_job.finished_at = datetime.now(UTC)
 
+    def restart(self) -> None:
+        """Restart a job from any state (except terminal FAILURE/CANCELLED).
+        Sets status to STARTED and resets started_at."""
+        if self.task_job.status in ("FAILURE", "CANCELLED"):
+            raise AppError(
+                "Cannot restart a job that is FAILURE or CANCELLED.", ErrorCode.VALIDATION_ERROR
+            )
+        self.task_job.status = "STARTED"
+        self.task_job.started_at = datetime.now(UTC)
+        self.task_job.finished_at = None
+        self.task_job.error_message = ""
+
     def fail(self, error_message: str) -> None:
         if self.task_job.status not in ("PENDING", "STARTED"):
             raise AppError(

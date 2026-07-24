@@ -19,6 +19,7 @@ import {
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Logger } from '@/libs/log';
 import { toast } from '@/libs/notification/toast';
 import { useAuthStore } from '@/modules/auth/store';
 import { useApplications } from '@/modules/binaries/api/hooks';
@@ -32,11 +33,25 @@ import {
 import { ConfirmDialog } from '@/modules/shared/components/ConfirmDialog';
 import { useTheme } from '@/modules/shared/theme/ThemeProvider';
 
+const logger = new Logger('ProjectDetailScreen');
+
 export default function ProjectDetailScreen() {
   const { id } = useLocalSearchParams();
   const projectId = parseInt(id as string, 10);
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const iconBgColor = React.useMemo(
+    () => ({
+      backgroundColor: theme.colors.secondaryContainer,
+    }),
+    [theme.colors.secondaryContainer],
+  );
+  const iconWithImageBgColor = React.useMemo(
+    () => ({
+      backgroundColor: '#FFFFFF',
+    }),
+    [],
+  );
   const { t } = useTranslation();
 
   const {
@@ -45,6 +60,8 @@ export default function ProjectDetailScreen() {
     isRefetching,
     refetch,
   } = useApplications(projectId);
+
+  logger.debug('Applications: ', applications);
 
   const { data: project, isLoading: isProjectLoading } = useProject(projectId);
   const { user } = useAuthStore();
@@ -138,7 +155,7 @@ export default function ProjectDetailScreen() {
           descriptionNumberOfLines={1}
           left={() => (
             <View
-              style={[styles.avatarContainer, { backgroundColor: theme.colors.secondaryContainer }]}
+              style={[styles.avatarContainer, item.icon_url ? iconWithImageBgColor : iconBgColor]}
             >
               {item.icon_url ? (
                 <Avatar.Image source={{ uri: item.icon_url }} size={32} style={styles.avatar} />

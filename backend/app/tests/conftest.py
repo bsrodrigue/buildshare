@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator
+from unittest import mock
 
 import pytest
 from fastapi import FastAPI
@@ -33,6 +34,16 @@ def setup_db() -> Generator:
     Base.metadata.create_all(bind=test_engine)
     yield
     Base.metadata.drop_all(bind=test_engine)
+
+
+@pytest.fixture(autouse=True)
+def mock_celery_tasks() -> Generator:
+    with (
+        mock.patch("app.services.email.email_service.send_email", return_value=True),
+        mock.patch("app.tasks.email.send_otp_email_task.delay", return_value=None),
+        mock.patch("app.tasks.email.send_account_activated_email_task.delay", return_value=None),
+    ):
+        yield
 
 
 @pytest.fixture

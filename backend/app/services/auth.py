@@ -70,9 +70,32 @@ def user_create(
 ) -> User:
     existing = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
     if existing:
-        raise AppError(
-            "Un utilisateur avec cet email existe déjà.", ErrorCode.AUTH_EMAIL_ALREADY_EXISTS
+        if existing.is_verified:
+            raise AppError(
+                "Un utilisateur avec cet email existe déjà.",
+                ErrorCode.AUTH_EMAIL_ALREADY_EXISTS,
+            )
+        existing.first_name = first_name
+        existing.last_name = last_name
+        existing.set_password(password)
+        db.flush()
+        stmt = (
+            update(OneTimePassword)
+            .where(
+                OneTimePassword.user_id == existing.id,
+                OneTimePassword.is_used == False,  # noqa: E712
+            )
+            .values(is_used=True)
         )
+        db.execute(stmt)
+        otp = OneTimePassword(
+            user_id=existing.id,
+            code=_generate_otp_code(),
+            expires_at=datetime.now(UTC) + timedelta(minutes=15),
+        )
+        db.add(otp)
+        db.flush()
+        return existing
 
     user = User(
         email=email,

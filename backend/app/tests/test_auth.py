@@ -28,9 +28,20 @@ class TestRegister:
         assert "id" in data
         assert data["is_verified"] is False
 
-    def test_register_duplicate_email(self, client: TestClient, register_data: dict):
-        client.post("/api/auth/register/", json=register_data)
-        response = client.post("/api/auth/register/", json=register_data)
+    def test_register_duplicate_email_unverified(self, client: TestClient, register_data: dict):
+        """Re-registering with the same email while unverified should succeed (returns existing user)."""
+        resp1 = client.post("/api/auth/register/", json=register_data)
+        assert resp1.status_code == 201
+        resp2 = client.post("/api/auth/register/", json=register_data)
+        assert resp2.status_code == 201
+        assert resp2.json()["email"] == register_data["email"]
+
+    def test_register_duplicate_email_verified(
+        self, client: TestClient, register_data: dict, test_user
+    ):
+        """Re-registering with a verified email should fail."""
+        data = {**register_data, "email": test_user.email}
+        response = client.post("/api/auth/register/", json=data)
         assert response.status_code == 400
         assert response.json()["detail"]["code"] == "auth_val_008"
 

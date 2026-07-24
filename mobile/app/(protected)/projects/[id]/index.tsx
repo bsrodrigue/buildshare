@@ -317,17 +317,12 @@ export default function ProjectDetailScreen() {
 
         <View style={styles.heroContent}>
           <View style={styles.heroHeader}>
-            <View
-              style={[
-                styles.projectIconContainer,
-                { backgroundColor: theme.colors.primaryContainer },
-              ]}
-            >
+            <View style={styles.projectIconContainer}>
               <Avatar.Icon
                 icon="folder-zip"
                 size={48}
                 style={styles.heroAvatar}
-                color={theme.colors.onPrimaryContainer}
+                color={theme.colors.primary}
               />
             </View>
             <View style={styles.heroTextContent}>
@@ -505,7 +500,8 @@ const styles = StyleSheet.create({
   projectIconContainer: {
     width: 64,
     height: 64,
-    borderRadius: 20,
+    borderRadius: 32,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,

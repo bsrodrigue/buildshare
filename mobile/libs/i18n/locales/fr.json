@@ -120,6 +120,7 @@
       "fab_new_app": "Nouvelle Application",
       "delete_confirm_title": "Supprimer le projet",
       "delete_confirm_message": "Voulez-vous vraiment supprimer ce projet ? Cette action est irréversible.",
+      "delete_confirm_hint": "Tapez \"{{projectName}}\" pour confirmer la suppression :",
       "delete_success": "Projet supprimé avec succès",
       "delete_error": "Échec de la suppression du projet"
     },

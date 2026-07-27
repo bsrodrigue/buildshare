@@ -72,6 +72,7 @@ export default function ProjectDetailScreen() {
 
   const [menuVisible, setMenuVisible] = React.useState(false);
   const [deleteVisible, setDeleteVisible] = React.useState(false);
+  const [deleteConfirmName, setDeleteConfirmName] = React.useState('');
   const [leaveVisible, setLeaveVisible] = React.useState(false);
   const [inviteDialogVisible, setInviteDialogVisible] = React.useState(false);
   const [inviteEmail, setInviteEmail] = React.useState('');
@@ -404,16 +405,62 @@ export default function ProjectDetailScreen() {
       )}
 
       <Portal>
-        <ConfirmDialog
+        <Dialog
           visible={deleteVisible}
-          onDismiss={() => setDeleteVisible(false)}
-          onConfirm={confirmDelete}
-          title={t('screens.project_detail.delete_confirm_title')}
-          message={t('screens.project_detail.delete_confirm_message')}
-          confirmLabel={t('common.delete')}
-          confirmColor={theme.colors.error}
-          loading={deleteProject.isPending}
-        />
+          onDismiss={() => {
+            setDeleteVisible(false);
+            setDeleteConfirmName('');
+          }}
+        >
+          <Dialog.Title>{t('screens.project_detail.delete_confirm_title')}</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={styles.deleteDialogMessage}>
+              {t('screens.project_detail.delete_confirm_message')}
+            </Text>
+            <Text
+              variant="bodySmall"
+              style={[styles.deleteDialogHint, { color: theme.colors.onSurfaceVariant }]}
+            >
+              {t(
+                'screens.project_detail.delete_confirm_hint',
+                'Type "{{projectName}}" to confirm deletion:',
+                { projectName: project?.title ?? '' },
+              )}
+            </Text>
+            <TextInput
+              value={deleteConfirmName}
+              onChangeText={setDeleteConfirmName}
+              mode="outlined"
+              placeholder={project?.title ?? ''}
+              error={deleteConfirmName.length > 0 && deleteConfirmName !== project?.title}
+              dense
+              autoFocus
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button
+              onPress={() => {
+                setDeleteVisible(false);
+                setDeleteConfirmName('');
+              }}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              mode="contained"
+              buttonColor={theme.colors.error}
+              disabled={deleteConfirmName !== project?.title || deleteProject.isPending}
+              loading={deleteProject.isPending}
+              onPress={() => {
+                setDeleteVisible(false);
+                setDeleteConfirmName('');
+                confirmDelete();
+              }}
+            >
+              {t('common.delete')}
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
 
         <ConfirmDialog
           visible={leaveVisible}
@@ -623,5 +670,11 @@ const styles = StyleSheet.create({
   gridTagText: {
     fontSize: 8,
     fontWeight: '800',
+  },
+  deleteDialogMessage: {
+    marginBottom: 16,
+  },
+  deleteDialogHint: {
+    marginBottom: 8,
   },
 });

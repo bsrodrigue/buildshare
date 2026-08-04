@@ -60,6 +60,8 @@ def _resolve_app(
         app = db.get(Application, app_id)
         if not app:
             raise ValueError(f"Application {app_id} not found for override.")
+        if app.project_id != project_id:
+            raise ValueError(f"Application {app_id} does not belong to project {project_id}.")
         app.app_signature = signature
         if is_debuggable:
             app.is_debuggable = True

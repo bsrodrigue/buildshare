@@ -54,7 +54,6 @@ export class DownloadService {
     try {
       logger.debug(`Fetching presigned URL from: ${item.url}`);
       const data = await http.get<{ url: string }>(item.url);
-      logger.debug(`Got presigned URL: ${data.url.substring(0, 80)}...`);
 
       const result = await FileSystem.downloadAsync(data.url, dest, undefined);
 

@@ -38,12 +38,24 @@ def get_current_user(
 
     user_id = int(payload["sub"])
     try:
-        return get_user_by_id(db, user_id)
+        user = get_user_by_id(db, user_id)
     except AppError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": e.code, "message": e.message, "fields": {}},
         ) from e
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "code": ErrorCode.AUTH_USER_INACTIVE,
+                "message": "Ce compte est inactif.",
+                "fields": {},
+            },
+        )
+
+    return user
 
 
 def get_storage() -> StorageBackend:

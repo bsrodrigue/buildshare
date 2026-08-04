@@ -111,6 +111,22 @@ class TestRefresh:
         assert response.status_code == 401
 
 
+class TestInactiveUser:
+    def test_me_inactive_user(self, client, test_user, db_session):
+        test_user.is_active = False
+        db_session.flush()
+        token = create_access_token(test_user.id)
+        response = client.get("/api/auth/me/", headers={"Authorization": f"Bearer {token}"})
+        assert response.status_code == 401
+
+    def test_refresh_inactive_user(self, client, test_user, db_session):
+        test_user.is_active = False
+        db_session.flush()
+        token = create_refresh_token(test_user.id)
+        response = client.post("/api/auth/token/refresh/", json={"refresh": token})
+        assert response.status_code == 401
+
+
 class TestVerifyOtp:
     def test_verify_otp_success(self, client: TestClient, register_data: dict, db_session):
         response = client.post("/api/auth/register/", json=register_data)
@@ -132,11 +148,17 @@ class TestVerifyOtp:
         assert response.status_code == 400
 
     def test_verify_otp_nonexistent_user(self, client: TestClient):
+        # Generic error: must not reveal whether the email exists
         response = client.post(
             "/api/auth/verify-otp/",
             json={"email": "nobody@example.com", "code": "123456"},
         )
-        assert response.status_code == 404
+        assert response.status_code == 400
+
+    def test_resend_otp_nonexistent_user(self, client: TestClient):
+        # Always succeeds to prevent email enumeration
+        response = client.post("/api/auth/resend-otp/", json={"email": "nobody@example.com"})
+        assert response.status_code == 200
 
 
 class TestForgotPassword:
@@ -278,6 +300,26 @@ class TestChangeEmail:
         # Verify email was changed
         me_response = client.get("/api/auth/me/", headers=auth_headers)
         assert me_response.json()["email"] == "new@example.com"
+
+    def test_change_email_verify_wrong_target(
+        self, client: TestClient, auth_headers: dict, test_user, db_session
+    ):
+        # OTP sent to new@example.com must not validate for another address
+        client.post(
+            "/api/auth/change-email/",
+            json={"new_email": "new@example.com", "password": "Password123!"},
+            headers=auth_headers,
+        )
+        otp_code = _get_latest_otp(db_session, test_user.id)
+
+        response = client.post(
+            "/api/auth/verify-change-email/",
+            json={"new_email": "other@example.com", "code": otp_code},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+        me_response = client.get("/api/auth/me/", headers=auth_headers)
+        assert me_response.json()["email"] == "existing@example.com"
 
 
 class TestDeleteAccount:

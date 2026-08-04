@@ -911,6 +911,16 @@ def patch_bug(
             detail={"code": "gen_val_003", "message": "Bug non trouvé.", "fields": {}},
         )
 
+    if not is_project_member(db, user=user, project=bug.release.application.project):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "auth_val_003",
+                "message": "Vous n'êtes pas membre de ce projet.",
+                "fields": {},
+            },
+        )
+
     if data.description is not None:
         bug.description = data.description
         db.flush()

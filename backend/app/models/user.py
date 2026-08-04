@@ -81,6 +81,7 @@ class OneTimePassword(BaseModel):
     code: Mapped[str] = mapped_column(String(10), nullable=False)
     is_used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    target_email: Mapped[str | None] = mapped_column(String(254), nullable=True)
 
     user: Mapped[User] = relationship("User", back_populates="otps")
 

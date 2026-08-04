@@ -9,6 +9,7 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
+from app.config import settings
 from app.libs.errors import ErrorCode
 
 
@@ -79,12 +80,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.url.path == "/api/auth/me/":
             return await call_next(request)
 
-        # Get client IP
+        # Get client IP. Only trust X-Forwarded-For when the immediate peer is
+        # a configured trusted proxy; otherwise clients could spoof it.
+        client_ip = request.client.host if request.client else "unknown"
         forwarded = request.headers.get("X-Forwarded-For")
-        if forwarded:
+        if forwarded and client_ip in settings.TRUSTED_PROXIES:
             client_ip = forwarded.split(",")[0].strip()
-        else:
-            client_ip = request.client.host if request.client else "unknown"
 
         full_key = f"auth_middleware:{client_ip}"
 

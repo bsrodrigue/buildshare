@@ -64,8 +64,7 @@ export const binaryService = {
       const fileAsset = file as { uri: string; type?: string; name?: string };
       const contentType = fileAsset.type || 'application/vnd.android.package-archive';
 
-      logger.debug(`PUT ${url}`);
-      logger.debug(`file: ${fileAsset.name || 'upload.apk'} (${contentType})`);
+      logger.debug(`PUT ${fileAsset.name || 'upload.apk'} (${contentType})`);
 
       const xhr = new XMLHttpRequest();
 

@@ -797,6 +797,51 @@ class TestUploadAPKDirect:
         assert resp.status_code == 204
 
 
+class TestBugAuthz:
+    def _create_bug(self, client, auth_headers, project):
+        app_data = _create_app_with_signature(client, auth_headers, project)
+        client.post(
+            "/api/binaries/artifacts/upload/",
+            headers=auth_headers,
+            json={
+                "application_id": app_data["id"],
+                "version_code": 1,
+                "version_id": "1.0",
+                "architecture": "arm64-v8a",
+            },
+        )
+        release_id = client.get(
+            "/api/binaries/releases/",
+            params={"application_id": app_data["id"]},
+            headers=auth_headers,
+        ).json()[0]["id"]
+        bug_resp = client.post(
+            f"/api/binaries/releases/{release_id}/bugs/",
+            headers=auth_headers,
+            json={"description": "It crashes"},
+        )
+        return bug_resp.json()["id"]
+
+    def test_patch_bug_by_member(self, client, auth_headers, project):
+        bug_id = self._create_bug(client, auth_headers, project)
+        resp = client.patch(
+            f"/api/binaries/bugs/{bug_id}/",
+            headers=auth_headers,
+            json={"description": "Updated description"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["description"] == "Updated description"
+
+    def test_patch_bug_by_non_member(self, client, auth_headers, other_auth_headers, project):
+        bug_id = self._create_bug(client, auth_headers, project)
+        resp = client.patch(
+            f"/api/binaries/bugs/{bug_id}/",
+            headers=other_auth_headers,
+            json={"description": "Hacked"},
+        )
+        assert resp.status_code == 403
+
+
 class TestServeAppIcon:
     def test_serve_icon_app_not_found(self, client):
         resp = client.get("/api/binaries/applications/99999/icon/")

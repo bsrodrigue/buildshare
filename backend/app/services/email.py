@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from html import escape
 from typing import Any
 
 from app.config import settings
@@ -96,6 +97,7 @@ def send_otp_email(to_email: str, otp_code: str, user_name: str = "") -> bool:
     Returns:
         True if sent successfully, False otherwise
     """
+    user_name = escape(user_name)
     subject = "Votre code de vérification BuildShare"
     html_content = f"""
     <!DOCTYPE html>
@@ -149,6 +151,7 @@ def send_otp_email(to_email: str, otp_code: str, user_name: str = "") -> bool:
 
 
 def send_account_activated_email(to_email: str, user_name: str = "") -> bool:
+    user_name = escape(user_name)
     subject = "Compte activé — Bienvenue sur BuildShare"
     html_content = f"""
     <!DOCTYPE html>
@@ -206,9 +209,10 @@ def send_password_reset_email(to_email: str, reset_token: str, user_name: str = 
     Returns:
         True if sent successfully, False otherwise
     """
+    user_name = escape(user_name)
     # Build reset URL — in production, this should be your frontend URL
     base_url = settings.PUBLIC_URL or "http://localhost:8081"
-    reset_url = f"{base_url}/reset-password?token={reset_token}"
+    reset_url = escape(f"{base_url}/reset-password?token={reset_token}")
 
     subject = "Réinitialisation de votre mot de passe BuildShare"
     html_content = f"""
@@ -277,6 +281,7 @@ def send_email_change_verification_email(to_email: str, otp_code: str, user_name
     Returns:
         True if sent successfully, False otherwise
     """
+    user_name = escape(user_name)
     subject = "Vérification du changement d'email BuildShare"
     html_content = f"""
     <!DOCTYPE html>

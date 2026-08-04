@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.libs.errors import AppError
+from app.libs.errors import AppError, ErrorCode
 from app.models.user import OneTimePassword, User
 from app.schemas.user import (
     ChangeEmailInput,
@@ -29,6 +29,7 @@ from app.schemas.user import (
 )
 from app.services.auth import (
     authenticate_user,
+    create_access_token,
     create_password_reset_token,
     create_tokens,
     refresh_access_token,
@@ -101,15 +102,27 @@ def login(data: LoginInput, db: Session = Depends(get_db)):
 
 
 @router.post("/token/refresh/", response_model=RefreshOut)
-def refresh(data: RefreshInput):
+def refresh(data: RefreshInput, db: Session = Depends(get_db)):
     try:
-        access = refresh_access_token(data.refresh)
+        user_id = refresh_access_token(data.refresh)
     except AppError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": e.code, "message": e.message, "fields": {}},
         ) from e
-    return RefreshOut(access=access)
+
+    user = db.get(User, user_id)
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "code": ErrorCode.AUTH_USER_INACTIVE,
+                "message": "Ce compte est inactif.",
+                "fields": {},
+            },
+        )
+
+    return RefreshOut(access=create_access_token(user.id))
 
 
 @router.get("/me/", response_model=UserOut)
@@ -126,22 +139,18 @@ def me(user: User = Depends(get_current_user)):
 
 @router.post("/verify-otp/", response_model=MessageOut)
 def verify_otp(data: VerifyOtpInput, db: Session = Depends(get_db)):
-    user = db.execute(select(User).where(User.email == data.email)).scalar_one_or_none()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "auth_val_004", "message": "Utilisateur non trouvé.", "fields": {}},
-        )
-
     otp = db.execute(
-        select(OneTimePassword).where(
-            OneTimePassword.user_id == user.id,
+        select(OneTimePassword)
+        .join(User)
+        .where(
+            User.email == data.email,
             OneTimePassword.code == data.code,
-            OneTimePassword.is_used == False,  # noqa: E712
+            OneTimePassword.is_used.is_(False),
             OneTimePassword.expires_at > datetime.now(UTC),
         )
     ).scalar_one_or_none()
 
+    # Generic error on purpose: do not reveal whether the email exists.
     if not otp:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -153,6 +162,7 @@ def verify_otp(data: VerifyOtpInput, db: Session = Depends(get_db)):
         )
 
     otp.is_used = True
+    user = otp.user
     user.is_verified = True
     db.flush()
 
@@ -168,26 +178,23 @@ def verify_otp(data: VerifyOtpInput, db: Session = Depends(get_db)):
 @router.post("/resend-otp/", response_model=MessageOut)
 def resend_otp(data: ResendOtpInput, db: Session = Depends(get_db)):
     user = db.execute(select(User).where(User.email == data.email)).scalar_one_or_none()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "auth_val_004", "message": "Utilisateur non trouvé.", "fields": {}},
+
+    # Always return success to prevent email enumeration.
+    if user:
+        try:
+            otp = user_generate_otp(db, user=user)
+        except AppError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": e.code, "message": e.message, "fields": {}},
+            ) from e
+
+        user_name = f"{user.first_name} {user.last_name}".strip()
+        send_otp_email_task.delay(
+            to_email=user.email,
+            otp_code=otp.code,
+            user_name=user_name,
         )
-
-    try:
-        otp = user_generate_otp(db, user=user)
-    except AppError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": e.code, "message": e.message, "fields": {}},
-        ) from e
-
-    user_name = f"{user.first_name} {user.last_name}".strip()
-    send_otp_email_task.delay(
-        to_email=user.email,
-        otp_code=otp.code,
-        user_name=user_name,
-    )
 
     return MessageOut(message="Nouveau code envoyé.")
 
@@ -301,8 +308,8 @@ def change_email(
             },
         )
 
-    # Generate OTP for the new email
-    otp = user_generate_otp(db, user=user)
+    # Generate OTP for the new email, bound to that address
+    otp = user_generate_otp(db, user=user, target_email=data.new_email)
 
     # Send OTP to the new email
     user_name = f"{user.first_name} {user.last_name}".strip()
@@ -322,13 +329,14 @@ def verify_change_email(
     db: Session = Depends(get_db),
 ):
     """Verify the OTP sent to the new email and complete the email change."""
-    # Find the OTP for this user
+    # Find the OTP for this user, bound to the requested target email
     otp = db.execute(
         select(OneTimePassword).where(
             OneTimePassword.user_id == user.id,
             OneTimePassword.code == data.code,
-            OneTimePassword.is_used == False,  # noqa: E712
+            OneTimePassword.is_used.is_(False),
             OneTimePassword.expires_at > datetime.now(UTC),
+            OneTimePassword.target_email == data.new_email,
         )
     ).scalar_one_or_none()
 

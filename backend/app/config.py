@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     ALLOWED_HOSTS: list[str] = ["*"]
     CORS_ORIGINS: list[str] = ["*"]
     PUBLIC_URL: str = ""
+    # IPs of trusted reverse proxies allowed to set X-Forwarded-For
+    TRUSTED_PROXIES: list[str] = []
 
     # Database
     DATABASE_URL: str = f"sqlite:///{BASE_DIR}/db.sqlite3"

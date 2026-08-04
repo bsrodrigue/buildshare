@@ -57,12 +57,15 @@ def create_tokens(user_id: int) -> TokenOut:
     )
 
 
-def refresh_access_token(refresh_token: str) -> str:
+def refresh_access_token(refresh_token: str) -> int:
+    """Decode and validate a refresh token, returning the user_id."""
     payload = decode_token(refresh_token)
     if payload.get("token_type") != "refresh":
         raise AppError("Token de refresh invalide.", ErrorCode.AUTH_TOKEN_EXPIRED)
-    user_id = int(payload["sub"])
-    return create_access_token(user_id)
+    try:
+        return int(payload["sub"])
+    except (KeyError, ValueError, TypeError):
+        raise AppError("Token de refresh invalide.", ErrorCode.AUTH_TOKEN_EXPIRED) from None
 
 
 def user_create(
@@ -121,10 +124,12 @@ def user_create(
     return user
 
 
-def user_generate_otp(db: Session, *, user: User) -> OneTimePassword:
+def user_generate_otp(
+    db: Session, *, user: User, target_email: str | None = None
+) -> OneTimePassword:
     stmt = (
         update(OneTimePassword)
-        .where(OneTimePassword.user_id == user.id, not OneTimePassword.is_used)
+        .where(OneTimePassword.user_id == user.id, OneTimePassword.is_used.is_(False))
         .values(is_used=True)
     )
     db.execute(stmt)
@@ -133,6 +138,7 @@ def user_generate_otp(db: Session, *, user: User) -> OneTimePassword:
         user_id=user.id,
         code=_generate_otp_code(),
         expires_at=datetime.now(UTC) + timedelta(minutes=15),
+        target_email=target_email,
     )
     db.add(otp)
     db.flush()

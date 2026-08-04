@@ -15,8 +15,12 @@ from app.models.user import User
 class Notification(BaseModel):
     __tablename__ = "notifications_notification"
 
-    id: Mapped[uuid.UUID] = mapped_column(Uuid(native_uuid=False), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users_user.id"), nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(native_uuid=False), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users_user.id", ondelete="CASCADE"), nullable=False
+    )
     type: Mapped[str] = mapped_column(String(50), nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     body: Mapped[str] = mapped_column(Text, default="", nullable=False)

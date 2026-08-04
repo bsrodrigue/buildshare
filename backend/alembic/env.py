@@ -8,6 +8,12 @@ from alembic import context
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+# Ensure all models are registered on Base.metadata for autogenerate/check.
+import app.models.binary  # noqa: E402, F401
+import app.models.notification  # noqa: E402, F401
+import app.models.project  # noqa: E402, F401
+import app.models.task_job  # noqa: E402, F401
+import app.models.user  # noqa: E402, F401
 from app.config import settings  # noqa: E402
 from app.database import Base  # noqa: E402
 

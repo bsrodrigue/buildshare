@@ -6,7 +6,7 @@ from unittest import mock
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -26,6 +26,17 @@ test_engine = create_engine(
     connect_args={"check_same_thread": False},
     poolclass=StaticPool,
 )
+
+
+@event.listens_for(test_engine, "connect")
+def _enable_foreign_keys(dbapi_connection, connection_record) -> None:
+    """SQLite does not enforce foreign keys by default; turn them on so
+    cascade/constraint behavior matches Postgres in tests."""
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
+
 TestSessionLocal = sessionmaker(test_engine, expire_on_commit=False)
 
 

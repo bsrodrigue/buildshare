@@ -47,7 +47,9 @@ class UserProjectProfile(BaseModel):
         CHOICES = [ADMIN, MEMBER]
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users_user.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users_user.id", ondelete="CASCADE"), nullable=False
+    )
     project_id: Mapped[int] = mapped_column(ForeignKey("projects_project.id"), nullable=False)
     role: Mapped[str] = mapped_column(String(20), default=Role.MEMBER, nullable=False)
 
@@ -72,7 +74,9 @@ class ProjectInvitation(BaseModel):
     role: Mapped[str] = mapped_column(
         String(20), default=UserProjectProfile.Role.MEMBER, nullable=False
     )
-    inviter_id: Mapped[int] = mapped_column(ForeignKey("users_user.id"), nullable=False)
+    inviter_id: Mapped[int] = mapped_column(
+        ForeignKey("users_user.id", ondelete="CASCADE"), nullable=False
+    )
     status: Mapped[str] = mapped_column(String(20), default="PENDING", nullable=False)
 
     project: Mapped[Project] = relationship("Project", back_populates="invitations")

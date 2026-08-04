@@ -64,7 +64,9 @@ class UserProfile(BaseModel):
     __tablename__ = "users_userprofile"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users_user.id"), unique=True, nullable=False)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users_user.id", ondelete="CASCADE"), unique=True, nullable=False
+    )
     bio: Mapped[str] = mapped_column(Text, default="", nullable=False)
 
     user: Mapped[User] = relationship("User", back_populates="profile")
@@ -77,7 +79,9 @@ class OneTimePassword(BaseModel):
     __tablename__ = "users_onetimepassword"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users_user.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users_user.id", ondelete="CASCADE"), nullable=False
+    )
     code: Mapped[str] = mapped_column(String(10), nullable=False)
     is_used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

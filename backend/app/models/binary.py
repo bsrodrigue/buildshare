@@ -120,7 +120,9 @@ class BugReport(BaseModel):
         Uuid(native_uuid=False), primary_key=True, default=uuid.uuid4
     )
     release_id: Mapped[int] = mapped_column(ForeignKey("binaries_release.id"), nullable=False)
-    reporter_id: Mapped[int] = mapped_column(ForeignKey("users_user.id"), nullable=False)
+    reporter_id: Mapped[int] = mapped_column(
+        ForeignKey("users_user.id", ondelete="CASCADE"), nullable=False
+    )
     description: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="DRAFT", nullable=False)
 
@@ -143,7 +145,9 @@ class BugMessage(BaseModel):
         Uuid(native_uuid=False), primary_key=True, default=uuid.uuid4
     )
     bug_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("binaries_bugreport.id"), nullable=False)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users_user.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users_user.id", ondelete="CASCADE"), nullable=False
+    )
     text: Mapped[str] = mapped_column(Text, nullable=False)
 
     bug: Mapped[BugReport] = relationship("BugReport", back_populates="messages")

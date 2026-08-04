@@ -18,7 +18,9 @@ class TaskJob(BaseModel):
     id: Mapped[uuid.UUID] = mapped_column(
         Uuid(native_uuid=False), primary_key=True, default=uuid.uuid4
     )
-    user_id: Mapped[int] = mapped_column(ForeignKey("users_user.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users_user.id", ondelete="CASCADE"), nullable=False
+    )
     type: Mapped[str] = mapped_column(String(50), nullable=False)
     status: Mapped[str] = mapped_column(String(50), default="PENDING", nullable=False)
     input_data: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)

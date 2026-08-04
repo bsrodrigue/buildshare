@@ -27,6 +27,7 @@ export default function ChangePasswordScreen() {
   const mutation = useChangePassword();
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [formError, setFormError] = useState('');
 
   const {
     control,
@@ -39,8 +40,14 @@ export default function ChangePasswordScreen() {
   });
 
   const onSubmit = (data: ChangePasswordParams) => {
+    setFormError('');
     mutation.mutate(data, {
-      onError: (err: AppError) => setFormErrors(err, setError),
+      onError: (err: AppError) => {
+        const mapped = setFormErrors(err, setError);
+        if (!mapped) {
+          setFormError(err.message);
+        }
+      },
     });
   };
 
@@ -119,6 +126,12 @@ export default function ChangePasswordScreen() {
           </HelperText>
         </View>
 
+        {formError ? (
+          <HelperText type="error" visible style={styles.errorText}>
+            {formError}
+          </HelperText>
+        ) : null}
+
         <Button
           mode="contained"
           onPress={() => {
@@ -148,6 +161,7 @@ const styles = StyleSheet.create({
   content: { padding: 24 },
   fieldGroup: { marginBottom: 4 },
   input: { fontSize: 16 },
+  errorText: { marginTop: 8 },
   submitBtn: { marginTop: 16, borderRadius: 12 },
   submitContent: { height: 52 },
 });

@@ -103,7 +103,8 @@ export type ForgotPasswordParams = z.infer<typeof ForgotPasswordParamsSchema>;
  * Reset Password
  */
 export const ResetPasswordParamsSchema = z.object({
-  token: z.string().min(1, 'Le token est requis'),
+  email: z.string().email('Adresse email invalide'),
+  code: z.string().length(6, 'Le code doit contenir 6 chiffres'),
   new_password: z.string().min(8, 'Le mot de passe doit faire au moins 8 caractères'),
 });
 

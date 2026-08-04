@@ -30,18 +30,16 @@ from app.schemas.user import (
 from app.services.auth import (
     authenticate_user,
     create_access_token,
-    create_password_reset_token,
     create_tokens,
     refresh_access_token,
     user_change_password,
     user_create,
     user_delete,
     user_generate_otp,
-    verify_password_reset_token,
+    verify_otp_code,
 )
 from app.services.email import (
     send_email_change_verification_email,
-    send_password_reset_email,
 )
 from app.tasks.email import send_account_activated_email_task, send_otp_email_task
 
@@ -139,27 +137,13 @@ def me(user: User = Depends(get_current_user)):
 
 @router.post("/verify-otp/", response_model=MessageOut)
 def verify_otp(data: VerifyOtpInput, db: Session = Depends(get_db)):
-    otp = db.execute(
-        select(OneTimePassword)
-        .join(User)
-        .where(
-            User.email == data.email,
-            OneTimePassword.code == data.code,
-            OneTimePassword.is_used.is_(False),
-            OneTimePassword.expires_at > datetime.now(UTC),
-        )
-    ).scalar_one_or_none()
-
-    # Generic error on purpose: do not reveal whether the email exists.
-    if not otp:
+    try:
+        otp = verify_otp_code(db, email=data.email, code=data.code)
+    except AppError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "code": "gen_val_001",
-                "message": "Code invalide ou expiré.",
-                "fields": {},
-            },
-        )
+            detail={"code": e.code, "message": e.message, "fields": {}},
+        ) from e
 
     otp.is_used = True
     user = otp.user
@@ -201,51 +185,53 @@ def resend_otp(data: ResendOtpInput, db: Session = Depends(get_db)):
 
 @router.post("/forgot-password/", response_model=MessageOut)
 def forgot_password(data: ForgotPasswordInput, db: Session = Depends(get_db)):
-    """Send a password reset email if the account exists.
+    """Send a password reset code by email if the account exists.
 
     Always returns success to prevent email enumeration.
     """
     user = db.execute(select(User).where(User.email == data.email)).scalar_one_or_none()
 
     if user and user.is_active:
-        reset_token = create_password_reset_token(user.id)
+        try:
+            otp = user_generate_otp(db, user=user)
+        except AppError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": e.code, "message": e.message, "fields": {}},
+            ) from e
+
         user_name = f"{user.first_name} {user.last_name}".strip()
-        send_password_reset_email(
+        send_otp_email_task.delay(
             to_email=user.email,
-            reset_token=reset_token,
+            otp_code=otp.code,
             user_name=user_name,
         )
 
     # Always return success to prevent email enumeration
     return MessageOut(
-        message="Si un compte existe avec cet email, un lien de réinitialisation a été envoyé."
+        message="Si un compte existe avec cet email, un code de vérification a été envoyé."
     )
 
 
 @router.post("/reset-password/", response_model=MessageOut)
 def reset_password(data: ResetPasswordInput, db: Session = Depends(get_db)):
-    """Reset a user's password using a valid reset token."""
+    """Reset a user's password using a valid OTP code."""
     try:
-        user_id = verify_password_reset_token(data.token)
+        otp = verify_otp_code(db, email=data.email, code=data.code)
     except AppError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": e.code, "message": e.message, "fields": {}},
         ) from e
 
-    user = db.get(User, user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "auth_val_004", "message": "Utilisateur non trouvé.", "fields": {}},
-        )
-
+    user = otp.user
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "auth_val_005", "message": "Ce compte est inactif.", "fields": {}},
         )
 
+    otp.is_used = True
     user.set_password(data.new_password)
     db.flush()
 

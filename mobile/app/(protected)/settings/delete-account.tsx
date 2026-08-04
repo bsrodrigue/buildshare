@@ -28,6 +28,7 @@ export default function DeleteAccountScreen() {
   const mutation = useDeleteAccount();
   const [showPassword, setShowPassword] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
+  const [formError, setFormError] = useState('');
 
   const {
     control,
@@ -45,8 +46,14 @@ export default function DeleteAccountScreen() {
 
   const onConfirmDelete = (data: DeleteAccountParams) => {
     setConfirmVisible(false);
+    setFormError('');
     mutation.mutate(data, {
-      onError: (err: AppError) => setFormErrors(err, setError),
+      onError: (err: AppError) => {
+        const mapped = setFormErrors(err, setError);
+        if (!mapped) {
+          setFormError(err.message);
+        }
+      },
     });
   };
 
@@ -101,6 +108,12 @@ export default function DeleteAccountScreen() {
           </HelperText>
         </View>
 
+        {formError ? (
+          <HelperText type="error" visible style={styles.errorText}>
+            {formError}
+          </HelperText>
+        ) : null}
+
         <Button
           mode="contained"
           onPress={() => {
@@ -145,5 +158,6 @@ const styles = StyleSheet.create({
   fieldGroup: { marginBottom: 4 },
   input: { fontSize: 16 },
   deleteBtn: { marginTop: 16, borderRadius: 12, backgroundColor: 'red' },
+  errorText: { marginTop: 8 },
   submitContent: { height: 52 },
 });

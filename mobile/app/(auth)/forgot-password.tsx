@@ -31,6 +31,12 @@ export default function ForgotPasswordScreen() {
   const onSubmit = (data: ForgotPasswordParams) => {
     mutation.mutate(data, {
       onError: (err: AppError) => setFormErrors(err, setError),
+      onSuccess: () => {
+        router.replace({
+          pathname: '/(auth)/reset-password',
+          params: { email: data.email },
+        });
+      },
     });
   };
 

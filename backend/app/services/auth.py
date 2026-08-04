@@ -162,35 +162,29 @@ def authenticate_user(db: Session, email: str, password: str) -> User:
     return user
 
 
+def verify_otp_code(db: Session, email: str, code: str) -> OneTimePassword:
+    otp = db.execute(
+        select(OneTimePassword)
+        .join(User)
+        .where(
+            User.email == email,
+            OneTimePassword.code == code,
+            OneTimePassword.is_used.is_(False),
+            OneTimePassword.expires_at > datetime.now(UTC),
+        )
+    ).scalar_one_or_none()
+
+    # Generic error on purpose: do not reveal whether the email exists.
+    if not otp:
+        raise AppError("Code invalide ou expiré.", ErrorCode.AUTH_INVALID_OTP)
+    return otp
+
+
 def get_user_by_id(db: Session, user_id: int) -> User:
     user = db.get(User, user_id)
     if not user:
         raise AppError("Utilisateur non trouvé.", ErrorCode.AUTH_USER_NOT_FOUND)
     return user
-
-
-def create_password_reset_token(user_id: int) -> str:
-    """Create a short-lived token for password reset (1 hour expiry)."""
-    now = datetime.now(UTC)
-    payload = {
-        "sub": str(user_id),
-        "exp": now + timedelta(hours=1),
-        "iat": now,
-        "iss": settings.JWT_ISSUER,
-        "token_type": "password_reset",
-    }
-    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
-
-
-def verify_password_reset_token(token: str) -> int:
-    """Verify a password reset token and return the user_id.
-
-    Raises AppError if token is invalid or expired.
-    """
-    payload = decode_token(token)
-    if payload.get("token_type") != "password_reset":
-        raise AppError("Token de réinitialisation invalide.", ErrorCode.AUTH_INVALID_RESET_TOKEN)
-    return int(payload["sub"])
 
 
 def create_email_change_token(user_id: int, new_email: str) -> str:
@@ -225,7 +219,7 @@ def user_change_password(
     if not user.check_password(current_password):
         raise AppError(
             "Le mot de passe actuel est incorrect.",
-            ErrorCode.AUTH_INVALID_CREDENTIALS,
+            ErrorCode.AUTH_INVALID_PASSWORD,
         )
     user.set_password(new_password)
     db.flush()
@@ -236,7 +230,7 @@ def user_delete(db: Session, *, user: User, password: str) -> None:
     if not user.check_password(password):
         raise AppError(
             "Le mot de passe est incorrect.",
-            ErrorCode.AUTH_INVALID_CREDENTIALS,
+            ErrorCode.AUTH_INVALID_PASSWORD,
         )
     db.delete(user)
     db.flush()

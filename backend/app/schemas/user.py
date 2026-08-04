@@ -59,7 +59,8 @@ class ForgotPasswordInput(BaseModel):
 
 
 class ResetPasswordInput(BaseModel):
-    token: str
+    email: EmailStr
+    code: str
     new_password: str
 
 

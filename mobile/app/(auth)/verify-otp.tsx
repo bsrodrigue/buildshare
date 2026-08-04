@@ -5,6 +5,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-na
 import { Button, HelperText, Surface, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppError } from '@/libs/api/types';
 import { useResendOtp, useVerifyOtp } from '@/modules/auth/api/hooks';
 import { OtpInput } from '@/modules/shared/components/OtpInput';
 
@@ -34,7 +35,15 @@ export default function VerifyOtpScreen() {
         return;
       }
       setError('');
-      verifyMutation.mutate({ email: email || '', code: codeToVerify });
+      verifyMutation.mutate(
+        { email: email || '', code: codeToVerify },
+        {
+          onError: (err: AppError) => {
+            setError(err.message);
+            setCode('');
+          },
+        },
+      );
     },
     [code, email, t, verifyMutation],
   );

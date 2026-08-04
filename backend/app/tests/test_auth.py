@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app.models.user import OneTimePassword
-from app.services.auth import create_access_token, create_password_reset_token, create_refresh_token
+from app.services.auth import create_access_token, create_refresh_token
 
 
 def _get_latest_otp(db_session, user_id: int) -> str:
@@ -187,11 +189,21 @@ class TestForgotPassword:
 
 
 class TestResetPassword:
-    def test_reset_password_success(self, client: TestClient, test_user):
-        token = create_password_reset_token(test_user.id)
+    def test_reset_password_success(self, client: TestClient, test_user, db_session):
+        response = client.post(
+            "/api/auth/forgot-password/",
+            json={"email": "existing@example.com"},
+        )
+        assert response.status_code == 200
+
+        code = _get_latest_otp(db_session, test_user.id)
         response = client.post(
             "/api/auth/reset-password/",
-            json={"token": token, "new_password": "NewPass123!"},
+            json={
+                "email": "existing@example.com",
+                "code": code,
+                "new_password": "NewPass123!",
+            },
         )
         assert response.status_code == 200
 
@@ -202,19 +214,53 @@ class TestResetPassword:
         )
         assert login_response.status_code == 200
 
-    def test_reset_password_invalid_token(self, client: TestClient):
+    def test_reset_password_invalid_code(self, client: TestClient):
         response = client.post(
             "/api/auth/reset-password/",
-            json={"token": "invalid-token", "new_password": "NewPass123!"},
+            json={
+                "email": "existing@example.com",
+                "code": "000000",
+                "new_password": "NewPass123!",
+            },
         )
         assert response.status_code == 400
 
-    def test_reset_password_wrong_token_type(self, client: TestClient, test_user):
-        # Use an access token instead of a reset token
-        token = create_access_token(test_user.id)
+    def test_reset_password_used_code(self, client: TestClient, test_user, db_session):
+        client.post(
+            "/api/auth/forgot-password/",
+            json={"email": "existing@example.com"},
+        )
+        code = _get_latest_otp(db_session, test_user.id)
+        payload = {
+            "email": "existing@example.com",
+            "code": code,
+            "new_password": "NewPass123!",
+        }
+
+        first = client.post("/api/auth/reset-password/", json=payload)
+        assert first.status_code == 200
+
+        second = client.post("/api/auth/reset-password/", json=payload)
+        assert second.status_code == 400
+
+    def test_reset_password_expired_code(self, client: TestClient, test_user, db_session):
+        client.post(
+            "/api/auth/forgot-password/",
+            json={"email": "existing@example.com"},
+        )
+        otp = db_session.execute(
+            select(OneTimePassword).where(OneTimePassword.user_id == test_user.id)
+        ).scalar_one()
+        otp.expires_at = datetime.now(UTC) - timedelta(minutes=1)
+        db_session.commit()
+
         response = client.post(
             "/api/auth/reset-password/",
-            json={"token": token, "new_password": "NewPass123!"},
+            json={
+                "email": "existing@example.com",
+                "code": otp.code,
+                "new_password": "NewPass123!",
+            },
         )
         assert response.status_code == 400
 
@@ -242,6 +288,7 @@ class TestChangePassword:
             headers=auth_headers,
         )
         assert response.status_code == 400
+        assert response.json()["detail"]["code"] == "auth_val_013"
 
     def test_change_password_no_auth(self, client: TestClient):
         response = client.post(

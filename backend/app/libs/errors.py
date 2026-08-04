@@ -20,6 +20,8 @@ class ErrorCode(StrEnum):
     AUTH_RATE_LIMITED = "auth_val_009"
     AUTH_INVALID_RESET_TOKEN = "auth_val_010"
     AUTH_EMAIL_CHANGE_PENDING = "auth_val_011"
+    AUTH_INVALID_OTP = "auth_val_012"
+    AUTH_INVALID_PASSWORD = "auth_val_013"
 
     PROJECT_NOT_FOUND = "prj_val_001"
     PROJECT_ALREADY_EXISTS = "prj_val_002"

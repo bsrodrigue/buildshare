@@ -62,16 +62,23 @@
     },
     "forgot_password": {
       "title": "Mot de passe oublié",
-      "subtitle": "Entrez votre adresse email pour recevoir un lien de réinitialisation.",
+      "subtitle": "Entrez votre adresse email pour recevoir un code de réinitialisation.",
       "email_label": "Adresse email",
-      "submit": "Envoyer le lien",
+      "submit": "Envoyer le code",
       "back_to_login": "Retour à la connexion"
     },
     "reset_password": {
-      "title": "Nouveau mot de passe",
-      "subtitle": "Choisissez un nouveau mot de passe pour votre compte.",
+      "title": "Réinitialiser le mot de passe",
+      "subtitle": "Entrez le code envoyé à {{email}} et choisissez un nouveau mot de passe.",
       "password_label": "Nouveau mot de passe",
       "submit": "Réinitialiser le mot de passe",
+      "resend": "Renvoyer le code",
+      "resend_countdown": "Renvoyer le code ({{seconds}}s)",
+      "invalid_code": "Le code doit faire 6 chiffres",
+      "not_your_email": "Ce n'est pas votre email ?",
+      "expired": "Cette session a expiré. Veuillez demander un nouveau code.",
+      "request_new_code": "Demander un nouveau code",
+      "success": "Mot de passe mis à jour avec succès",
       "back_to_login": "Retour à la connexion"
     },
     "change_password": {

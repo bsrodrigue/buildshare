@@ -62,16 +62,23 @@
     },
     "forgot_password": {
       "title": "Forgot Password",
-      "subtitle": "Enter your email to receive a reset link.",
+      "subtitle": "Enter your email to receive a reset code.",
       "email_label": "Email address",
-      "submit": "Send Link",
+      "submit": "Send Code",
       "back_to_login": "Back to login"
     },
     "reset_password": {
-      "title": "New Password",
-      "subtitle": "Choose a new password for your account.",
+      "title": "Reset Password",
+      "subtitle": "Enter the code sent to {{email}} and choose a new password.",
       "password_label": "New password",
       "submit": "Reset Password",
+      "resend": "Resend code",
+      "resend_countdown": "Resend code ({{seconds}}s)",
+      "invalid_code": "Code must be 6 digits",
+      "not_your_email": "Not your email?",
+      "expired": "This session has expired. Please request a new code.",
+      "request_new_code": "Request a new code",
+      "success": "Password updated successfully",
       "back_to_login": "Back to login"
     },
     "change_password": {

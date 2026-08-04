@@ -303,7 +303,7 @@ def _generate_qr_data_uri(data: str) -> str:
 
 
 @router.get("/", response_class=HTMLResponse, include_in_schema=False)
-async def landing(request: Request):
+async def landing(request: Request) -> HTMLResponse:
     server_url = settings.PUBLIC_URL or str(request.base_url).rstrip("/")
     qr_data_uri = _generate_qr_data_uri(server_url)
     html = LANDING_TEMPLATE.format(

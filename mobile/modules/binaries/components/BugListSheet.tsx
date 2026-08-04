@@ -70,10 +70,15 @@ export function BugListSheet({ release, onDismiss, onSelectBug, onCreateBug }: B
   const renderBug = ({ item }: { item: BugReport }) => (
     <List.Item
       title={`Bug #${item.id.slice(0, 8)}`}
+      titleStyle={styles.bugTitle}
       description={`${item.reporter.first_name || item.reporter.email} • ${item.description.slice(0, 30)}${item.description.length > 30 ? '...' : ''}`}
       onPress={() => onSelectBug(item)}
-      left={(props) => <List.Icon {...props} icon="bug" color={getStatusColor(item.status)} />}
-      right={(props) => (
+      left={() => (
+        <View style={styles.bugIconContainer}>
+          <IconButton icon="bug" size={20} iconColor={getStatusColor(item.status)} />
+        </View>
+      )}
+      right={() => (
         <View style={styles.rightAction}>
           <Text
             variant="labelSmall"
@@ -81,7 +86,7 @@ export function BugListSheet({ release, onDismiss, onSelectBug, onCreateBug }: B
           >
             {item.status_display.toUpperCase()}
           </Text>
-          <List.Icon {...props} icon="chevron-right" />
+          <IconButton icon="chevron-right" size={20} />
         </View>
       )}
     />
@@ -133,6 +138,19 @@ export function BugListSheet({ release, onDismiss, onSelectBug, onCreateBug }: B
               renderItem={renderBug}
               ItemSeparatorComponent={() => <Divider />}
               contentContainerStyle={styles.listContent}
+              style={styles.flatList}
+              ListFooterComponent={
+                <View style={styles.footer}>
+                  <Button
+                    mode="contained"
+                    icon="plus"
+                    onPress={onCreateBug}
+                    style={styles.createButton}
+                  >
+                    {t('screens.bugs.report_button')}
+                  </Button>
+                </View>
+              }
               ListEmptyComponent={
                 <View style={styles.empty}>
                   <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
@@ -142,12 +160,6 @@ export function BugListSheet({ release, onDismiss, onSelectBug, onCreateBug }: B
               }
             />
           )}
-        </View>
-
-        <View style={styles.footer}>
-          <Button mode="contained" icon="plus" onPress={onCreateBug} style={styles.createButton}>
-            {t('screens.bugs.report_button')}
-          </Button>
         </View>
       </BottomSheetView>
     </BottomSheetModal>
@@ -171,12 +183,24 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  flatList: {
+    flex: 1,
+  },
   listContent: {
     paddingBottom: 24,
+    flexGrow: 1,
   },
   rightAction: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  bugTitle: {
+    fontWeight: '700',
+  },
+  bugIconContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 48,
   },
   statusBadge: {
     fontWeight: 'bold',

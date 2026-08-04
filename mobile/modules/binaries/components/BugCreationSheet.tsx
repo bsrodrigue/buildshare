@@ -118,7 +118,6 @@ export function BugCreationSheet({
                 {
                   color: theme.colors.onSurface,
                   backgroundColor: theme.colors.surfaceVariant,
-                  borderColor: theme.colors.outline,
                 },
               ]}
             />
@@ -167,7 +166,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    borderWidth: 1,
   },
   textArea: {
     minHeight: 120,

@@ -1,4 +1,4 @@
-import { Options } from 'ky';
+import { AxiosRequestConfig } from 'axios';
 
 import { HTTPClient } from '@/libs/http/client';
 
@@ -44,12 +44,13 @@ export class APIService {
  * Global HTTP client instance for service calls.
  */
 export const http = {
-  get: <T>(url: string, config?: Options) => APIService.getClient().get<T>(url, config),
-  post: <T>(url: string, data?: unknown, config?: Options) =>
+  get: <T>(url: string, config?: AxiosRequestConfig) => APIService.getClient().get<T>(url, config),
+  post: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
     APIService.getClient().post<T>(url, data, config),
-  put: <T>(url: string, data?: unknown, config?: Options) =>
+  put: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
     APIService.getClient().put<T>(url, data, config),
-  patch: <T>(url: string, data?: unknown, config?: Options) =>
+  patch: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
     APIService.getClient().patch<T>(url, data, config),
-  delete: <T>(url: string, config?: Options) => APIService.getClient().delete<T>(url, config),
+  delete: <T>(url: string, config?: AxiosRequestConfig) =>
+    APIService.getClient().delete<T>(url, config),
 };

@@ -1,16 +1,12 @@
 import { randomUUID } from 'expo-crypto';
 import * as FileSystem from 'expo-file-system/legacy';
-import ky from 'ky';
 
+import { http } from '@/libs/api/client';
 import { Logger } from '@/libs/log';
 
 import { DownloadItem, useDownloadStore } from './store';
 
 const logger = new Logger('DownloadService');
-
-function makeKy() {
-  return ky.extend({ timeout: 30000 });
-}
 
 function createItem(artifactId: number, fileName: string, url: string): DownloadItem {
   return {
@@ -57,7 +53,7 @@ export class DownloadService {
 
     try {
       logger.debug(`Fetching presigned URL from: ${item.url}`);
-      const data: { url: string } = await makeKy().get(item.url).json();
+      const data = await http.get<{ url: string }>(item.url);
       logger.debug(`Got presigned URL: ${data.url.substring(0, 80)}...`);
 
       const result = await FileSystem.downloadAsync(data.url, dest, undefined);

@@ -177,7 +177,7 @@ export const binaryService = {
    */
   getTaskJobs: async (projectId?: number): Promise<TaskJob[]> => {
     const response = await http.get<TaskJob[]>('binaries/jobs/', {
-      searchParams: { project_id: projectId },
+      params: { project_id: projectId },
     });
     return response;
   },
@@ -187,7 +187,7 @@ export const binaryService = {
    */
   listReleases: async (applicationId: number): Promise<Release[]> => {
     const response = await http.get<Release[]>('binaries/releases/', {
-      searchParams: { application_id: applicationId },
+      params: { application_id: applicationId },
     });
     return response;
   },

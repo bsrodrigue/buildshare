@@ -1,4 +1,11 @@
-import ky, { HTTPError, Options } from 'ky';
+import {
+  AxiosError,
+  AxiosRequestConfig,
+  AxiosResponse,
+  create,
+  InternalAxiosRequestConfig,
+  isAxiosError,
+} from 'axios';
 
 import { ErrorCode } from '@/libs/api/error-codes';
 import { ApiErrorSchema, AppError, BackendApiError, NetworkError } from '@/libs/api/types';
@@ -12,141 +19,148 @@ import { PlatformService } from '../platform';
 
 const logger = new Logger('HTTPClient');
 
+type AnyRecord = Record<string, unknown>;
+
 export class HTTPClient {
-  private instance: typeof ky;
-  private static refreshPromise: Promise<string | null> | null = null;
   private static retriedUrls = new Set<string>();
-  private baseURL: string;
+  private readonly baseURL: string;
+  private readonly instance;
+  private refreshPromise: Promise<string | null> | null = null;
 
   getBaseUrl(): string {
     return this.baseURL;
   }
 
-  constructor(baseURL: string, config?: Options) {
+  constructor(baseURL: string, config?: AxiosRequestConfig) {
     this.baseURL = baseURL;
-    this.instance = ky.create({
-      prefix: baseURL,
+
+    this.instance = create({
+      baseURL,
       timeout: 15000,
       ...config,
-
-      // Hooks Configurations
-      hooks: {
-        beforeRequest: [
-          ({ request }) => {
-            const token = TokenService.getAccessToken();
-            if (token) request.headers.set('Authorization', `Bearer ${token}`);
-
-            // Inject Platform & Version headers
-            const platformHeaders = PlatformService.getHeaders();
-            Object.entries(platformHeaders).forEach(([key, value]) => {
-              request.headers.set(key, value);
-            });
-
-            logger.debug(`${request.method.toUpperCase()} ${request.url}`);
-          },
-        ],
-      },
     });
+
+    this.instance.interceptors.request.use((request: InternalAxiosRequestConfig) => {
+      const token = TokenService.getAccessToken();
+      if (token) request.headers.set('Authorization', `Bearer ${token}`);
+
+      const platformHeaders = PlatformService.getHeaders();
+      Object.entries(platformHeaders).forEach(([key, value]) => request.headers.set(key, value));
+
+      logger.debug(`${request.method?.toUpperCase()} ${baseURL}${request.url}`);
+      return request;
+    });
+
+    this.instance.interceptors.response.use(
+      (response) => response,
+      (error: AxiosError) => {
+        if (error.response) {
+          logger.error(
+            `FAILURE ${error.response.status} ${error.config?.method?.toUpperCase()} ${error.config?.url}`,
+          );
+        }
+        throw HTTPClient.parseError(error);
+      },
+    );
   }
 
   /**
-   * Transforms a raw Response into a structured BackendApiError or Error.
-   * This is used when throwHttpErrors: false is set.
+   * Transforms an axios error into a typed AppError.
    */
-  private static async parseResponseError(response: Response): Promise<AppError> {
-    let responseData: unknown;
+  private static parseError(error: unknown): AppError {
+    if (isAxiosError(error)) {
+      if (error.response) {
+        return HTTPClient.parseResponseError(error.response);
+      }
+      const isTimeout =
+        error.code === 'ECONNABORTED' || error.message.toLowerCase().includes('timeout');
+      if (isTimeout || error.request) {
+        return new NetworkError();
+      }
+    }
+    return error instanceof Error ? error : new Error('An unexpected error occurred');
+  }
+
+  /**
+   * Parses a non-2xx response body into a BackendApiError or Error.
+   */
+  private static parseResponseError(response: AxiosResponse): AppError {
+    const data = response.data as unknown;
+    let responseData: unknown = data;
     let rawText = '';
 
-    try {
-      rawText = await response.text();
+    if (typeof data === 'string') {
+      rawText = data;
       try {
-        responseData = JSON.parse(rawText);
+        responseData = JSON.parse(data);
       } catch {
-        responseData = rawText;
+        responseData = data;
       }
-    } catch {
-      responseData = null;
+    } else {
+      try {
+        rawText = JSON.stringify(data);
+      } catch {
+        rawText = '';
+      }
     }
 
     if (rawText) {
       logger.error(`[Response Body]: ${rawText}`);
     }
 
-    // Try to parse using our standard API Error Schema
+    // Standard API error format: { code, message, fields }
     const apiResult = ApiErrorSchema.safeParse(responseData);
     if (apiResult.success) {
       return new BackendApiError(apiResult.data);
     }
 
     // FastAPI wraps HTTPException detail in {"detail": {...}}
-    if (responseData && typeof responseData === 'object' && 'detail' in responseData) {
-      const detail = (responseData as Record<string, unknown>).detail;
-      const nestedResult = ApiErrorSchema.safeParse(detail);
+    if (isRecord(responseData) && isRecord(responseData.detail)) {
+      const nestedResult = ApiErrorSchema.safeParse(responseData.detail);
       if (nestedResult.success) {
         return new BackendApiError(nestedResult.data);
       }
     }
 
-    // Fallback for unknown error formats
-    const fallbackMessage =
-      responseData && typeof responseData === 'object' && 'message' in responseData
-        ? ((responseData as Record<string, unknown>).message as string)
+    const message =
+      isRecord(responseData) && typeof responseData.message === 'string'
+        ? responseData.message
         : `Request failed with status ${response.status}`;
-
-    return new Error(fallbackMessage);
-  }
-
-  /**
-   * Parses a raw ky HTTPError (fallback for hooks or unexpected errors).
-   */
-  public static async parseError(error: unknown): Promise<AppError> {
-    if (error instanceof HTTPError) {
-      if (error.response.bodyUsed) {
-        return new Error(error.message || 'Server Error (Body consumed)');
-      }
-      return HTTPClient.parseResponseError(error.response);
-    }
-
-    if (error instanceof Error) {
-      // Handle ky timeouts or network errors
-      if (error.name === 'TimeoutError' || error.message.includes('network')) {
-        return new NetworkError();
-      }
-      return error;
-    }
-
-    return new Error('An unexpected error occurred');
+    return new Error(message);
   }
 
   private async handleResponseError(error: AppError) {
-    if (error instanceof BackendApiError) {
-      const fieldsLog =
-        error.fields && Object.keys(error.fields).length > 0
-          ? ` | Fields: ${JSONService.stringify(error.fields)}`
-          : '';
-      logger.error(`Backend Error [${error.code}]: ${error.message}${fieldsLog}`);
-
-      // 401: Unauthorized (Clear session and redirect)
-      // Note: AUTH_TOKEN_EXPIRED is handled in execute() for automatic refresh
-      if (
-        error.code === ErrorCode.AUTH_TOKEN_EXPIRED ||
-        error.code === ErrorCode.AUTH_INVALID_CREDENTIALS ||
-        error.code === ErrorCode.AUTH_SESSION_EXPIRED ||
-        error.code === ErrorCode.AUTH_TOKEN_INVALID ||
-        error.code === ErrorCode.AUTH_NOT_AUTHENTICATED ||
-        error.code === ErrorCode.AUTH_AUTHENTICATION_FAILED ||
-        error.code === ErrorCode.AUTH_USER_NOT_FOUND
-      ) {
-        const { logout, isAuthenticated } = useAuthStore.getState();
-
-        if (isAuthenticated) {
-          toast.error('Session expirée. Veuillez vous reconnecter.');
-          void logout();
-        }
-      }
-    } else {
+    if (!(error instanceof BackendApiError)) {
       logger.error(`API Error: ${error.message}`);
+      return;
     }
+
+    const fieldsLog =
+      error.fields && Object.keys(error.fields).length > 0
+        ? ` | Fields: ${JSONService.stringify(error.fields)}`
+        : '';
+    logger.error(`Backend Error [${error.code}]: ${error.message}${fieldsLog}`);
+
+    // 401: Clear session and redirect. AUTH_TOKEN_EXPIRED is retried in execute().
+    if (HTTPClient.isAuthError(error.code)) {
+      const { logout, isAuthenticated } = useAuthStore.getState();
+      if (isAuthenticated) {
+        toast.error('Session expirée. Veuillez vous reconnecter.');
+        void logout();
+      }
+    }
+  }
+
+  private static isAuthError(code: string): boolean {
+    return [
+      ErrorCode.AUTH_TOKEN_EXPIRED,
+      ErrorCode.AUTH_INVALID_CREDENTIALS,
+      ErrorCode.AUTH_SESSION_EXPIRED,
+      ErrorCode.AUTH_TOKEN_INVALID,
+      ErrorCode.AUTH_NOT_AUTHENTICATED,
+      ErrorCode.AUTH_AUTHENTICATION_FAILED,
+      ErrorCode.AUTH_USER_NOT_FOUND,
+    ].includes(code as ErrorCode);
   }
 
   /**
@@ -157,11 +171,11 @@ export class HTTPClient {
   }
 
   private async refreshToken(): Promise<string | null> {
-    if (HTTPClient.refreshPromise) {
-      return HTTPClient.refreshPromise;
+    if (this.refreshPromise) {
+      return this.refreshPromise;
     }
 
-    HTTPClient.refreshPromise = (async () => {
+    this.refreshPromise = (async () => {
       try {
         const refreshToken = TokenService.getRefreshToken();
         if (!refreshToken) {
@@ -170,75 +184,76 @@ export class HTTPClient {
 
         logger.debug('Attempting to refresh token...');
 
-        // Call the refresh endpoint directly to avoid interceptors/recursion
-        const response = await this.instance
-          .post('auth/token/refresh/', {
-            json: { refresh: refreshToken },
-            // Important: don't use the standard execute flow to avoid 401 loops
-          })
-          .json<{ access: string }>();
+        const response = await this.instance.post<{ access: string }>('auth/token/refresh/', {
+          refresh: refreshToken,
+        });
 
-        await TokenService.setAccessToken(response.access);
+        await TokenService.setAccessToken(response.data.access);
         HTTPClient.retriedUrls.clear();
         logger.debug('Token refreshed successfully');
-        return response.access;
+        return response.data.access;
       } catch (error) {
-        logger.error('Token refresh failed', (error as Error).message);
+        logger.error(
+          'Token refresh failed',
+          error instanceof Error ? error.message : String(error),
+        );
         return null;
       } finally {
-        HTTPClient.refreshPromise = null;
+        this.refreshPromise = null;
       }
     })();
 
-    return HTTPClient.refreshPromise;
+    return this.refreshPromise;
   }
 
   // --- Public API Methods ---
 
-  public get = <T>(url: string, config?: Options) => this.execute<T>('get', url, undefined, config);
+  public get = <T>(url: string, config?: AxiosRequestConfig) =>
+    this.execute<T>('get', url, undefined, config);
 
-  public post = <T>(url: string, data?: unknown, config?: Options) =>
+  public post = <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
     this.execute<T>('post', url, data, config);
 
-  public put = <T>(url: string, data?: unknown, config?: Options) =>
+  public put = <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
     this.execute<T>('put', url, data, config);
 
-  public patch = <T>(url: string, data?: unknown, config?: Options) =>
+  public patch = <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
     this.execute<T>('patch', url, data, config);
 
-  public delete = <T>(url: string, config?: Options) =>
+  public delete = <T>(url: string, config?: AxiosRequestConfig) =>
     this.execute<T>('delete', url, undefined, config);
 
   private async execute<T>(
     method: string,
     url: string,
     data?: unknown,
-    config?: Options,
+    config?: AxiosRequestConfig,
   ): Promise<T> {
-    const options: Options = {
-      ...config,
-      method,
-    };
-
-    if (data) {
-      if (data instanceof FormData) {
-        options.body = data;
-        logger.debug('[Payload]: FormData (not serializable via JSON)');
-      } else {
-        options.json = data;
-        logger.debug(`[Payload]: ${JSONService.stringify(data)}`);
-      }
+    if (data !== undefined) {
+      logger.debug(
+        `[Payload]: ${data instanceof FormData ? 'FormData' : JSONService.stringify(data)}`,
+      );
     }
 
     try {
-      // Use throwHttpErrors: false to prevent ky from consuming the body on 4xx/5xx.
-      // This is the most reliable way to ensure we can parse error details in React Native.
-      const response = await this.instance(url, { ...options, throwHttpErrors: false });
+      const response = await this.instance.request<T>({ method, url, data, ...config });
 
-      if (!response.ok) {
-        const error = await HTTPClient.parseResponseError(response);
+      if (
+        response.status === 204 ||
+        response.status === 205 ||
+        response.data === undefined ||
+        response.data === null ||
+        response.data === ''
+      ) {
+        logger.debug(`SUCCESS (No Content) ${method.toUpperCase()} ${url}`);
+        return {} as T;
+      }
 
-        // Handle automatic token refresh (at most once per URL)
+      logger.debug(`SUCCESS ${method.toUpperCase()} ${url}`);
+      return response.data;
+    } catch (error) {
+      if (error instanceof BackendApiError || error instanceof NetworkError) {
+        // Retry once on token expiry with a refreshed token
         const retryKey = `${method}:${url}`;
         if (
           error instanceof BackendApiError &&
@@ -253,32 +268,19 @@ export class HTTPClient {
           }
         }
 
-        logger.error(`FAILURE ${response.status} ${method.toUpperCase()} ${url}`);
-        await this.handleResponseError(error);
+        if (error instanceof BackendApiError) {
+          await this.handleResponseError(error);
+        }
         throw error;
       }
 
-      if (response.status === 204 || response.status === 205) {
-        logger.debug(`SUCCESS (No Content) ${method.toUpperCase()} ${url}`);
-        return {} as T;
-      }
-
-      const rawBody = await response.text();
-      if (!rawBody || rawBody.trim() === '') {
-        logger.debug(`SUCCESS (Empty Body) ${method.toUpperCase()} ${url}`);
-        return {} as T;
-      }
-
-      const responseData = JSON.parse(rawBody) as T;
-      logger.debug(`SUCCESS ${method.toUpperCase()} ${url}`);
-      return responseData;
-    } catch (error) {
-      // Wrap non-AppErrors (like network failures)
-      if (error instanceof BackendApiError || error instanceof NetworkError) throw error;
-
-      const parsedError = await HTTPClient.parseError(error);
+      const parsedError = HTTPClient.parseError(error);
       await this.handleResponseError(parsedError);
       throw parsedError;
     }
   }
+}
+
+function isRecord(value: unknown): value is AnyRecord {
+  return typeof value === 'object' && value !== null;
 }

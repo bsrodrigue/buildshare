@@ -34,11 +34,12 @@ def _override_apk_deps(
 
 
 def _run_analyze_sync(job_id: str, parser=None, downloader=None, db=None):
-    import app.tasks.binary_processing as task_mod
     from app.models.binary import Application, Artifact, Release
     from app.services.storage import get_storage_backend
+    from app.tests.fakes import FakeAPKDownloader, make_apk_parser
 
     _db = db
+    _db.commit()
     try:
         job = _db.execute(select(TaskJob).where(TaskJob.id == uuid.UUID(job_id))).scalar_one()
         flow = TaskJobFlow(job)
@@ -50,8 +51,8 @@ def _run_analyze_sync(job_id: str, parser=None, downloader=None, db=None):
         _project = _db.execute(select(Project).where(Project.id == project_id)).scalar_one()
 
         storage_service = get_storage_backend()
-        _downloader = downloader or task_mod.AndroidBinaryDownloader()
-        _parser = parser or task_mod.AndroidBinaryService()
+        _downloader = downloader or FakeAPKDownloader()
+        _parser = parser or make_apk_parser()
 
         apk_bytes = _downloader.download(storage_service, r2_path)
         metadata = _parser.parse_metadata(apk_bytes)

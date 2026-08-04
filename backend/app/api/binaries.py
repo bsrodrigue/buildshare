@@ -640,7 +640,7 @@ def analyze_apk(
         error_message=job.error_message,
         input_data=job.input_data,
         output_data=job.output_data or {},
-        app_title=job.output_data.get("application_title") if job.output_data else "",
+        app_title=job.output_data.get("application_title") or "",
         started_at=job.started_at,
         finished_at=job.finished_at,
         created_at=job.created_at,

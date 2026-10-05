@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -17,6 +19,13 @@ def project_list(db: Session, *, user: User) -> list[Project]:
         .distinct()
     )
     return list(db.execute(stmt).scalars().all())
+
+
+def project_find(db: Session, *, project_id: int) -> Project:
+    project = db.get(Project, project_id)
+    if not project:
+        raise AppError("Projet non trouvé.", ErrorCode.PROJECT_NOT_FOUND)
+    return project
 
 
 def project_get(db: Session, *, user: User, project_id: int) -> Project:
@@ -61,6 +70,39 @@ def project_delete(db: Session, *, project: Project, user: User) -> None:
     check_is_project_admin(db, user=user, project=project)
     db.delete(project)
     db.flush()
+
+
+def invitation_find(
+    db: Session, *, invitation_id: UUID, missing_ok: bool = False
+) -> ProjectInvitation | None:
+    invitation = db.get(ProjectInvitation, invitation_id)
+    if not invitation and not missing_ok:
+        raise AppError("Invitation non trouvée.", ErrorCode.RESOURCE_NOT_FOUND)
+    return invitation
+
+
+def invitation_list_pending(db: Session, *, user: User) -> list[ProjectInvitation]:
+    stmt = select(ProjectInvitation).where(
+        ProjectInvitation.email == user.email, ProjectInvitation.status == "PENDING"
+    )
+    return list(db.execute(stmt).scalars().all())
+
+
+def invitation_respond(db: Session, *, user: User, invitation_id: UUID, action: str) -> str:
+    invitation = invitation_find(db, invitation_id=invitation_id)
+    if action == "accept":
+        invitation_accept(db, invitation=invitation, user=user)
+        return "accepted"
+    if action == "reject":
+        invitation_reject(db, invitation=invitation, user=user)
+        return "rejected"
+    raise AppError("Action non valide.", ErrorCode.VALIDATION_ERROR)
+
+
+def project_member_list(db: Session, *, user: User, project_id: int) -> list[UserProjectProfile]:
+    project = project_get(db, user=user, project_id=project_id)
+    stmt = select(UserProjectProfile).where(UserProjectProfile.project_id == project.id)
+    return list(db.execute(stmt).scalars().all())
 
 
 def invitation_send(

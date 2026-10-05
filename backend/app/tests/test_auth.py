@@ -19,7 +19,7 @@ class TestRegister:
         client.post("/api/auth/register/", json=register_data)
         response = client.post("/api/auth/register/", json=register_data)
         assert response.status_code == 400
-        assert response.json()["detail"]["code"] == "auth_val_004"
+        assert response.json()["detail"]["code"] == "gen_val_002"
 
     def test_register_invalid_email(self, client: TestClient):
         response = client.post(

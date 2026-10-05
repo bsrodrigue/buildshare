@@ -70,7 +70,7 @@ class TestUpdateProject:
             headers=other_auth_headers,
             json={"title": "Hacked Name"},
         )
-        assert response.status_code == 403
+        assert response.status_code == 404
 
 
 class TestDeleteProject:
@@ -80,7 +80,7 @@ class TestDeleteProject:
 
     def test_delete_not_found(self, client: TestClient, auth_headers: dict):
         response = client.delete("/api/projects/999/", headers=auth_headers)
-        assert response.status_code == 403
+        assert response.status_code == 404
 
 
 class TestInvitations:

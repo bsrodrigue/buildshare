@@ -57,7 +57,7 @@ class TestApplications:
                 "app_id": "com.hacked.app",
             },
         )
-        assert response.status_code == 400
+        assert response.status_code == 403
 
     def test_get_application(self, client: TestClient, auth_headers: dict, project: Project):
         app_id = _app_id(client, auth_headers, project)
@@ -149,8 +149,8 @@ class TestAnalyzeAPK:
         )
         return resp.json()
 
-    @patch("app.api.binaries.AndroidBinaryDownloader")
-    @patch("app.api.binaries.AndroidBinaryService")
+    @patch("app.services.binary.AndroidBinaryDownloader")
+    @patch("app.services.binary.AndroidBinaryService")
     def test_analyze_apk_new_app(
         self, mock_service, mock_downloader, client, auth_headers, project
     ):
@@ -173,8 +173,8 @@ class TestAnalyzeAPK:
         assert data["version_code_exists"] is False
         assert data["decisions_needed"] == []
 
-    @patch("app.api.binaries.AndroidBinaryDownloader")
-    @patch("app.api.binaries.AndroidBinaryService")
+    @patch("app.services.binary.AndroidBinaryDownloader")
+    @patch("app.services.binary.AndroidBinaryService")
     def test_analyze_apk_sibling_conflict(
         self, mock_service, mock_downloader, client, auth_headers, project
     ):
@@ -208,8 +208,8 @@ class TestAnalyzeAPK:
         assert len(data["sibling_apps"]) == 1
         assert "app_conflict_signature" in data["decisions_needed"]
 
-    @patch("app.api.binaries.AndroidBinaryDownloader")
-    @patch("app.api.binaries.AndroidBinaryService")
+    @patch("app.services.binary.AndroidBinaryDownloader")
+    @patch("app.services.binary.AndroidBinaryService")
     def test_analyze_apk_duplicate(
         self, mock_service, mock_downloader, client, auth_headers, project
     ):

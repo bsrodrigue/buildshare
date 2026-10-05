@@ -64,7 +64,9 @@ def user_create(
 ) -> User:
     existing = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
     if existing:
-        raise AppError("Un utilisateur avec cet email existe déjà.", ErrorCode.AUTH_USER_NOT_FOUND)
+        raise AppError(
+            "Un utilisateur avec cet email existe déjà.", ErrorCode.UNIQUE_CONSTRAINT_VIOLATED
+        )
 
     user = User(
         email=email,
@@ -93,7 +95,7 @@ def user_create(
 def user_generate_otp(db: Session, *, user: User) -> OneTimePassword:
     stmt = (
         update(OneTimePassword)
-        .where(OneTimePassword.user_id == user.id, not OneTimePassword.is_used)
+        .where(OneTimePassword.user_id == user.id, OneTimePassword.is_used.is_(False))
         .values(is_used=True)
     )
     db.execute(stmt)
@@ -125,3 +127,28 @@ def get_user_by_id(db: Session, user_id: int) -> User:
     if not user:
         raise AppError("Utilisateur non trouvé.", ErrorCode.AUTH_USER_NOT_FOUND)
     return user
+
+
+def user_get_by_email(db: Session, *, email: str) -> User:
+    user = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
+    if not user:
+        raise AppError("Utilisateur non trouvé.", ErrorCode.AUTH_USER_NOT_FOUND)
+    return user
+
+
+def otp_verify(db: Session, *, email: str, code: str) -> None:
+    user = user_get_by_email(db, email=email)
+    otp = db.execute(
+        select(OneTimePassword).where(
+            OneTimePassword.user_id == user.id,
+            OneTimePassword.code == code,
+            OneTimePassword.is_used.is_(False),
+            OneTimePassword.expires_at > datetime.now(UTC),
+        )
+    ).scalar_one_or_none()
+    if not otp:
+        raise AppError("Code invalide ou expiré.", ErrorCode.VALIDATION_ERROR)
+
+    otp.is_used = True
+    user.is_verified = True
+    db.flush()
